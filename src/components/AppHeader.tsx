@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Building2, FileText, Home, KeyRound, LayoutDashboard, LogIn, LogOut, Search } from "lucide-react";
-import { getVerifiedCurrentUser } from "@/lib/auth";
+import type { getVerifiedCurrentUser } from "@/lib/auth";
 import { logoutAction } from "@/app/login/actions";
 
-export async function AppHeader() {
-  const user = await getVerifiedCurrentUser();
+type VerifiedUser = Awaited<ReturnType<typeof getVerifiedCurrentUser>>;
 
+export function AppHeader({ user }: { user: VerifiedUser }) {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">

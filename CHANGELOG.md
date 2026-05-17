@@ -455,3 +455,10 @@ Initial app shell.
 - Added `npm run vercel-build` so Vercel runs preflight, Prisma generation, migrations, and Next build in order.
 - Added `npm run vercel:preflight` and `scripts/verify-vercel.ts` for Vercel-specific environment, storage, cron, Prisma, and security-header checks.
 - Added `docs/VERCEL_DEPLOYMENT.md` and updated `.env.example` to prefer S3-compatible storage for production Vercel deployments.
+
+## v1.7.0 follow-up — Vercel TypeScript compatibility
+
+- Fixed the global layout/header compile error caused by rendering an async header component directly in JSX.
+- Moved verified user loading to the async root layout and made `AppHeader` a synchronous presentational component.
+- Preserved DB-verified session display behavior while keeping the build compatible with Vercel/Next.js TypeScript checks.
+
