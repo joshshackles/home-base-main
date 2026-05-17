@@ -1,3 +1,10 @@
+# Changelog
+
+## v2.6.7 - Vercel document route type fix
+
+- Fixed strict TypeScript narrowing in the protected document download API route.
+- Keeps the v2.6.x Vercel configuration, Prisma generate, schema relation, seed check, account action, server-action form, and enum typing fixes.
+
 ## v2.6.6 - Vercel TypeScript locked status fix
 
 - Fixed strict TypeScript build errors caused by narrowed enum arrays in admin lease/payment-plan actions.
@@ -16,7 +23,6 @@
 - Fixed a strict TypeScript narrowing issue in `src/app/account/actions.ts` by marking the password error redirect helper as `never` returning.
 - Keeps the Vercel config, Prisma generate, Prisma relation, and seed verification fixes from the prior Vercel patches.
 
-# Changelog
 
 ## 2.6.3 - Vercel TypeScript Verify-Seed Fix
 

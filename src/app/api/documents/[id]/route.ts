@@ -44,16 +44,21 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
   const result = await canAccessDocument(params.id);
   if (!result.allowed) return NextResponse.json({ error: "Document is not available." }, { status: result.status });
 
-  const filePath = await assertReadableStoredDocument(result.document.storagePath);
+  const document = result.document;
+  if (!document) {
+    return NextResponse.json({ error: "Document is not available." }, { status: 404 });
+  }
+
+  const filePath = await assertReadableStoredDocument(document.storagePath);
   const body = await readFile(filePath);
 
-  await writeAuditLog({ actor: result.user, action: AuditAction.DOWNLOAD, entityType: "Document", entityId: result.document.id, message: `Downloaded document ${result.document.title}.` });
+  await writeAuditLog({ actor: result.user, action: AuditAction.DOWNLOAD, entityType: "Document", entityId: document.id, message: `Downloaded document ${document.title}.` });
 
   return new NextResponse(body, {
     headers: {
-      "Content-Type": result.document.mimeType,
-      "Content-Length": String(result.document.sizeBytes),
-      "Content-Disposition": `attachment; filename="${result.document.originalName.replace(/"/g, "")}"`
+      "Content-Type": document.mimeType,
+      "Content-Length": String(document.sizeBytes),
+      "Content-Disposition": `attachment; filename="${document.originalName.replace(/"/g, "")}"`
     }
   });
 }
