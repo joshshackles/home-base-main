@@ -22,13 +22,14 @@ function safeNextPath(value: string) {
 function dashboardForRole(role: string) {
   if (role === "ADMIN") return "/admin";
   if (role === "LANDLORD") return "/landlord";
+  if (role === "INSPECTOR") return "/admin/inspections";
   if (role === "APPLICANT" || role === "TENANT") return "/applicant";
   return "/marketplace";
 }
 
 function destinationForRole(next: string, role: string, forcePasswordReset?: boolean) {
   if (forcePasswordReset) return "/account/password?reason=required";
-  if (next.startsWith("/admin") && role !== "ADMIN") return dashboardForRole(role);
+  if (next.startsWith("/admin") && role !== "ADMIN" && role !== "INSPECTOR") return dashboardForRole(role);
   if (next.startsWith("/landlord") && role !== "LANDLORD") return dashboardForRole(role);
   if (next.startsWith("/applicant") && role !== "APPLICANT" && role !== "TENANT") return dashboardForRole(role);
   return next;

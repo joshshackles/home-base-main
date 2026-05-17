@@ -1,3 +1,12 @@
+## v3.0.2 - Demo Login and Signup Redirect Fix
+
+- Fixed applicant signup so successful `redirect()` calls are no longer caught and displayed as raw `NEXT_REDIRECT` errors.
+- Replaced randomized seed passwords with a consistent demo default of `DemoPassword123!`, still overridable through seed environment variables.
+- Added one-click demo login buttons for Admin, Landlord, and Applicant accounts.
+- Added a seeded inspector account and aligned the sample inspection assignment to that account.
+- Bumped package and README version from `3.0.1` to `3.0.2`.
+
+
 ## v3.0.1 - Enum Type Narrowing Build Fix
 
 - Fixed enum-safe role checks in authorization helpers so Vercel/Next TypeScript builds do not fail on narrowed array literal `.includes()` calls.

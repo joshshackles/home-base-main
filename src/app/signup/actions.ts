@@ -23,9 +23,10 @@ export async function applicantSignupAction(formData: FormData) {
     const user = await createApplicantAccountAndClaimMatches(parsed.data);
     const token = await createDatabaseSession({ userId: user.id, email: user.email, name: user.name, role: user.role }, getRequestClientMetadata());
     setSessionCookie(token);
-    redirect(next);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Applicant signup failed.";
     redirect(`/signup?error=${encodeURIComponent(message)}&next=${encodeURIComponent(next)}`);
   }
+
+  redirect(next);
 }

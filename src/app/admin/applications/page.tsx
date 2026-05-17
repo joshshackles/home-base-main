@@ -59,7 +59,7 @@ export default async function ApplicationsAdminPage({ searchParams }: { searchPa
                 <td className="px-5 py-4"><Link href={`/marketplace/${application.unit.id}`} className="font-bold text-brand-700 hover:underline">{application.unit.property.name} #{application.unit.unitNumber}</Link><p className="mt-1 text-xs text-slate-500">{application.unit.property.city}, {application.unit.property.state}</p></td>
                 <td className="px-5 py-4 font-bold text-slate-950">{formatCurrency(application.unit.rentAmount)}</td>
                 <td className="px-5 py-4"><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase text-slate-700">{label(application.status)}</span></td>
-                <td className="px-5 py-4 text-slate-600">{application.documentRequests.filter((request) => ["REQUESTED", "REJECTED"].includes(request.status)).length} missing</td>
+                <td className="px-5 py-4 text-slate-600">{application.documentRequests.filter((request) => (["REQUESTED", "REJECTED"] as string[]).includes(request.status)).length} missing</td>
                 <td className="px-5 py-4 text-slate-600">{application.leasePackets.length}</td>
                 <td className="px-5 py-4 text-slate-600">{application.notes.length}</td>
                 <td className="px-5 py-4 text-slate-600">{application.createdAt.toLocaleDateString()}</td>

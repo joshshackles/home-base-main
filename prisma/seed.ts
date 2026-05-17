@@ -1,16 +1,13 @@
-import crypto from "crypto";
 import { ApplicationStatus, DocumentCategory, DocumentRequestStatus, DocumentVisibility, InspectionChecklistStatus, InspectionStatus, LedgerEntryType, PaymentMethod, PaymentPlanInstallmentStatus, PaymentPlanStatus, RecurringChargeFrequency, LeadStatus, LeasePacketStatus, PrismaClient, SignatureNotificationType, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
 import { hashPassword, validatePasswordStrength } from "../src/lib/password";
 import { DEFAULT_LEASE_TEMPLATE_BODY } from "../src/lib/lease-render";
 
 const prisma = new PrismaClient();
 
-function generatedSeedPassword(label: string) {
-  return `${label}-${crypto.randomUUID()}-Aa1!`;
-}
+const DEFAULT_SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || "DemoPassword123!";
 
-function seedPassword(envName: string, fallbackLabel: string) {
-  const password = process.env[envName] ?? generatedSeedPassword(fallbackLabel);
+function seedPassword(envName: string) {
+  const password = process.env[envName] ?? DEFAULT_SEED_PASSWORD;
   const result = validatePasswordStrength(password);
 
   if (!result.ok) {
@@ -21,16 +18,18 @@ function seedPassword(envName: string, fallbackLabel: string) {
 }
 
 const seedPasswords = {
-  admin: seedPassword("SEED_ADMIN_PASSWORD", "AdminSeed"),
-  landlord: seedPassword("SEED_LANDLORD_PASSWORD", "LandlordSeed"),
-  applicant: seedPassword("SEED_APPLICANT_PASSWORD", "ApplicantSeed")
+  admin: seedPassword("SEED_ADMIN_PASSWORD"),
+  landlord: seedPassword("SEED_LANDLORD_PASSWORD"),
+  inspector: seedPassword("SEED_INSPECTOR_PASSWORD"),
+  applicant: seedPassword("SEED_APPLICANT_PASSWORD")
 };
 
 async function main() {
-  console.log("Seed user temporary passwords. Save these values immediately or set SEED_*_PASSWORD env vars before seeding.");
+  console.log("Seed user passwords. Override with SEED_DEFAULT_PASSWORD or role-specific SEED_*_PASSWORD env vars if needed.");
   console.table({
     "admin@homebase.local": seedPasswords.admin,
     "landlord@homebase.local": seedPasswords.landlord,
+    "inspector@homebase.local": seedPasswords.inspector,
     "applicant@homebase.local": seedPasswords.applicant
   });
   const admin = await prisma.user.upsert({
@@ -39,8 +38,8 @@ async function main() {
       passwordHash: hashPassword(seedPasswords.admin),
       role: UserRole.ADMIN,
       isActive: true,
-      forcePasswordReset: true,
-      passwordChangedAt: null,
+      forcePasswordReset: false,
+      passwordChangedAt: new Date(),
       failedLoginCount: 0,
       lockedUntil: null
     },
@@ -50,8 +49,8 @@ async function main() {
       passwordHash: hashPassword(seedPasswords.admin),
       role: UserRole.ADMIN,
       isActive: true,
-      forcePasswordReset: true,
-      passwordChangedAt: null,
+      forcePasswordReset: false,
+      passwordChangedAt: new Date(),
       failedLoginCount: 0,
       lockedUntil: null
     }
@@ -63,8 +62,8 @@ async function main() {
       passwordHash: hashPassword(seedPasswords.landlord),
       role: UserRole.LANDLORD,
       isActive: true,
-      forcePasswordReset: true,
-      passwordChangedAt: null,
+      forcePasswordReset: false,
+      passwordChangedAt: new Date(),
       failedLoginCount: 0,
       lockedUntil: null
     },
@@ -74,8 +73,33 @@ async function main() {
       passwordHash: hashPassword(seedPasswords.landlord),
       role: UserRole.LANDLORD,
       isActive: true,
-      forcePasswordReset: true,
-      passwordChangedAt: null,
+      forcePasswordReset: false,
+      passwordChangedAt: new Date(),
+      failedLoginCount: 0,
+      lockedUntil: null
+    }
+  });
+
+
+  const inspector = await prisma.user.upsert({
+    where: { email: "inspector@homebase.local" },
+    update: {
+      passwordHash: hashPassword(seedPasswords.inspector),
+      role: UserRole.INSPECTOR,
+      isActive: true,
+      forcePasswordReset: false,
+      passwordChangedAt: new Date(),
+      failedLoginCount: 0,
+      lockedUntil: null
+    },
+    create: {
+      email: "inspector@homebase.local",
+      name: "Sample Inspector",
+      passwordHash: hashPassword(seedPasswords.inspector),
+      role: UserRole.INSPECTOR,
+      isActive: true,
+      forcePasswordReset: false,
+      passwordChangedAt: new Date(),
       failedLoginCount: 0,
       lockedUntil: null
     }
@@ -87,8 +111,8 @@ async function main() {
       passwordHash: hashPassword(seedPasswords.applicant),
       role: UserRole.APPLICANT,
       isActive: true,
-      forcePasswordReset: true,
-      passwordChangedAt: null,
+      forcePasswordReset: false,
+      passwordChangedAt: new Date(),
       failedLoginCount: 0,
       lockedUntil: null
     },
@@ -98,8 +122,8 @@ async function main() {
       passwordHash: hashPassword(seedPasswords.applicant),
       role: UserRole.APPLICANT,
       isActive: true,
-      forcePasswordReset: true,
-      passwordChangedAt: null,
+      forcePasswordReset: false,
+      passwordChangedAt: new Date(),
       failedLoginCount: 0,
       lockedUntil: null
     }
@@ -251,7 +275,7 @@ async function main() {
       id: "seed-inspection-unit-101",
       unitId: unit101.id,
       applicationId: application.id,
-      assignedToId: admin.id,
+      assignedToId: inspector.id,
       status: InspectionStatus.SCHEDULED,
       scheduledFor: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3),
       inspectorName: "HomeBase Test Inspector",

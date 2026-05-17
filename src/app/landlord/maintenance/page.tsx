@@ -25,7 +25,7 @@ export default async function LandlordMaintenancePage() {
     prisma.user.findMany({ where: { role: { in: [UserRole.ADMIN, UserRole.LANDLORD, UserRole.INSPECTOR] }, isActive: true }, select: { id: true, name: true, email: true, role: true }, orderBy: { email: "asc" } })
   ]);
 
-  const openCount = requests.filter((request) => !["COMPLETED", "CANCELLED"].includes(request.status)).length;
+  const openCount = requests.filter((request) => !(["COMPLETED", "CANCELLED"] as string[]).includes(request.status)).length;
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">

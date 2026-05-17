@@ -52,7 +52,7 @@ export default async function ApplicantApplicationDetailPage({ params }: { param
     include: { householdMembers: true, incomeSources: true }
   });
 
-  const unresolvedRequests = application.documentRequests.filter((request) => ["REQUESTED", "REJECTED"].includes(request.status));
+  const unresolvedRequests = application.documentRequests.filter((request) => (["REQUESTED", "REJECTED"] as string[]).includes(request.status));
   const canSubmit = application.status === "STARTED" && profile && profile.householdMembers.length > 0 && profile.incomeSources.length > 0 && unresolvedRequests.length === 0;
   const canWithdraw = withdrawableApplicationStatuses.includes(application.status);
 
@@ -88,7 +88,7 @@ export default async function ApplicantApplicationDetailPage({ params }: { param
             <p className="mt-2 text-sm leading-6 text-slate-600">Upload the items requested by the housing team. Rejected items can be replaced from this checklist.</p>
             <div className="mt-5 space-y-3">
               {application.documentRequests.length === 0 ? <p className="text-slate-600">No specific documents have been requested yet.</p> : application.documentRequests.map((request) => {
-                const needsUpload = ["REQUESTED", "REJECTED"].includes(request.status);
+                const needsUpload = (["REQUESTED", "REJECTED"] as string[]).includes(request.status);
                 return (
                   <article key={request.id} className={`rounded-2xl border p-4 ${requestTone(request.status)}`}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -129,7 +129,7 @@ export default async function ApplicantApplicationDetailPage({ params }: { param
             <form action={uploadApplicantDocument} className="mt-5 grid gap-4 md:grid-cols-2" encType="multipart/form-data">
               <input type="hidden" name="applicationId" value={application.id} />
               <div><label className="text-sm font-bold text-slate-700">Document title</label><input name="title" className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-brand-600 focus:ring-4 focus:ring-brand-100" placeholder="Example: Paystub" required /></div>
-              <div><label className="text-sm font-bold text-slate-700">Category</label><select name="category" className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-brand-600 focus:ring-4 focus:ring-brand-100" defaultValue="OTHER">{Object.values(DocumentCategory).filter((category) => !["LANDLORD_DOCUMENT", "RFTA", "UTILITY_ALLOWANCE"].includes(category)).map((category) => <option key={category} value={category}>{label(category)}</option>)}</select></div>
+              <div><label className="text-sm font-bold text-slate-700">Category</label><select name="category" className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-brand-600 focus:ring-4 focus:ring-brand-100" defaultValue="OTHER">{Object.values(DocumentCategory).filter((category) => !(["LANDLORD_DOCUMENT", "RFTA", "UTILITY_ALLOWANCE"] as string[]).includes(category)).map((category) => <option key={category} value={category}>{label(category)}</option>)}</select></div>
               <div><label className="text-sm font-bold text-slate-700">File</label><input name="file" type="file" className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-brand-600 focus:ring-4 focus:ring-brand-100" required /></div>
               <div><label className="text-sm font-bold text-slate-700">Notes</label><input name="notes" className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-brand-600 focus:ring-4 focus:ring-brand-100" placeholder="Optional note" /></div>
               <button type="submit" className="rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700 md:col-span-2">Upload Other Document</button>

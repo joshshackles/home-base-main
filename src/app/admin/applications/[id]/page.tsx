@@ -45,7 +45,7 @@ export default async function ApplicationDetailPage({ params, searchParams }: { 
 
   if (!application) notFound();
 
-  const openRequests = application.documentRequests.filter((request) => ["REQUESTED", "REJECTED"].includes(request.status));
+  const openRequests = application.documentRequests.filter((request) => (["REQUESTED", "REJECTED"] as string[]).includes(request.status));
   const submittedRequests = application.documentRequests.filter((request) => request.status === "SUBMITTED");
   const acceptedRequests = application.documentRequests.filter((request) => request.status === "ACCEPTED");
   const leaseTemplates = await prisma.leaseTemplate.findMany({ where: { isActive: true }, orderBy: { name: "asc" } });

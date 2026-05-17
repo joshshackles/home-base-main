@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { applicantSignupAction } from "./actions";
 import { passwordPolicyMessage } from "@/lib/password";
+import { DEMO_PASSWORD } from "@/lib/demo-accounts";
 
 export default function ApplicantSignupPage({ searchParams }: { searchParams?: { error?: string; next?: string } }) {
   const next = searchParams?.next || "/applicant";
@@ -11,7 +12,7 @@ export default function ApplicantSignupPage({ searchParams }: { searchParams?: {
         <p className="font-bold uppercase tracking-[0.25em] text-brand-700">Applicant signup</p>
         <h1 className="mt-2 text-3xl font-black text-slate-950">Create your applicant portal account</h1>
         <p className="mt-3 leading-7 text-slate-600">
-          Use the same email you used on your housing inquiry. HomeBase will automatically connect matching applications to your new account.
+          Use the same email you used on your housing inquiry. HomeBase will automatically connect matching applications to your new account. For demos, use the one-click demo logins on the sign-in page instead of creating another account.
         </p>
 
         {searchParams?.error ? (
@@ -40,7 +41,7 @@ export default function ApplicantSignupPage({ searchParams }: { searchParams?: {
             <span className="text-sm font-bold text-slate-700">Confirm password</span>
             <input name="confirmPassword" type="password" required className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100" autoComplete="new-password" />
           </label>
-          <p className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600 md:col-span-2">{passwordPolicyMessage()}</p>
+          <p className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600 md:col-span-2">{passwordPolicyMessage()} Demo seed password: <strong className="text-slate-900">{DEMO_PASSWORD}</strong>.</p>
           <button className="rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700 md:col-span-2">Create Account</button>
         </form>
 

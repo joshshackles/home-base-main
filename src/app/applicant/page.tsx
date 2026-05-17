@@ -37,8 +37,8 @@ export default async function ApplicantDashboardPage() {
     prisma.accountAccessRequest.findMany({ where: { userId: user.userId }, orderBy: { createdAt: "desc" } })
   ]);
 
-  const activeApplications = applications.filter((application) => !["APPROVED", "DENIED", "WITHDRAWN"].includes(application.status)).length;
-  const missingDocuments = applications.reduce((total, application) => total + application.documentRequests.filter((request) => ["REQUESTED", "REJECTED"].includes(request.status)).length, 0);
+  const activeApplications = applications.filter((application) => !(["APPROVED", "DENIED", "WITHDRAWN"] as string[]).includes(application.status)).length;
+  const missingDocuments = applications.reduce((total, application) => total + application.documentRequests.filter((request) => (["REQUESTED", "REJECTED"] as string[]).includes(request.status)).length, 0);
   const plannedPaymentTotal = plannedPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const profileSteps = [
     Boolean(profile),
