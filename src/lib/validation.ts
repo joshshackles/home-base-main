@@ -1,4 +1,4 @@
-import { ApplicationStatus, DocumentCategory, DocumentRequestStatus, DocumentStatus, DocumentVisibility, HouseholdRelationship, InspectionChecklistStatus, InspectionStatus, IncomeFrequency, LedgerEntryType, PaymentMethod, PaymentPlanInstallmentStatus, PaymentPlanStatus, RecurringChargeFrequency, LeadStatus, LeasePacketStatus, SignatureNotificationType, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
+import { ApplicationStatus, DocumentCategory, DocumentRequestStatus, DocumentStatus, DocumentVisibility, HouseholdRelationship, InspectionChecklistStatus, InspectionStatus, IncomeFrequency, LedgerEntryType, PaymentMethod, PaymentPlanInstallmentStatus, PaymentPlanStatus, RecurringChargeFrequency, LeadStatus, LeasePacketStatus, PayrollFrequency, SignatureNotificationType, SignatureStatus, TenantPaymentMethod, TenantPaymentStatus, UnitStatus, UserRole, UtilityAccountStatus } from "@prisma/client";
 import { z } from "zod";
 import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from "@/lib/password";
 
@@ -17,6 +17,11 @@ const optionalInteger = z.preprocess(
   z.coerce.number().int().min(0).nullable()
 );
 
+const optionalId = z.preprocess(
+  (value) => (value === "" || value === null || typeof value === "undefined" ? null : value),
+  z.string().trim().min(1).nullable()
+).optional();
+
 export const propertySchema = z.object({
   name: requiredText("Property name"),
   addressLine: requiredText("Address"),
@@ -34,6 +39,8 @@ export const propertySchema = z.object({
 export const unitSchema = z.object({
   propertyId: requiredText("Property ID"),
   unitNumber: requiredText("Unit number", 40),
+  tenantUserId: optionalId,
+  currentApplicationId: optionalId,
   bedrooms: z.coerce.number().int().min(0, "Bedrooms cannot be negative.").max(20, "Bedrooms looks too high."),
   bathrooms: z.coerce.number().min(0, "Bathrooms cannot be negative.").max(20, "Bathrooms looks too high."),
   rentAmount: z.coerce.number().int().min(0, "Rent cannot be negative.").max(100000, "Rent looks too high."),
@@ -44,7 +51,9 @@ export const unitSchema = z.object({
   accessibility: optionalText,
   petPolicy: optionalText,
   status: z.nativeEnum(UnitStatus),
-  description: optionalText
+  description: optionalText,
+  clientNotes: optionalText,
+  importantContacts: optionalText
 });
 
 export const leadSchema = z.object({
@@ -59,6 +68,48 @@ export const loginSchema = z.object({
   email: z.string().trim().email("A valid email address is required.").transform((value) => value.toLowerCase()),
   password: z.string().min(1, "Password is required."),
   next: z.string().trim().default("/admin")
+});
+
+
+export const applicantSignupSchema = z.object({
+  name: requiredText("Name", 120),
+  email: z.string().trim().email("A valid email address is required.").max(180).transform((value) => value.toLowerCase()),
+  phone: optionalText,
+  password: z.string().min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`),
+  confirmPassword: z.string().min(1, "Confirm your password."),
+  next: z.string().trim().default("/applicant")
+}).superRefine((value, ctx) => {
+  if (value.password !== value.confirmPassword) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["confirmPassword"], message: "Passwords do not match." });
+  }
+
+  const result = validatePasswordStrength(value.password, { email: value.email, name: value.name });
+  for (const message of result.errors) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message });
+  }
+});
+
+export const applicationClaimSchema = z.object({
+  token: requiredText("Claim token", 300),
+  password: z.string().min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`).optional(),
+  confirmPassword: z.string().optional()
+}).superRefine((value, ctx) => {
+  if (value.password || value.confirmPassword) {
+    if (value.password !== value.confirmPassword) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["confirmPassword"], message: "Passwords do not match." });
+    }
+    if (value.password) {
+      const result = validatePasswordStrength(value.password);
+      for (const message of result.errors) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message });
+      }
+    }
+  }
+});
+
+export const generateApplicationClaimLinkSchema = z.object({
+  applicationId: requiredText("Application ID"),
+  expiresInDays: z.coerce.number().int().min(1).max(30).default(7)
 });
 
 export const leadStatusSchema = z.object({
@@ -125,7 +176,22 @@ export const applicantProfileSchema = z.object({
   state: z.string().trim().max(2, "State must use the two-letter abbreviation.").transform((value) => value ? value.toUpperCase() : null).nullable().optional(),
   zip: optionalText,
   householdSize: optionalInteger,
-  rentalHistory: optionalText
+  rentalHistory: optionalText,
+  desiredBedrooms: optionalInteger,
+  desiredBathrooms: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().min(0).max(20).nullable()),
+  maxRent: optionalInteger,
+  desiredMoveInDate: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.date().nullable()),
+  voucherHolder: z.coerce.boolean().default(false),
+  pets: optionalText,
+  accessibilityNeeds: optionalText,
+  landlordReferences: optionalText,
+  employmentSummary: optionalText,
+  renterBio: optionalText
+});
+
+export const favoriteRentalSchema = z.object({
+  unitId: requiredText("Unit ID"),
+  notes: optionalText
 });
 
 export const householdMemberSchema = z.object({
@@ -150,6 +216,47 @@ export const deleteIncomeSourceSchema = z.object({
 
 export const applicantApplicationSubmitSchema = z.object({
   applicationId: requiredText("Application ID")
+});
+
+export const utilityAccountSchema = z.object({
+  id: optionalId,
+  unitId: optionalId,
+  applicationId: optionalId,
+  providerName: requiredText("Provider", 160),
+  serviceType: requiredText("Service type", 80),
+  accountNumber: optionalText,
+  status: z.nativeEnum(UtilityAccountStatus).default(UtilityAccountStatus.SETUP_NEEDED),
+  dueDayOfMonth: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(1).max(31).nullable()),
+  averageAmount: optionalInteger,
+  autopayEnabled: z.coerce.boolean().default(false),
+  notes: optionalText
+});
+
+export const payrollReminderSchema = z.object({
+  id: optionalId,
+  employerName: requiredText("Employer", 160),
+  frequency: z.nativeEnum(PayrollFrequency).default(PayrollFrequency.BIWEEKLY),
+  nextPayDate: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.date().nullable()),
+  typicalAmount: optionalInteger,
+  notes: optionalText
+});
+
+export const tenantPaymentSchema = z.object({
+  id: optionalId,
+  unitId: requiredText("Unit"),
+  applicationId: optionalId,
+  ledgerEntryId: optionalId,
+  amount: z.coerce.number().int().min(1, "Payment amount must be at least $1.").max(1000000, "Payment amount looks too high."),
+  method: z.nativeEnum(TenantPaymentMethod).default(TenantPaymentMethod.ACH),
+  status: z.nativeEnum(TenantPaymentStatus).default(TenantPaymentStatus.PLANNED),
+  dueDate: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.date().nullable()),
+  submittedAt: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.date().nullable()),
+  confirmation: optionalText,
+  notes: optionalText
+});
+
+export const recordIdSchema = z.object({
+  id: requiredText("Record ID")
 });
 
 export const adminApplicationLinkSchema = z.object({
@@ -283,6 +390,8 @@ export function formDataToObject(formData: FormData) {
   data.isArchived = formData.get("isArchived") === "on";
   data.voucherFriendly = formData.get("voucherFriendly") === "on";
   data.isActive = formData.get("isActive") === "on";
+  data.voucherHolder = formData.get("voucherHolder") === "on";
+  data.autopayEnabled = formData.get("autopayEnabled") === "on";
 
   return data;
 }

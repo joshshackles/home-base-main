@@ -144,6 +144,37 @@ enum InspectionChecklistStatus {
 }
 
 
+enum MaintenanceRequestStatus {
+  NEW
+  IN_PROGRESS
+  WAITING_ON_TENANT
+  WAITING_ON_VENDOR
+  COMPLETED
+  CANCELLED
+}
+
+enum MaintenancePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum MessageThreadType {
+  GENERAL
+  APPLICATION
+  LEASE
+  MAINTENANCE
+}
+
+enum MessageThreadStatus {
+  OPEN
+  WAITING_ON_STAFF
+  WAITING_ON_APPLICANT
+  CLOSED
+}
+
+
 enum LedgerEntryType {
   CHARGE
   PAYMENT
@@ -184,6 +215,37 @@ enum PaymentPlanInstallmentStatus {
   WAIVED
 }
 
+enum UtilityAccountStatus {
+  SETUP_NEEDED
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum PayrollFrequency {
+  WEEKLY
+  BIWEEKLY
+  SEMIMONTHLY
+  MONTHLY
+  OTHER
+}
+
+enum TenantPaymentStatus {
+  PLANNED
+  SUBMITTED
+  CONFIRMED
+  CANCELLED
+}
+
+enum TenantPaymentMethod {
+  CASH
+  CHECK
+  MONEY_ORDER
+  CARD
+  ACH
+  OTHER
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -210,16 +272,68 @@ model User {
   signatureRequests SignatureRequest[]
   signatureNotifications SignatureNotification[]
   assignedInspections Inspection[] @relation("AssignedInspections")
+  requestedMaintenanceRequests MaintenanceRequest[] @relation("RequestedMaintenanceRequests")
+  assignedMaintenanceRequests MaintenanceRequest[] @relation("AssignedMaintenanceRequests")
+  createdMessageThreads MessageThread[] @relation("CreatedMessageThreads")
+  sentMessages Message[] @relation("SentMessages")
   createdLedgerEntries LedgerEntry[] @relation("CreatedLedgerEntries")
   tenantLedgerEntries LedgerEntry[] @relation("TenantLedgerEntries")
   recurringChargeSchedules RecurringChargeSchedule[] @relation("TenantRecurringChargeSchedules")
   createdRecurringChargeSchedules RecurringChargeSchedule[] @relation("CreatedRecurringChargeSchedules")
   paymentPlans PaymentPlan[] @relation("TenantPaymentPlans")
   createdPaymentPlans PaymentPlan[] @relation("CreatedPaymentPlans")
+  currentTenantUnits Unit[] @relation("CurrentTenantUnits")
+  favoriteRentals FavoriteRental[]
+  utilityAccounts UtilityAccount[]
+  payrollReminders PayrollReminder[]
+  tenantPayments TenantPayment[]
+  sessions UserSession[]
+  createdClaimTokens ApplicationClaimToken[] @relation("CreatedApplicationClaimTokens")
 
   @@index([role, isActive])
   @@index([passwordResetTokenHash])
   @@index([lockedUntil])
+}
+
+
+model UserSession {
+  id          String   @id @default(cuid())
+  userId      String
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  lastSeenAt  DateTime?
+  ipAddress   String?
+  userAgent   String?
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
+model ApplicationClaimToken {
+  id            String   @id @default(cuid())
+  applicationId String
+  tokenHash     String   @unique
+  email         String
+  expiresAt     DateTime
+  claimedAt     DateTime?
+  claimedById   String?
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  createdBy   User?       @relation("CreatedApplicationClaimTokens", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([applicationId])
+  @@index([email])
+  @@index([expiresAt])
+  @@index([claimedAt])
 }
 
 
@@ -259,6 +373,8 @@ model Unit {
   id              String     @id @default(cuid())
   propertyId      String
   unitNumber      String
+  tenantUserId    String?
+  currentApplicationId String?
   bedrooms        Int
   bathrooms       Float
   rentAmount      Int
@@ -270,19 +386,29 @@ model Unit {
   petPolicy       String?
   status          UnitStatus @default(AVAILABLE)
   description     String?
+  clientNotes     String?
+  importantContacts String?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
   property     Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenantUser   User?         @relation("CurrentTenantUnits", fields: [tenantUserId], references: [id], onDelete: SetNull)
+  currentApplication Application? @relation("CurrentTenantApplication", fields: [currentApplicationId], references: [id], onDelete: SetNull)
   leads        Lead[]
   applications Application[]
+  favoriteRentals FavoriteRental[]
+  utilityAccounts UtilityAccount[]
+  tenantPayments TenantPayment[]
   inspections  Inspection[]
+  maintenanceRequests MaintenanceRequest[]
   documents    Document[]
   ledgerEntries LedgerEntry[]
   recurringChargeSchedules RecurringChargeSchedule[]
   paymentPlans PaymentPlan[]
 
   @@index([propertyId])
+  @@index([tenantUserId])
+  @@index([currentApplicationId])
   @@index([status])
   @@unique([propertyId, unitNumber])
 }
@@ -341,9 +467,15 @@ model Application {
   documentRequests DocumentRequest[]
   leasePackets LeasePacket[]
   inspections Inspection[]
+  maintenanceRequests MaintenanceRequest[]
+  messageThreads MessageThread[]
   ledgerEntries LedgerEntry[]
   recurringChargeSchedules RecurringChargeSchedule[]
   paymentPlans PaymentPlan[]
+  claimTokens ApplicationClaimToken[]
+  currentTenantUnits Unit[] @relation("CurrentTenantApplication")
+  utilityAccounts UtilityAccount[]
+  tenantPayments TenantPayment[]
 
   @@index([unitId])
   @@index([applicantUserId])
@@ -376,6 +508,16 @@ model ApplicantProfile {
   zip             String?
   householdSize   Int?
   rentalHistory   String?
+  desiredBedrooms Int?
+  desiredBathrooms Float?
+  maxRent          Int?
+  desiredMoveInDate DateTime?
+  voucherHolder    Boolean @default(false)
+  pets             String?
+  accessibilityNeeds String?
+  landlordReferences String?
+  employmentSummary String?
+  renterBio        String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -410,6 +552,96 @@ model IncomeSource {
   profile ApplicantProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
+}
+
+model FavoriteRental {
+  id        String   @id @default(cuid())
+  userId    String
+  unitId    String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, unitId])
+  @@index([userId])
+  @@index([unitId])
+  @@index([createdAt])
+}
+
+model UtilityAccount {
+  id            String               @id @default(cuid())
+  userId        String
+  unitId        String?
+  applicationId String?
+  providerName  String
+  serviceType   String
+  accountNumber String?
+  status        UtilityAccountStatus @default(SETUP_NEEDED)
+  dueDayOfMonth Int?
+  averageAmount Int?
+  autopayEnabled Boolean             @default(false)
+  notes         String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit        Unit?        @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([unitId])
+  @@index([applicationId])
+  @@index([status])
+  @@index([dueDayOfMonth])
+}
+
+model PayrollReminder {
+  id          String           @id @default(cuid())
+  userId      String
+  employerName String
+  frequency   PayrollFrequency @default(BIWEEKLY)
+  nextPayDate DateTime?
+  typicalAmount Int?
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([nextPayDate])
+}
+
+model TenantPayment {
+  id            String              @id @default(cuid())
+  userId        String
+  unitId        String
+  applicationId String?
+  ledgerEntryId String?
+  amount        Int
+  method        TenantPaymentMethod @default(ACH)
+  status        TenantPaymentStatus @default(PLANNED)
+  dueDate       DateTime?
+  submittedAt   DateTime?
+  confirmation  String?
+  notes         String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit        Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  ledgerEntry LedgerEntry? @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([unitId])
+  @@index([applicationId])
+  @@index([ledgerEntryId])
+  @@index([status])
+  @@index([dueDate])
 }
 
 
@@ -507,6 +739,80 @@ model InspectionChecklistItem {
   @@index([inspectionId])
   @@index([status])
   @@index([sortOrder])
+}
+
+model MaintenanceRequest {
+  id            String                   @id @default(cuid())
+  unitId        String?
+  applicationId String?
+  requesterId   String
+  assignedToId  String?
+  status        MaintenanceRequestStatus @default(NEW)
+  priority      MaintenancePriority      @default(NORMAL)
+  subject       String
+  description   String
+  accessNotes   String?
+  completedAt   DateTime?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  unit        Unit?        @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  requester   User         @relation("RequestedMaintenanceRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  assignedTo  User?        @relation("AssignedMaintenanceRequests", fields: [assignedToId], references: [id], onDelete: SetNull)
+  messageThreads MessageThread[]
+
+  @@index([unitId])
+  @@index([applicationId])
+  @@index([requesterId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+model MessageThread {
+  id                   String              @id @default(cuid())
+  type                 MessageThreadType   @default(GENERAL)
+  status               MessageThreadStatus @default(OPEN)
+  subject              String
+  applicationId         String?
+  maintenanceRequestId String?
+  createdById          String
+  lastMessageAt         DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  application        Application?        @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  maintenanceRequest MaintenanceRequest? @relation(fields: [maintenanceRequestId], references: [id], onDelete: SetNull)
+  createdBy          User                @relation("CreatedMessageThreads", fields: [createdById], references: [id], onDelete: Cascade)
+  messages           Message[]
+
+  @@index([type])
+  @@index([status])
+  @@index([applicationId])
+  @@index([maintenanceRequestId])
+  @@index([createdById])
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  threadId    String
+  senderId    String
+  body        String
+  isInternal  Boolean  @default(false)
+  readByStaffAt DateTime?
+  readByApplicantAt DateTime?
+  createdAt   DateTime @default(now())
+
+  thread MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User          @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@index([isInternal])
 }
 
 model LeaseTemplate {
@@ -783,6 +1089,7 @@ model LedgerEntry {
   tenantUser  User?        @relation("TenantLedgerEntries", fields: [tenantUserId], references: [id], onDelete: SetNull)
   createdBy   User?        @relation("CreatedLedgerEntries", fields: [createdById], references: [id], onDelete: SetNull)
   generatedFromSchedule RecurringChargeSchedule? @relation("GeneratedRecurringCharges", fields: [generatedFromScheduleId], references: [id], onDelete: SetNull)
+  tenantPayments TenantPayment[]
 
   @@index([applicationId])
   @@index([unitId])
@@ -813,6 +1120,8 @@ enum SecurityEventType {
   INSPECTION_COMPLETED
   FINAL_LEASE_GENERATED
   LEASE_REISSUED
+  MAINTENANCE_REQUEST_CREATED
+  MESSAGE_SENT
 }
 
 enum AuditAction {

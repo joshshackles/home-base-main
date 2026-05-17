@@ -4,6 +4,7 @@ import { signLandlordLease } from "@/app/landlord/actions";
 import { Field, inputClass } from "@/components/admin/FormFields";
 import { requireRole } from "@/lib/auth";
 import { renderLeaseTemplate } from "@/lib/lease-render";
+import { ELECTRONIC_SIGNATURE_CONSENT_TEXT } from "@/lib/e-signature";
 import { prisma } from "@/lib/prisma";
 
 function label(value: string) {
@@ -29,6 +30,8 @@ export default async function LandlordLeaseDetailPage({ params }: { params: { id
   const request = packet.signatureRequests.find((item) => item.signerRole === "LANDLORD" && (item.signerUserId === user.userId || item.signerEmail === user.email));
   const preview = renderLeaseTemplate(packet);
   const isExpired = Boolean(request?.expiresAt && request.expiresAt < new Date() && request.status === SignatureStatus.PENDING);
+  const signedCount = packet.signatureRequests.filter((item) => item.status === SignatureStatus.SIGNED).length;
+  const finalDocument = packet.documents.find((document) => document.id === packet.finalDocumentId);
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -37,6 +40,21 @@ export default async function LandlordLeaseDetailPage({ params }: { params: { id
         <h1 className="mt-3 text-4xl font-black tracking-tight">{packet.application.unit.property.name} #{packet.application.unit.unitNumber}</h1>
         <p className="mt-3 text-slate-300">Applicant: {packet.application.applicantName} · Status: {label(packet.status)}</p>
       </div>
+
+      <section className="mb-6 grid gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Your signature</p>
+          <p className="mt-2 text-lg font-black text-slate-950">{request ? label(request.status) : "Not assigned"}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Packet progress</p>
+          <p className="mt-2 text-lg font-black text-slate-950">{signedCount}/{packet.signatureRequests.length} signed</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Final lease</p>
+          <p className="mt-2 text-lg font-black text-slate-950">{finalDocument ? "Ready" : "Pending"}</p>
+        </div>
+      </section>
 
       <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -62,7 +80,11 @@ export default async function LandlordLeaseDetailPage({ params }: { params: { id
               <form action={signLandlordLease} className="mt-5 space-y-4">
                 <input type="hidden" name="requestId" value={request.id} />
                 <Field label="Type your full legal signature"><input name="signatureText" className={inputClass} placeholder={user.name ?? user.email} required /></Field>
-                <p className="text-xs leading-5 text-slate-500">By submitting, you are recording an electronic signature for this lease packet in this system. {request.expiresAt ? `This request expires ${request.expiresAt.toLocaleDateString()}.` : ""}</p>
+                <label className="flex gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
+                  <input name="electronicConsentAccepted" type="checkbox" value="true" required className="mt-1 h-4 w-4 rounded border-emerald-400" />
+                  <span><span className="font-black">Electronic signature consent:</span> {ELECTRONIC_SIGNATURE_CONSENT_TEXT}</span>
+                </label>
+                <p className="text-xs leading-5 text-slate-500">HomeBase MLS stores the exact consent text, typed signature, timestamp, IP address, user agent, lease text hash, and signature evidence hash with this signature. {request.expiresAt ? `This request expires ${request.expiresAt.toLocaleDateString()}.` : ""}</p>
                 <button type="submit" className="w-full rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700">Sign Lease</button>
               </form>
             ) : <p className="mt-3 text-sm text-slate-600">Signature request status: {label(request.status)}</p>}
@@ -71,6 +93,7 @@ export default async function LandlordLeaseDetailPage({ params }: { params: { id
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-black text-slate-950">Lease documents</h2>
             <div className="mt-4 space-y-3">
+              {finalDocument ? <a href={`/api/documents/${finalDocument.id}`} className="block rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-black text-emerald-950 hover:bg-emerald-100">Download Final Signed Lease</a> : null}
               {packet.documents.length === 0 ? <p className="text-sm text-slate-600">No landlord-visible lease documents are available yet.</p> : packet.documents.map((document) => (
                 <a key={document.id} href={`/api/documents/${document.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-950 hover:bg-slate-100">{document.title}</a>
               ))}

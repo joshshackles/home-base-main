@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { Activity, Building2, ClipboardList, BellRing, ClipboardCheck, DollarSign, FileSignature, FileText, Home, Inbox, Plus, ServerCog, ShieldCheck, Users } from "lucide-react";
+import { Activity, Building2, ClipboardList, BellRing, ClipboardCheck, MessageSquare, Wrench, DollarSign, FileSignature, FileText, Home, Inbox, Plus, ServerCog, ShieldCheck, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ledgerTotals } from "@/lib/ledger-queries";
 import { APP_VERSION } from "@/lib/app-version";
 
 export default async function AdminPage() {
-  const [propertyCount, unitCount, availableCount, userCount, leadCount, applicationCount, documentCount, leaseCount, notificationCount, auditCount, securityEventCount, inspectionCount, ledgerBalance] = await Promise.all([
+  const [propertyCount, unitCount, availableCount, userCount, leadCount, applicationCount, documentCount, leaseCount, notificationCount, auditCount, securityEventCount, inspectionCount, maintenanceCount, inboxCount, ledgerBalance] = await Promise.all([
     prisma.property.count({ where: { isArchived: false } }),
     prisma.unit.count({ where: { NOT: { status: "ARCHIVED" } } }),
     prisma.unit.count({ where: { status: "AVAILABLE", property: { isArchived: false } } }),
@@ -18,6 +18,8 @@ export default async function AdminPage() {
     prisma.auditLog.count(),
     prisma.securityEvent.count(),
     prisma.inspection.count({ where: { status: { in: ["SCHEDULED", "IN_PROGRESS", "NEEDS_REINSPECTION"] } } }),
+    prisma.maintenanceRequest.count({ where: { status: { in: ["NEW", "IN_PROGRESS", "WAITING_ON_TENANT", "WAITING_ON_VENDOR"] } } }),
+    prisma.messageThread.count({ where: { status: { not: "CLOSED" } } }),
     ledgerTotals().then((totals) => totals.balance)
   ]);
 
@@ -28,6 +30,8 @@ export default async function AdminPage() {
     { label: "New Leads", value: leadCount, icon: Inbox, href: "/admin/leads" },
     { label: "Applications", value: applicationCount, icon: ClipboardList, href: "/admin/applications" },
     { label: "Inspections", value: inspectionCount, icon: ClipboardCheck, href: "/admin/inspections" },
+    { label: "Maintenance", value: maintenanceCount, icon: Wrench, href: "/admin/maintenance" },
+    { label: "Inbox", value: inboxCount, icon: MessageSquare, href: "/admin/inbox" },
     { label: "Ledger", value: `$${ledgerBalance.toLocaleString()}`, icon: DollarSign, href: "/admin/ledger" },
     { label: "Documents", value: documentCount, icon: FileText, href: "/admin/documents" },
     { label: "Leases", value: leaseCount, icon: FileSignature, href: "/admin/leases" },

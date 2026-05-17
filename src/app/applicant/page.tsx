@@ -3,6 +3,7 @@ import { ApplicationStatus } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { claimMatchingApplications } from "@/app/applicant/actions";
 
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
@@ -10,7 +11,7 @@ function label(value: string) {
 
 export default async function ApplicantDashboardPage() {
   const user = await requireRole(["APPLICANT", "TENANT"], "/applicant");
-  const [profile, applications, submittedCount] = await Promise.all([
+  const [profile, applications, submittedCount, favoritesCount, utilitiesCount, payrollCount, plannedPayments] = await Promise.all([
     prisma.applicantProfile.findUnique({
       where: { userId: user.userId },
       include: { householdMembers: true, incomeSources: true }
@@ -20,11 +21,16 @@ export default async function ApplicantDashboardPage() {
       include: { unit: { include: { property: true } }, documentRequests: true },
       orderBy: { createdAt: "desc" }
     }),
-    prisma.application.count({ where: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }], status: ApplicationStatus.SUBMITTED } })
+    prisma.application.count({ where: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }], status: ApplicationStatus.SUBMITTED } }),
+    prisma.favoriteRental.count({ where: { userId: user.userId } }),
+    prisma.utilityAccount.count({ where: { userId: user.userId } }),
+    prisma.payrollReminder.count({ where: { userId: user.userId } }),
+    prisma.tenantPayment.findMany({ where: { userId: user.userId, status: { in: ["PLANNED", "SUBMITTED"] } }, select: { amount: true } })
   ]);
 
   const active = applications.filter((application) => !["APPROVED", "DENIED", "WITHDRAWN"].includes(application.status)).length;
   const missingDocuments = applications.reduce((total, application) => total + application.documentRequests.filter((request) => ["REQUESTED", "REJECTED"].includes(request.status)).length, 0);
+  const plannedPaymentTotal = plannedPayments.reduce((sum, payment) => sum + payment.amount, 0);
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -51,6 +57,13 @@ export default async function ApplicantDashboardPage() {
           <p className="text-sm font-bold uppercase text-slate-500">Missing Docs</p>
           <p className="mt-2 text-4xl font-black text-slate-950">{missingDocuments}</p>
         </div>
+      </section>
+
+      <section className="mt-8 grid gap-4 md:grid-cols-4">
+        <QuickCard title="Saved rentals" value={`${favoritesCount}`} href="/applicant/favorites" cta="Compare favorites" />
+        <QuickCard title="Utilities" value={`${utilitiesCount}`} href="/applicant/home-tools" cta="Track bills" />
+        <QuickCard title="Payroll" value={`${payrollCount}`} href="/applicant/home-tools" cta="Track paydays" />
+        <QuickCard title="Payments" value={formatCurrency(plannedPaymentTotal)} href="/applicant/home-tools" cta="Plan rent" />
       </section>
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -80,10 +93,24 @@ export default async function ApplicantDashboardPage() {
             <p className="rounded-2xl bg-slate-50 p-3"><strong>Basic profile:</strong> {profile ? "Started" : "Not started"}</p>
             <p className="rounded-2xl bg-slate-50 p-3"><strong>Household members:</strong> {profile?.householdMembers.length ?? 0}</p>
             <p className="rounded-2xl bg-slate-50 p-3"><strong>Income sources:</strong> {profile?.incomeSources.length ?? 0}</p>
+            <p className="rounded-2xl bg-slate-50 p-3"><strong>Rental goals:</strong> {profile?.maxRent ? `Up to ${formatCurrency(profile.maxRent)}` : "Not set"}</p>
           </div>
           <Link href="/applicant/profile" className="mt-5 inline-flex w-full justify-center rounded-2xl bg-slate-950 px-5 py-3 font-bold text-white hover:bg-slate-800">Update Profile</Link>
+          <form action={claimMatchingApplications} className="mt-3">
+            <button className="w-full rounded-2xl border border-slate-300 px-5 py-3 font-bold text-slate-900 hover:bg-slate-50" type="submit">Claim Matching Applications</button>
+          </form>
         </aside>
       </section>
     </main>
+  );
+}
+
+function QuickCard({ title, value, href, cta }: { title: string; value: string; href: string; cta: string }) {
+  return (
+    <Link href={href} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:border-brand-200 hover:bg-brand-50">
+      <p className="text-sm font-bold uppercase text-slate-500">{title}</p>
+      <p className="mt-2 text-3xl font-black text-slate-950">{value}</p>
+      <p className="mt-3 text-sm font-bold text-brand-700">{cta}</p>
+    </Link>
   );
 }

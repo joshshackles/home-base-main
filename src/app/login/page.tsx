@@ -53,7 +53,10 @@ export default function LoginPage({ searchParams }: { searchParams?: { error?: s
           </button>
         </form>
 
-        <a href="/forgot-password" className="mt-4 inline-block text-sm font-bold text-brand-700 hover:text-brand-900">Forgot password?</a>
+        <div className="mt-4 flex flex-wrap gap-4 text-sm font-bold">
+          <a href="/forgot-password" className="text-brand-700 hover:text-brand-900">Forgot password?</a>
+          <a href={`/signup?next=${encodeURIComponent(next)}`} className="text-brand-700 hover:text-brand-900">Create applicant account</a>
+        </div>
 
         <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
           <strong className="text-slate-900">Seed logins:</strong> admin@homebase.local, landlord@homebase.local, and applicant@homebase.local are created with generated temporary passwords. Check the seed command output or set SEED_ADMIN_PASSWORD, SEED_LANDLORD_PASSWORD, and SEED_APPLICANT_PASSWORD before running the seed.

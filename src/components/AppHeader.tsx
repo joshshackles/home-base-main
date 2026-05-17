@@ -46,9 +46,14 @@ export function AppHeader({ user }: { user: VerifiedUser }) {
             </form>
             </>
           ) : (
-            <Link className="flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-slate-100" href="/login">
-              <LogIn size={16} /> Login
-            </Link>
+            <>
+              <Link className="flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-slate-100" href="/signup">
+                <FileText size={16} /> Apply
+              </Link>
+              <Link className="flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-slate-100" href="/login">
+                <LogIn size={16} /> Login
+              </Link>
+            </>
           )}
         </nav>
       </div>

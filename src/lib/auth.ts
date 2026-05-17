@@ -1,14 +1,15 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getRequiredAuthSecret } from "@/lib/env";
+import { hashToken } from "@/lib/tokens";
 
 const SESSION_COOKIE = "homebase_mls_session";
 const DEFAULT_SESSION_HOURS = 8;
 
-type SessionPayload = {
+export type SessionPayload = {
   userId: string;
   email: string;
   name: string | null;
@@ -38,15 +39,8 @@ function decodePayload(value: string): SessionPayload | null {
   }
 }
 
-export function createSessionToken(payload: Omit<SessionPayload, "expiresAt">) {
-  const expiresAt = Date.now() + DEFAULT_SESSION_HOURS * 60 * 60 * 1000;
-  const encodedPayload = encodePayload({ ...payload, expiresAt });
-  const signature = signPayload(encodedPayload);
-  return `${encodedPayload}.${signature}`;
-}
-
-export function readSessionToken(token?: string | null) {
-  if (!token) return null;
+function readLegacySignedSessionToken(token?: string | null) {
+  if (!token || !token.includes(".")) return null;
   const [encodedPayload, signature] = token.split(".");
   if (!encodedPayload || !signature) return null;
 
@@ -62,17 +56,72 @@ export function readSessionToken(token?: string | null) {
   return payload;
 }
 
-export function getCurrentUser() {
+export function createSessionToken(payload: Omit<SessionPayload, "expiresAt">) {
+  const expiresAt = Date.now() + DEFAULT_SESSION_HOURS * 60 * 60 * 1000;
+  const encodedPayload = encodePayload({ ...payload, expiresAt });
+  const signature = signPayload(encodedPayload);
+  return `${encodedPayload}.${signature}`;
+}
+
+export async function createDatabaseSession(user: Omit<SessionPayload, "expiresAt">, options: { ipAddress?: string | null; userAgent?: string | null } = {}) {
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + DEFAULT_SESSION_HOURS * 60 * 60 * 1000);
+
+  await prisma.userSession.create({
+    data: {
+      userId: user.userId,
+      tokenHash: hashToken(token),
+      expiresAt,
+      ipAddress: options.ipAddress ?? null,
+      userAgent: options.userAgent ?? null
+    }
+  });
+
+  return token;
+}
+
+async function readDatabaseSessionToken(token?: string | null) {
+  if (!token || token.includes(".")) return null;
+  const session = await prisma.userSession.findUnique({
+    where: { tokenHash: hashToken(token) },
+    include: { user: true }
+  });
+
+  if (!session || session.revokedAt || session.expiresAt < new Date() || !session.user.isActive) return null;
+
+  await prisma.userSession.update({ where: { id: session.id }, data: { lastSeenAt: new Date() } }).catch(() => null);
+
+  return {
+    userId: session.user.id,
+    email: session.user.email,
+    name: session.user.name,
+    role: session.user.role,
+    expiresAt: session.expiresAt.getTime(),
+    forcePasswordReset: session.user.forcePasswordReset
+  };
+}
+
+export async function readSessionToken(token?: string | null) {
+  const databaseSession = await readDatabaseSessionToken(token);
+  if (databaseSession) return databaseSession;
+  return readLegacySignedSessionToken(token);
+}
+
+export async function getCurrentUser() {
   const token = cookies().get(SESSION_COOKIE)?.value;
   return readSessionToken(token);
 }
 
 export async function getVerifiedCurrentUser() {
-  const sessionUser = getCurrentUser();
-  if (!sessionUser) return null;
+  const token = cookies().get(SESSION_COOKIE)?.value;
+  const databaseSession = await readDatabaseSessionToken(token);
+  if (databaseSession) return databaseSession;
+
+  const legacySession = readLegacySignedSessionToken(token);
+  if (!legacySession) return null;
 
   const dbUser = await prisma.user.findUnique({
-    where: { id: sessionUser.userId },
+    where: { id: legacySession.userId },
     select: { id: true, email: true, name: true, role: true, isActive: true, forcePasswordReset: true }
   });
 
@@ -83,7 +132,7 @@ export async function getVerifiedCurrentUser() {
     email: dbUser.email,
     name: dbUser.name,
     role: dbUser.role,
-    expiresAt: sessionUser.expiresAt,
+    expiresAt: legacySession.expiresAt,
     forcePasswordReset: dbUser.forcePasswordReset
   };
 }
@@ -109,6 +158,25 @@ export async function requireRole(allowedRoles: UserRole[], nextPath = "/admin")
   const user = await requireUser(nextPath);
   if (!allowedRoles.includes(user.role)) redirect("/not-authorized");
   return user;
+}
+
+export function getRequestClientMetadata() {
+  const h = headers();
+  return {
+    ipAddress: h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null,
+    userAgent: h.get("user-agent") || null
+  };
+}
+
+export async function revokeCurrentSession() {
+  const token = cookies().get(SESSION_COOKIE)?.value;
+  if (token && !token.includes(".")) {
+    await prisma.userSession.updateMany({ where: { tokenHash: hashToken(token), revokedAt: null }, data: { revokedAt: new Date() } });
+  }
+}
+
+export async function revokeUserSessions(userId: string) {
+  await prisma.userSession.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
 }
 
 export function setSessionCookie(token: string) {

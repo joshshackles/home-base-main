@@ -1,4 +1,75 @@
+# v1.7.7 - Available Rentals Upgrade
+
+- Rebuilt the available rentals page into a full discovery experience with a stronger search header, inventory stats, sticky filters, sort controls, city shortcuts, and featured rental highlight.
+- Added expanded marketplace filters for keyword search, min/max rent, minimum square footage, utilities, pets, accessibility, voucher support, bedrooms, bathrooms, and sort modes.
+- Added applicant-aware rental match scores using renter profile preferences.
+- Upgraded rental cards with save/remove favorite actions, stronger listing hierarchy, feature chips, match labels, and direct inquiry links.
+- Connected listing details to the inquiry area with a stable anchor.
+
+# v1.7.6 - Applicant Renter Tools
+
+- Expanded applicant renter profiles with rental goals, voucher, pets, accessibility, employment, references, and renter bio fields.
+- Added saved rental favorites with private notes and a logged-in landlord inquiry workflow.
+- Added applicant home tools for utility tracking, payroll reminders, and tenant payment planning/confirmation records.
+- Added marketplace save-to-favorites support for logged-in applicants and tenants.
+- Added Prisma migration for favorites, utilities, payroll reminders, tenant payments, and profile fields.
+- Fixed the malformed applicant inbox route string.
+
+# v1.7.5 - Landlord Unit Workflow
+
+- Added landlord unit creation from the landlord portal.
+- Units marked `AVAILABLE` continue to publish automatically to the public marketplace.
+- Added landlord-managed current tenant/application links on units.
+- Added a landlord unit hub with tenant info, lease links, payment history, ledger activity, payment plans, repair submission, contacts, client notes, and messaging.
+- Added Prisma migration fields for unit tenant links, important contacts, and client notes.
+- Fixed malformed landlord maintenance and inbox route strings.
+
+# v1.7.4 — Workflow Update 4
+
+## Lease Automation + Workflow Cleanup
+
+- Added an admin lease timeline showing draft, approval, signature, completion, and final signed PDF progress.
+- Added a manual Refresh Automation action that re-checks completed signatures and generates the final signed PDF when ready.
+- Improved automatic lease completion so final signed PDF generation is idempotent and tied to all required signatures.
+- Added expired signature renewal controls with a fresh expiration window and queued initial notification.
+- Added landlord electronic-signature consent capture, lease text hashing, signature evidence hashing, and final PDF hash propagation to match the tenant flow.
+- Added applicant and landlord lease progress cards so users can see signature progress and final lease readiness.
+- Updated package and README version consistency to v1.7.4.
+- Added verification coverage for workflow update 4.
+
+
+# v1.7.3
+
+## Maintenance + Inbox Workflow Update
+
+- Added applicant maintenance request workflow
+- Added admin and landlord maintenance queues
+- Added workflow message inboxes for applicants, admins, and landlords
+- Added message threads connected to maintenance and application records
+- Added staff-only internal message notes
+- Added maintenance assignment, priority, and status tracking
+- Added verification coverage for workflow update 3
+
+## v1.7.2 — Workflow Update 2
+
+- Improved admin password recovery so reset links are emailed through the configured provider instead of being shown as the primary production path.
+- Added reset email success/failure feedback to the admin user edit screen.
+- Added Hobby-mode email processing messaging so admins understand that Vercel Hobby cron processes queued email daily unless they manually process the queue.
+- Added notification center queue controls for immediate processing and requeuing failed signature emails.
+- Added full queue counts for sent, queued, failed, and delayed-retry notifications instead of relying only on the latest history rows.
+- Added Workflow Update 2 verification coverage.
+
 ## v1.7.0 — Vercel Hobby compatibility follow-up
+
+## v1.7.1 — Workflow Update 1
+
+- Added database-backed revokable sessions for new sign-ins while preserving legacy cookie-session compatibility during rollout.
+- Added applicant self-signup with automatic matching to existing applications by email address.
+- Added secure application claim links so admins can connect marketplace/application records to applicant portal accounts.
+- Added claim-link landing pages that create or connect applicant accounts and route users directly to their application.
+- Added Prisma migration for `UserSession` and `ApplicationClaimToken`.
+- Kept the update Vercel Hobby-compatible; claim links do not rely on high-frequency cron.
+
 
 - Fixed the Vercel preflight checker so it parses `vercel.json` instead of relying on whitespace-sensitive string matches.
 - Confirmed `framework: nextjs` and `buildCommand: npm run vercel-build` are required in `vercel.json`.
@@ -461,4 +532,3 @@ Initial app shell.
 - Fixed the global layout/header compile error caused by rendering an async header component directly in JSX.
 - Moved verified user loading to the async root layout and made `AppHeader` a synchronous presentational component.
 - Preserved DB-verified session display behavior while keeping the build compatible with Vercel/Next.js TypeScript checks.
-

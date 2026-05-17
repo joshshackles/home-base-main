@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DocumentCategory, DocumentStatus, LeasePacketStatus, SignatureStatus } from "@prisma/client";
-import { addLeasePacketNote, extendSignatureExpiration, generateFinalSignedLeasePdf, generateLeasePacketPdf, prepareLeaseForSignatures, queueSignatureReminder, reissueLeasePacket, updateDocumentStatus, updateLeasePacket, updateLeasePacketStatus, uploadAdminDocument, voidSignatureRequest } from "@/app/admin/actions";
+import { addLeasePacketNote, extendSignatureExpiration, generateFinalSignedLeasePdf, generateLeasePacketPdf, prepareLeaseForSignatures, queueSignatureReminder, refreshLeaseAutomation, renewExpiredSignatureRequest, reissueLeasePacket, updateDocumentStatus, updateLeasePacket, updateLeasePacketStatus, uploadAdminDocument, voidSignatureRequest } from "@/app/admin/actions";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Field, inputClass, selectClass, textareaClass } from "@/components/admin/FormFields";
 import { formatCurrency } from "@/lib/format";
@@ -38,6 +38,16 @@ export default async function LeasePacketDetailPage({ params }: { params: { id: 
   const preview = renderLeaseTemplate(packet);
   const isLocked = packet.status === LeasePacketStatus.SENT_FOR_SIGNATURE || packet.status === LeasePacketStatus.COMPLETED || packet.status === LeasePacketStatus.VOIDED;
   const finalDocument = packet.finalDocumentId ? packet.documents.find((document) => document.id === packet.finalDocumentId) : null;
+  const pendingSignatures = packet.signatureRequests.filter((request) => request.status === SignatureStatus.PENDING).length;
+  const signedSignatures = packet.signatureRequests.filter((request) => request.status === SignatureStatus.SIGNED).length;
+  const blockedSignatures = packet.signatureRequests.filter((request) => request.status === SignatureStatus.EXPIRED || request.status === SignatureStatus.DECLINED || request.status === SignatureStatus.VOIDED).length;
+  const timeline = [
+    { label: "Draft created", done: true, detail: packet.createdAt.toLocaleString() },
+    { label: "Approved", done: Boolean(packet.approvedAt || packet.status === LeasePacketStatus.APPROVED || packet.sentForSignatureAt || packet.completedAt), detail: packet.approvedAt ? packet.approvedAt.toLocaleString() : "Waiting for approval" },
+    { label: "Sent for signature", done: Boolean(packet.sentForSignatureAt), detail: packet.sentForSignatureAt ? packet.sentForSignatureAt.toLocaleString() : "Not sent yet" },
+    { label: "Signatures complete", done: packet.status === LeasePacketStatus.COMPLETED || (packet.signatureRequests.length > 0 && pendingSignatures === 0 && blockedSignatures === 0), detail: `${signedSignatures}/${packet.signatureRequests.length} signed` },
+    { label: "Final PDF generated", done: Boolean(finalDocument), detail: finalDocument ? finalDocument.originalName : "Pending final signed document" }
+  ];
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -47,6 +57,29 @@ export default async function LeasePacketDetailPage({ params }: { params: { id: 
         actionHref="/admin/leases"
         actionLabel="Back to leases"
       />
+
+      <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-black text-slate-950">Lease timeline</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Automatic workflow status for approval, signatures, completion, and final signed PDF generation.</p>
+          </div>
+          <form action={refreshLeaseAutomation}>
+            <input type="hidden" name="id" value={packet.id} />
+            <button type="submit" className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-black text-white hover:bg-slate-800">Refresh Automation</button>
+          </form>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-5">
+          {timeline.map((step, index) => (
+            <div key={step.label} className={`rounded-2xl border p-4 ${step.done ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+              <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-black ${step.done ? "bg-emerald-700 text-white" : "bg-slate-200 text-slate-600"}`}>{index + 1}</div>
+              <p className="mt-3 font-black text-slate-950">{step.label}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">{step.detail}</p>
+            </div>
+          ))}
+        </div>
+        {blockedSignatures > 0 ? <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-900">One or more signature requests are expired, declined, or voided. Renew an expired request or void and reissue the packet before completion.</p> : null}
+      </section>
 
       <section className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="space-y-6">
@@ -135,6 +168,12 @@ export default async function LeasePacketDetailPage({ params }: { params: { id: 
                           <button type="submit" className="rounded-xl bg-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-300">Void Request</button>
                         </form>
                       </div>
+                    ) : request.status === SignatureStatus.EXPIRED ? (
+                      <form action={renewExpiredSignatureRequest} className="flex flex-wrap gap-2">
+                        <input type="hidden" name="requestId" value={request.id} />
+                        <input type="hidden" name="extendDays" value="7" />
+                        <button type="submit" className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700">Renew 7 Days</button>
+                      </form>
                     ) : null}
                   </div>
                 </article>

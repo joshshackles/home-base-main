@@ -1,6 +1,6 @@
 "use server";
 
-import { ApplicationStatus, AuditAction, DocumentCategory, DocumentRequestStatus, DocumentStatus, DocumentVisibility, InspectionStatus, LedgerEntryStatus, LedgerEntryType, PaymentPlanInstallmentStatus, PaymentPlanStatus, LeadStatus, LeasePacketStatus, SecurityEventType, SignatureNotificationType, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
+import { ApplicationStatus, AuditAction, DocumentCategory, DocumentRequestStatus, DocumentStatus, DocumentVisibility, InspectionStatus, LedgerEntryStatus, LedgerEntryType, PaymentPlanInstallmentStatus, PaymentPlanStatus, LeadStatus, LeasePacketStatus, SecurityEventType, SignatureNotificationStatus, SignatureNotificationType, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +10,7 @@ import { appUrl, createSecureToken, hashToken } from "@/lib/tokens";
 import { writeSecurityEvent } from "@/lib/security-events";
 import {
   adminApplicationLinkSchema,
+  generateApplicationClaimLinkSchema,
   adminPasswordResetLinkSchema,
   applicationNoteSchema,
   applicationStatusSchema,
@@ -52,9 +53,10 @@ import {
 } from "@/lib/validation";
 import { removeStoredDocument, saveGeneratedDocument, saveUploadedDocument } from "@/lib/storage";
 import { writeAuditLog } from "@/lib/audit";
+import { createApplicationClaimToken } from "@/lib/applicant-onboarding";
 import { renderLeaseTemplate } from "@/lib/lease-render";
 import { createTextPdfBuffer } from "@/lib/pdf";
-import { generateFinalSignedLeaseDocument } from "@/lib/signed-lease";
+import { generateFinalSignedLeaseDocument, syncLeaseCompletion } from "@/lib/signed-lease";
 import { defaultSignatureExpirationDate, queueSignatureNotification } from "@/lib/signature-notifications";
 import { sendEmail, sendQueuedSignatureNotificationEmails, sendSignatureNotificationEmail } from "@/lib/email";
 import { addMonthsSafe, advanceMonthlyRunDate, isScheduleDue, nextMonthlyRunDate, plannedInstallmentCount, recurringChargePeriodKey } from "@/lib/ledger";
@@ -344,8 +346,11 @@ export async function createPasswordResetLink(formData: FormData) {
   });
 
   await writeAuditLog({ actor, action: AuditAction.UPDATE, entityType: "User", entityId: user.id, message: `Created password reset link for ${user.email}.`, metadata: { emailDeliveryStatus: emailResult.ok ? "SENT" : "FAILED", emailProvider: emailResult.provider, emailError: emailResult.error } });
-  await writeSecurityEvent({ type: SecurityEventType.PASSWORD_RESET_LINK_CREATED, userId: user.id, email: user.email, message: "Admin created a password reset link.", metadata: { emailDeliveryStatus: emailResult.ok ? "SENT" : "FAILED", emailProvider: emailResult.provider } });
-  redirect(`/admin/users/${user.id}/edit?resetLink=${encodeURIComponent(resetLink)}`);
+  await writeSecurityEvent({ type: SecurityEventType.PASSWORD_RESET_LINK_CREATED, userId: user.id, email: user.email, message: "Admin created a password reset link.", metadata: { emailDeliveryStatus: emailResult.ok ? "SENT" : "FAILED", emailProvider: emailResult.provider, emailError: emailResult.error } });
+
+  const params = new URLSearchParams({ resetEmail: emailResult.ok ? "sent" : "failed", provider: emailResult.provider });
+  if (!emailResult.ok && emailResult.error) params.set("error", emailResult.error);
+  redirect(`/admin/users/${user.id}/edit?${params.toString()}`);
 }
 
 
@@ -430,6 +435,26 @@ export async function convertLeadToApplication(formData: FormData) {
   await writeAuditLog({ actor, action: AuditAction.CONVERT, entityType: "Lead", entityId: lead.id, message: `Converted lead to application ${application.id}.`, metadata: { applicationId: application.id } });
   revalidateInventory();
   redirect(`/admin/applications/${application.id}`);
+}
+
+
+export async function generateApplicationClaimLink(formData: FormData) {
+  const actor = await requireAdminAction();
+  const parsed = generateApplicationClaimLinkSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+
+  const claim = await createApplicationClaimToken(parsed.data.applicationId, actor, parsed.data.expiresInDays);
+
+  await prisma.applicationNote.create({
+    data: {
+      applicationId: parsed.data.applicationId,
+      note: `[Admin copy link] ${claim.url}`
+    }
+  });
+
+  revalidateInventory();
+  revalidatePath(`/admin/applications/${parsed.data.applicationId}`);
+  redirect(`/admin/applications/${parsed.data.applicationId}?claimLink=${encodeURIComponent(claim.url)}`);
 }
 
 export async function linkApplicationToApplicant(formData: FormData) {
@@ -1079,6 +1104,25 @@ export async function sendQueuedSignatureNotifications() {
   revalidatePath("/admin/notifications");
 }
 
+export async function requeueFailedSignatureNotifications() {
+  const actor = await requireAdminAction();
+  const result = await prisma.signatureNotification.updateMany({
+    where: { status: SignatureNotificationStatus.FAILED },
+    data: { status: SignatureNotificationStatus.QUEUED, failedAt: null, failureReason: null, nextAttemptAt: new Date() }
+  });
+
+  await writeAuditLog({
+    actor,
+    action: AuditAction.UPDATE,
+    entityType: "SignatureNotification",
+    entityId: "failed-batch",
+    message: `Requeued ${result.count} failed signature notification(s).`,
+    metadata: { requeued: result.count }
+  });
+
+  revalidatePath("/admin/notifications");
+}
+
 export async function sendSignatureNotificationNow(formData: FormData) {
   const actor = await requireAdminAction();
   const id = getRequiredId(formData, "Notification ID");
@@ -1096,6 +1140,67 @@ export async function sendSignatureNotificationNow(formData: FormData) {
   revalidatePath("/admin/notifications");
 }
 
+
+export async function refreshLeaseAutomation(formData: FormData) {
+  const actor = await requireAdminAction();
+  const id = getRequiredId(formData, "Lease packet ID");
+
+  await syncLeaseCompletion({ leasePacketId: id, actor });
+
+  revalidateInventory();
+  revalidatePath("/admin/leases");
+  revalidatePath(`/admin/leases/${id}`);
+}
+
+export async function renewExpiredSignatureRequest(formData: FormData) {
+  const actor = await requireAdminAction();
+  const parsed = signatureExpirationSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+
+  const existing = await prisma.signatureRequest.findUnique({
+    where: { id: parsed.data.requestId },
+    include: { leasePacket: true }
+  });
+
+  if (!existing) throw new Error("Signature request was not found.");
+  if (existing.status === SignatureStatus.SIGNED) throw new Error("Signed requests cannot be renewed.");
+  if (existing.leasePacket.status === LeasePacketStatus.VOIDED || existing.leasePacket.status === LeasePacketStatus.COMPLETED) {
+    throw new Error("Signature requests on completed or voided lease packets cannot be renewed. Reissue the packet instead.");
+  }
+
+  const expiresAt = defaultSignatureExpirationDate(parsed.data.extendDays);
+  const request = await prisma.signatureRequest.update({
+    where: { id: existing.id },
+    data: {
+      status: SignatureStatus.PENDING,
+      expiresAt,
+      signatureText: null,
+      signedAt: null,
+      declinedAt: null,
+      ipAddress: null,
+      userAgent: null,
+      electronicConsentAccepted: false,
+      electronicConsentText: null,
+      electronicConsentAcceptedAt: null,
+      documentTextHash: null,
+      signatureEvidenceHash: null,
+      finalPdfHash: null
+    }
+  });
+
+  await prisma.leasePacket.update({
+    where: { id: existing.leasePacketId },
+    data: { status: LeasePacketStatus.SENT_FOR_SIGNATURE, completedAt: null, finalDocumentId: null, finalPdfGeneratedAt: null }
+  });
+
+  await queueSignatureNotification({ request, type: SignatureNotificationType.INITIAL, actor });
+  await prisma.leaseNote.create({ data: { leasePacketId: request.leasePacketId, note: `[Admin] Renewed signature request for ${request.signerEmail}. New expiration: ${expiresAt.toLocaleDateString()}.` } });
+  await writeAuditLog({ actor, action: AuditAction.UPDATE, entityType: "SignatureRequest", entityId: request.id, message: `Renewed signature request for ${request.signerEmail}.`, metadata: { leasePacketId: request.leasePacketId, expiresAt: expiresAt.toISOString() } });
+
+  revalidatePath("/admin/leases");
+  revalidatePath("/admin/notifications");
+  revalidatePath(`/admin/leases/${request.leasePacketId}`);
+}
 
 export async function generateFinalSignedLeasePdf(formData: FormData) {
   const actor = await requireAdminAction();

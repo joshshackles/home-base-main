@@ -36,6 +36,21 @@ export default async function ApplicantProfilePage() {
             <Field label="State"><input name="state" maxLength={2} defaultValue={profile?.state ?? ""} className={inputClass} /></Field>
             <Field label="ZIP"><input name="zip" defaultValue={profile?.zip ?? ""} className={inputClass} /></Field>
             <div className="md:col-span-2"><Field label="Rental history"><textarea name="rentalHistory" defaultValue={profile?.rentalHistory ?? ""} className={textareaClass} placeholder="Briefly describe recent rental history, current landlord, or housing situation." /></Field></div>
+            <Field label="Desired bedrooms"><input name="desiredBedrooms" type="number" min="0" defaultValue={profile?.desiredBedrooms ?? ""} className={inputClass} /></Field>
+            <Field label="Desired bathrooms"><input name="desiredBathrooms" type="number" min="0" step="0.5" defaultValue={profile?.desiredBathrooms ?? ""} className={inputClass} /></Field>
+            <Field label="Max rent"><input name="maxRent" type="number" min="0" defaultValue={profile?.maxRent ?? ""} className={inputClass} /></Field>
+            <Field label="Desired move-in date"><input name="desiredMoveInDate" type="date" defaultValue={profile?.desiredMoveInDate ? profile.desiredMoveInDate.toISOString().slice(0, 10) : ""} className={inputClass} /></Field>
+            <div className="rounded-2xl bg-brand-50 p-4 md:col-span-2">
+              <label className="flex items-start gap-3 text-sm font-semibold text-brand-900">
+                <input type="checkbox" name="voucherHolder" defaultChecked={profile?.voucherHolder ?? false} className="mt-1 h-4 w-4 rounded border-slate-300" />
+                <span>Voucher holder or voucher-assisted household</span>
+              </label>
+            </div>
+            <Field label="Pets"><textarea name="pets" defaultValue={profile?.pets ?? ""} className={textareaClass} placeholder="Pet type, breed, weight, service/support animal notes, etc." /></Field>
+            <Field label="Accessibility needs"><textarea name="accessibilityNeeds" defaultValue={profile?.accessibilityNeeds ?? ""} className={textareaClass} placeholder="Ground-floor, no stairs, accessibility equipment, parking, or other needs." /></Field>
+            <Field label="Landlord references"><textarea name="landlordReferences" defaultValue={profile?.landlordReferences ?? ""} className={textareaClass} placeholder="Previous landlord names, phone/email, dates, or notes." /></Field>
+            <Field label="Employment summary"><textarea name="employmentSummary" defaultValue={profile?.employmentSummary ?? ""} className={textareaClass} placeholder="Employer, job stability, pay schedule, or benefit income context." /></Field>
+            <div className="md:col-span-2"><Field label="Renter profile bio"><textarea name="renterBio" defaultValue={profile?.renterBio ?? ""} className={textareaClass} placeholder="A short, landlord-friendly summary of your household, rental goals, and strengths as a renter." /></Field></div>
           </div>
           <button type="submit" className="mt-6 rounded-2xl bg-brand-600 px-6 py-3 font-bold text-white hover:bg-brand-700">Save Profile</button>
         </form>

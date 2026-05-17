@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { SignatureNotificationStatus, SignatureStatus } from "@prisma/client";
-import { expireOverdueSignatureRequests, queueSignatureReminder, sendQueuedSignatureNotifications, sendSignatureNotificationNow } from "@/app/admin/actions";
+import { expireOverdueSignatureRequests, queueSignatureReminder, requeueFailedSignatureNotifications, sendQueuedSignatureNotifications, sendSignatureNotificationNow } from "@/app/admin/actions";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { prisma } from "@/lib/prisma";
-import { emailProvider } from "@/lib/email";
+import { emailProvider, emailQueueStats, queuedEmailBatchSize } from "@/lib/email";
+import { emailProcessingDescription, emailProcessingModeLabel, isHobbyMode } from "@/lib/deployment-mode";
 
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export default async function AdminNotificationsPage() {
-  const [notifications, pendingSignatures, expiringSoon, overdue] = await Promise.all([
+  const [notifications, pendingSignatures, expiringSoon, overdue, queueStats] = await Promise.all([
     prisma.signatureNotification.findMany({
       orderBy: { createdAt: "desc" },
       take: 80,
@@ -27,13 +28,16 @@ export default async function AdminNotificationsPage() {
         expiresAt: { lte: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3), gte: new Date() }
       }
     }),
-    prisma.signatureRequest.count({ where: { status: SignatureStatus.PENDING, expiresAt: { lt: new Date() } } })
+    prisma.signatureRequest.count({ where: { status: SignatureStatus.PENDING, expiresAt: { lt: new Date() } } }),
+    emailQueueStats()
   ]);
 
-  const queuedCount = notifications.filter((notification) => notification.status === SignatureNotificationStatus.QUEUED).length;
-  const failedCount = notifications.filter((notification) => notification.status === SignatureNotificationStatus.FAILED).length;
-  const sentCount = notifications.filter((notification) => notification.status === SignatureNotificationStatus.SENT).length;
+  const queuedCount = queueStats.queued;
+  const failedCount = queueStats.failed;
+  const sentCount = queueStats.sent;
   const provider = emailProvider();
+  const batchSize = queuedEmailBatchSize();
+  const hobbyMode = isHobbyMode();
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -44,11 +48,26 @@ export default async function AdminNotificationsPage() {
         actionLabel="Back to leases"
       />
 
+
+      <section className={`mb-6 rounded-3xl border p-5 shadow-sm ${hobbyMode ? "border-amber-200 bg-amber-50 text-amber-950" : "border-emerald-200 bg-emerald-50 text-emerald-950"}`}>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em]">{emailProcessingModeLabel()}</p>
+            <h2 className="mt-2 text-xl font-black">Email processing</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6">{emailProcessingDescription()}</p>
+            <p className="mt-2 text-sm font-bold">Batch size: {batchSize} · Provider: {provider}</p>
+          </div>
+          <form action={sendQueuedSignatureNotifications}>
+            <button type="submit" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800">Process Queue Now</button>
+          </form>
+        </div>
+      </section>
+
       <section className="grid gap-4 md:grid-cols-4">
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-bold uppercase text-slate-500">Pending signatures</p><p className="mt-2 text-4xl font-black text-slate-950">{pendingSignatures.length}</p></div>
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-bold uppercase text-slate-500">Expiring soon</p><p className="mt-2 text-4xl font-black text-slate-950">{expiringSoon}</p></div>
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-bold uppercase text-slate-500">Overdue</p><p className="mt-2 text-4xl font-black text-slate-950">{overdue}</p></div>
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-bold uppercase text-slate-500">Queued notices</p><p className="mt-2 text-4xl font-black text-slate-950">{queuedCount}</p><p className="mt-1 text-xs font-bold text-slate-500">{sentCount} sent · {failedCount} failed</p></div>
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-bold uppercase text-slate-500">Queued notices</p><p className="mt-2 text-4xl font-black text-slate-950">{queuedCount}</p><p className="mt-1 text-xs font-bold text-slate-500">{sentCount} sent · {failedCount} failed · {queueStats.retrying} retrying later</p></div>
       </section>
 
       <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -60,6 +79,9 @@ export default async function AdminNotificationsPage() {
           <div className="flex flex-wrap gap-3">
             <form action={sendQueuedSignatureNotifications}>
               <button type="submit" className="rounded-2xl bg-brand-600 px-5 py-3 text-sm font-black text-white hover:bg-brand-700">Send Queued Emails</button>
+            </form>
+            <form action={requeueFailedSignatureNotifications}>
+              <button type="submit" className="rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white hover:bg-amber-700">Requeue Failed</button>
             </form>
             <form action={expireOverdueSignatureRequests}>
               <button type="submit" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800">Expire Overdue Requests</button>

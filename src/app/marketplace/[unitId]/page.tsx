@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Bath, BedDouble, CheckCircle2, Home, Mail, MapPin, Phone, Ruler } from "lucide-react";
+import { saveFavoriteRental } from "@/app/applicant/actions";
 import { createLead } from "@/app/marketplace/actions";
 import { formatCurrency } from "@/lib/format";
+import { getVerifiedCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +13,7 @@ const inputClass = "rounded-2xl border border-slate-300 px-4 py-3 font-medium ou
 const textareaClass = `${inputClass} min-h-32 resize-y`;
 
 export default async function UnitDetailPage({ params, searchParams }: { params: { unitId: string }; searchParams?: { lead?: string; error?: string } }) {
+  const currentUser = await getVerifiedCurrentUser();
   const unit = await prisma.unit.findFirst({
     where: {
       id: params.unitId,
@@ -22,6 +25,11 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
 
   if (!unit) notFound();
 
+  const isApplicant = currentUser?.role === "APPLICANT" || currentUser?.role === "TENANT";
+  const favorite = isApplicant ? await prisma.favoriteRental.findUnique({
+    where: { userId_unitId: { userId: currentUser!.userId, unitId: unit.id } },
+    select: { id: true }
+  }) : null;
   const leadSubmitted = searchParams?.lead === "success";
   const errorMessage = searchParams?.error;
 
@@ -90,7 +98,7 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
           </div>
         </div>
 
-        <aside className="h-fit rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-24">
+        <aside id="interest" className="h-fit rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-24">
           {leadSubmitted ? (
             <div className="mb-5 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
               <p className="font-black">Inquiry received</p>
@@ -107,6 +115,17 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
 
           <h2 className="text-2xl font-black text-slate-950">I’m interested</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">Send a basic inquiry tied to this unit. This is the first step toward a full application workflow.</p>
+
+          {isApplicant ? (
+            <form action={saveFavoriteRental} className="mt-5 rounded-2xl bg-brand-50 p-4">
+              <input type="hidden" name="unitId" value={unit.id} />
+              <label className="block text-sm font-bold text-brand-900">Save to favorites</label>
+              <textarea name="notes" rows={3} className="mt-2 w-full rounded-2xl border border-brand-200 px-4 py-3" placeholder="Private notes for comparing this rental..." />
+              <button type="submit" className="mt-3 w-full rounded-2xl bg-slate-950 px-5 py-3 font-bold text-white hover:bg-slate-800">
+                {favorite ? "Update Favorite" : "Save Favorite"}
+              </button>
+            </form>
+          ) : null}
 
           <form action={createLead} className="mt-5 grid gap-4">
             <input type="hidden" name="unitId" value={unit.id} />

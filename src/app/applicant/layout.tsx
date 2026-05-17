@@ -1,12 +1,16 @@
 import Link from "next/link";
-import { ClipboardCheck, ClipboardList, DollarSign, FileSignature, LayoutDashboard, UserRound } from "lucide-react";
+import { ClipboardCheck, ClipboardList, DollarSign, FileSignature, Heart, Home, LayoutDashboard, MessageSquare, Wrench, UserRound } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 
 const nav = [
   { href: "/applicant", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/applicant/favorites", label: "Favorites", icon: Heart },
   { href: "/applicant/applications", label: "Applications", icon: ClipboardList },
   { href: "/applicant/leases", label: "Leases", icon: FileSignature },
+  { href: "/applicant/home-tools", label: "Home Tools", icon: Home },
   { href: "/applicant/inspections", label: "Inspections", icon: ClipboardCheck },
+  { href: "/applicant/maintenance", label: "Maintenance", icon: Wrench },
+  { href: "/applicant/inbox", label: "Inbox", icon: MessageSquare },
   { href: "/applicant/ledger", label: "Ledger", icon: DollarSign },
   { href: "/applicant/profile", label: "Profile", icon: UserRound }
 ];

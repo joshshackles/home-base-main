@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { Bath, BedDouble, CheckCircle2, Home, Ruler } from "lucide-react";
+import type { ReactNode } from "react";
+import { Bath, BedDouble, CheckCircle2, Heart, Home, MapPin, Ruler, ShieldCheck, Sparkles, WalletCards } from "lucide-react";
+import { removeFavoriteRental, saveFavoriteRental } from "@/app/applicant/actions";
 import { formatCurrency } from "@/lib/format";
 
 type UnitCardProps = {
@@ -25,68 +27,108 @@ type UnitCardProps = {
       zip: string;
     };
   };
+  isFavorite?: boolean;
+  matchScore?: number | null;
+  compact?: boolean;
 };
 
-export function UnitCard({ unit }: UnitCardProps) {
+function featureText(unit: UnitCardProps["unit"]) {
+  const features = [];
+  if (unit.voucherFriendly) features.push("Voucher-friendly");
+  if (unit.petPolicy) features.push("Pet notes");
+  if (unit.accessibility) features.push("Accessibility notes");
+  if (unit.utilitiesNote) features.push("Utility details");
+  return features;
+}
+
+export function UnitCard({ unit, isFavorite = false, matchScore = null, compact = false }: UnitCardProps) {
+  const features = featureText(unit);
+
   return (
-    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
-      <div className="flex h-44 items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-brand-700 text-white">
-        <div className="text-center">
-          <Home className="mx-auto mb-3" size={38} />
-          <p className="text-sm uppercase tracking-[0.25em] text-blue-100">Unit {unit.unitNumber}</p>
-          <h3 className="mt-1 text-2xl font-bold">{unit.property.name}</h3>
+    <article className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-xl">
+      <div className="relative min-h-52 bg-[radial-gradient(circle_at_top_left,#38bdf8_0,#0f172a_34%,#172554_72%,#14532d_100%)] p-5 text-white">
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950/55 to-transparent" />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="rounded-2xl bg-white/10 p-3 ring-1 ring-white/15 backdrop-blur">
+            <Home size={26} />
+          </div>
+          <div className="flex items-center gap-2">
+            {matchScore !== null ? (
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-950">{matchScore}% match</span>
+            ) : null}
+            <form action={isFavorite ? removeFavoriteRental : saveFavoriteRental}>
+              <input type="hidden" name="unitId" value={unit.id} />
+              <button
+                type="submit"
+                aria-label={isFavorite ? "Remove from favorites" : "Save rental"}
+                className={`rounded-full p-2 shadow-sm ring-1 ring-white/20 transition ${isFavorite ? "bg-rose-500 text-white" : "bg-white/90 text-slate-950 hover:bg-white"}`}
+              >
+                <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
+              </button>
+            </form>
+          </div>
+        </div>
+        <div className="relative mt-16">
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-100">Unit {unit.unitNumber}</p>
+          <h3 className="mt-2 text-3xl font-black tracking-tight">{unit.property.name}</h3>
+          <p className="mt-2 flex items-center gap-2 text-sm text-slate-200">
+            <MapPin size={16} /> {unit.property.city}, {unit.property.state}
+          </p>
         </div>
       </div>
+
       <div className="space-y-5 p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm text-slate-500">{unit.property.addressLine}</p>
-            <p className="font-semibold text-slate-900">
-              {unit.property.city}, {unit.property.state} {unit.property.zip}
-            </p>
+            <p className="text-3xl font-black text-slate-950">{formatCurrency(unit.rentAmount)}</p>
+            <p className="text-sm text-slate-500">monthly rent{unit.deposit ? ` · ${formatCurrency(unit.deposit)} deposit` : ""}</p>
           </div>
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-emerald-700">
-            {unit.status.toLowerCase()}
+            Available
           </span>
         </div>
 
-        <div>
-          <p className="text-3xl font-black text-slate-950">{formatCurrency(unit.rentAmount)}</p>
-          <p className="text-sm text-slate-500">monthly rent{unit.deposit ? ` • ${formatCurrency(unit.deposit)} deposit` : ""}</p>
-        </div>
-
         <div className="grid grid-cols-3 gap-2 text-sm text-slate-700">
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <BedDouble size={17} />
-            <p className="mt-2 font-bold">{unit.bedrooms} bed</p>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <Bath size={17} />
-            <p className="mt-2 font-bold">{unit.bathrooms} bath</p>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <Ruler size={17} />
-            <p className="mt-2 font-bold">{unit.squareFeet ? `${unit.squareFeet} ft²` : "N/A"}</p>
-          </div>
+          <Spec icon={<BedDouble size={17} />} label={`${unit.bedrooms} bed`} />
+          <Spec icon={<Bath size={17} />} label={`${unit.bathrooms} bath`} />
+          <Spec icon={<Ruler size={17} />} label={unit.squareFeet ? `${unit.squareFeet.toLocaleString()} ft2` : "N/A"} />
         </div>
 
-        <p className="min-h-12 text-sm leading-6 text-slate-600">{unit.description ?? "No unit description has been added yet."}</p>
+        {!compact ? (
+          <p className="line-clamp-3 min-h-16 text-sm leading-6 text-slate-600">{unit.description ?? "No unit description has been added yet."}</p>
+        ) : null}
 
-        <div className="space-y-2 text-sm text-slate-600">
-          {unit.voucherFriendly && (
-            <p className="flex items-center gap-2 font-semibold text-brand-700">
-              <CheckCircle2 size={16} /> Voucher-friendly listing
-            </p>
-          )}
-          {unit.utilitiesNote && <p><strong>Utilities:</strong> {unit.utilitiesNote}</p>}
-          {unit.petPolicy && <p><strong>Pets:</strong> {unit.petPolicy}</p>}
-          {unit.accessibility && <p><strong>Accessibility:</strong> {unit.accessibility}</p>}
+        <div className="flex flex-wrap gap-2">
+          {features.length === 0 ? <Feature icon={<Sparkles size={14} />} label="Fresh listing" /> : null}
+          {unit.voucherFriendly ? <Feature icon={<ShieldCheck size={14} />} label="Voucher-friendly" tone="brand" /> : null}
+          {unit.utilitiesNote ? <Feature icon={<WalletCards size={14} />} label="Utility details" /> : null}
+          {unit.petPolicy ? <Feature icon={<CheckCircle2 size={14} />} label="Pet notes" /> : null}
+          {unit.accessibility ? <Feature icon={<CheckCircle2 size={14} />} label="Accessible notes" /> : null}
         </div>
 
-        <Link href={`/marketplace/${unit.id}`} className="block w-full rounded-2xl bg-brand-600 px-4 py-3 text-center font-bold text-white shadow-sm hover:bg-brand-700">
-          View Details
-        </Link>
+        <div className="flex gap-3">
+          <Link href={`/marketplace/${unit.id}`} className="flex-1 rounded-2xl bg-brand-600 px-4 py-3 text-center font-bold text-white shadow-sm hover:bg-brand-700">
+            View Details
+          </Link>
+          <Link href={`/marketplace/${unit.id}#interest`} className="rounded-2xl border border-slate-300 px-4 py-3 font-bold text-slate-900 hover:bg-slate-50">
+            Ask
+          </Link>
+        </div>
       </div>
     </article>
   );
+}
+
+function Spec({ icon, label }: { icon: ReactNode; label: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 p-3">
+      {icon}
+      <p className="mt-2 font-bold">{label}</p>
+    </div>
+  );
+}
+
+function Feature({ icon, label, tone = "slate" }: { icon: ReactNode; label: string; tone?: "slate" | "brand" }) {
+  const classes = tone === "brand" ? "bg-brand-50 text-brand-700" : "bg-slate-100 text-slate-700";
+  return <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${classes}`}>{icon}{label}</span>;
 }

@@ -2,7 +2,7 @@
 
 Production-oriented rental marketplace and housing workflow system for properties, units, leads, applications, documents, inspections, lease packets, e-signature evidence, notifications, and ledgers.
 
-Current package version: **2.6.12**
+Current package version: **1.7.4**
 
 ## What is included
 

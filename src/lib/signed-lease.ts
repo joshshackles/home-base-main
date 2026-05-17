@@ -143,22 +143,53 @@ export async function generateFinalSignedLeaseDocument({ leasePacketId, actor }:
   return document;
 }
 
-export async function completeLeaseIfReadyAndFinalize({ leasePacketId, actor }: { leasePacketId: string; actor?: AuditActor | null }) {
-  const remaining = await prisma.signatureRequest.count({ where: { leasePacketId, status: SignatureStatus.PENDING } });
-  const signed = await prisma.signatureRequest.count({ where: { leasePacketId, status: SignatureStatus.SIGNED } });
-  const blocked = await prisma.signatureRequest.count({ where: { leasePacketId, status: { in: [SignatureStatus.DECLINED, SignatureStatus.VOIDED] } } });
+export async function syncLeaseCompletion({ leasePacketId, actor }: { leasePacketId: string; actor?: AuditActor | null }) {
+  const packet = await prisma.leasePacket.findUnique({
+    where: { id: leasePacketId },
+    include: { signatureRequests: true }
+  });
 
-  if (remaining === 0 && signed > 0 && blocked === 0) {
-    const packet = await prisma.leasePacket.update({
+  if (!packet) throw new Error("Lease packet was not found.");
+  if (packet.status === LeasePacketStatus.VOIDED) return { completed: false, finalDocumentId: packet.finalDocumentId };
+
+  const requiredRequests = packet.signatureRequests.filter((request) => request.status !== SignatureStatus.VOIDED);
+  const hasRequiredSignatures = requiredRequests.length > 0;
+  const allSigned = hasRequiredSignatures && requiredRequests.every((request) => request.status === SignatureStatus.SIGNED);
+  const hasBlockingRequest = requiredRequests.some((request) => request.status === SignatureStatus.DECLINED || request.status === SignatureStatus.EXPIRED);
+
+  if (!allSigned || hasBlockingRequest) {
+    return { completed: false, finalDocumentId: packet.finalDocumentId };
+  }
+
+  if (packet.status !== LeasePacketStatus.COMPLETED || !packet.completedAt) {
+    await prisma.leasePacket.update({
       where: { id: leasePacketId },
-      data: { status: LeasePacketStatus.COMPLETED, completedAt: new Date(), lockedAt: new Date() },
-      select: { id: true, finalDocumentId: true }
+      data: { status: LeasePacketStatus.COMPLETED, completedAt: packet.completedAt ?? new Date(), lockedAt: packet.lockedAt ?? new Date() }
     });
 
-    await prisma.leaseNote.create({ data: { leasePacketId, note: "[System] All required signatures are complete. Lease packet marked completed and locked." } });
+    await prisma.leaseNote.create({
+      data: { leasePacketId, note: "[System] All required signatures are complete. Lease packet marked completed and locked." }
+    });
 
-    if (!packet.finalDocumentId) {
-      await generateFinalSignedLeaseDocument({ leasePacketId, actor });
-    }
+    await writeAuditLog({
+      actor: actor ?? null,
+      action: AuditAction.COMPLETE,
+      entityType: "LeasePacket",
+      entityId: leasePacketId,
+      message: "Lease packet completed automatically after all required signatures were captured.",
+      metadata: { leasePacketId }
+    });
   }
+
+  const refreshed = await prisma.leasePacket.findUnique({ where: { id: leasePacketId }, select: { finalDocumentId: true } });
+  if (!refreshed?.finalDocumentId) {
+    const document = await generateFinalSignedLeaseDocument({ leasePacketId, actor });
+    return { completed: true, finalDocumentId: document.id };
+  }
+
+  return { completed: true, finalDocumentId: refreshed.finalDocumentId };
+}
+
+export async function completeLeaseIfReadyAndFinalize({ leasePacketId, actor }: { leasePacketId: string; actor?: AuditActor | null }) {
+  await syncLeaseCompletion({ leasePacketId, actor });
 }

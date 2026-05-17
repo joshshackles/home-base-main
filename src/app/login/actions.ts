@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { createSessionToken, setSessionCookie, clearSessionCookie, getVerifiedCurrentUser } from "@/lib/auth";
+import { createDatabaseSession, setSessionCookie, clearSessionCookie, getVerifiedCurrentUser, getRequestClientMetadata, revokeCurrentSession } from "@/lib/auth";
 import { verifyPassword } from "@/lib/password";
 import { clearLoginRateLimit, checkLoginRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/public-form-security";
@@ -106,12 +106,12 @@ export async function loginAction(formData: FormData) {
 
   await clearLoginRateLimit(email, clientIp);
 
-  const token = createSessionToken({
+  const token = await createDatabaseSession({
     userId: user.id,
     email: user.email,
     name: user.name,
     role: user.role
-  });
+  }, getRequestClientMetadata());
 
   setSessionCookie(token);
   await prisma.user.update({ where: { id: user.id }, data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() } });
@@ -122,6 +122,7 @@ export async function loginAction(formData: FormData) {
 
 export async function logoutAction() {
   const user = await getVerifiedCurrentUser();
+  await revokeCurrentSession();
   clearSessionCookie();
   if (user) {
     await writeAuditLog({ actor: user, action: AuditAction.LOGOUT, entityType: "Session", entityId: user.userId, message: "User signed out." });

@@ -5,6 +5,7 @@ import {
   addApplicationNote,
   createDocumentRequest,
   createLeaseFromApplication,
+  generateApplicationClaimLink,
   linkApplicationToApplicant,
   updateApplicationStatus,
   updateDocumentRequestStatus,
@@ -25,7 +26,7 @@ function requestBadge(status: string) {
   return `rounded-full px-3 py-1 text-xs font-bold uppercase ${tone}`;
 }
 
-export default async function ApplicationDetailPage({ params }: { params: { id: string } }) {
+export default async function ApplicationDetailPage({ params, searchParams }: { params: { id: string }; searchParams?: { claimLink?: string } }) {
   const application = await prisma.application.findUnique({
     where: { id: params.id },
     include: {
@@ -35,7 +36,8 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
       notes: { orderBy: { createdAt: "desc" } },
       documents: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
       documentRequests: { include: { fulfilledDocument: true, requestedBy: true }, orderBy: { createdAt: "desc" } },
-      leasePackets: { include: { template: true }, orderBy: { createdAt: "desc" } }
+      leasePackets: { include: { template: true }, orderBy: { createdAt: "desc" } },
+      claimTokens: { orderBy: { createdAt: "desc" }, take: 3 }
     }
   });
 
@@ -218,12 +220,38 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
                 <p><strong>Income sources:</strong> {application.applicantUser.applicantProfile?.incomeSources.length ?? 0}</p>
               </div>
             ) : (
-              <form action={linkApplicationToApplicant} className="mt-4 space-y-4">
-                <input type="hidden" name="applicationId" value={application.id} />
-                <p className="text-sm leading-6 text-slate-600">Connect this application to an active applicant account so the applicant can complete their profile and submit updates from the portal.</p>
-                <Field label="Applicant account email"><input name="applicantEmail" type="email" defaultValue={application.applicantEmail} className={inputClass} required /></Field>
-                <button type="submit" className="w-full rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700">Connect Account</button>
-              </form>
+              <div className="mt-4 space-y-4">
+                {searchParams?.claimLink ? (
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900">
+                    <p className="font-black">Claim link generated</p>
+                    <p className="mt-2 break-all font-mono text-xs">{searchParams.claimLink}</p>
+                    <p className="mt-2 text-xs font-bold uppercase">Copy this link into an email or message to the applicant.</p>
+                  </div>
+                ) : null}
+
+                <form action={generateApplicationClaimLink} className="space-y-3 rounded-2xl bg-brand-50 p-4">
+                  <input type="hidden" name="applicationId" value={application.id} />
+                  <p className="text-sm leading-6 text-brand-950">Generate a secure claim link so the applicant can create/sign into their portal and connect this application automatically.</p>
+                  <Field label="Expires in days"><input name="expiresInDays" type="number" min="1" max="30" defaultValue="7" className={inputClass} /></Field>
+                  <button type="submit" className="w-full rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700">Generate Claim Link</button>
+                </form>
+
+                {application.claimTokens.length > 0 ? (
+                  <div className="rounded-2xl bg-slate-50 p-4 text-xs leading-5 text-slate-600">
+                    <p className="font-black uppercase text-slate-500">Recent claim links</p>
+                    {application.claimTokens.map((token) => (
+                      <p key={token.id} className="mt-2">{token.claimedAt ? "Claimed" : token.expiresAt < new Date() ? "Expired" : "Open"} · expires {token.expiresAt.toLocaleString()}</p>
+                    ))}
+                  </div>
+                ) : null}
+
+                <form action={linkApplicationToApplicant} className="space-y-4 rounded-2xl border border-slate-200 p-4">
+                  <input type="hidden" name="applicationId" value={application.id} />
+                  <p className="text-sm leading-6 text-slate-600">Or connect this application to an existing active applicant account by email.</p>
+                  <Field label="Applicant account email"><input name="applicantEmail" type="email" defaultValue={application.applicantEmail} className={inputClass} required /></Field>
+                  <button type="submit" className="w-full rounded-2xl bg-slate-950 px-5 py-3 font-bold text-white hover:bg-slate-800">Connect Existing Account</button>
+                </form>
+              </div>
             )}
           </div>
 
