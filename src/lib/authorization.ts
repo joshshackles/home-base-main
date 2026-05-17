@@ -23,13 +23,15 @@ export type AuthorizationTarget =
 
 const applicantVisibleDocumentTypes = new Set<DocumentVisibility>([DocumentVisibility.APPLICANT, DocumentVisibility.SHARED]);
 const landlordVisibleDocumentTypes = new Set<DocumentVisibility>([DocumentVisibility.LANDLORD, DocumentVisibility.SHARED]);
-const internalNoteAccessTypes = [
+const internalNoteAccessTypes: AccountAccessType[] = [
   AccountAccessType.CASEWORKER,
   AccountAccessType.INSPECTOR,
   AccountAccessType.MAINTENANCE,
   AccountAccessType.VENDOR,
   AccountAccessType.ADMIN
 ];
+
+const internalNoteWriterRoles: UserRole[] = [UserRole.ADMIN, UserRole.INSPECTOR];
 
 export function isAdmin(user: AuthorizedUser) {
   return user.role === UserRole.ADMIN;
@@ -56,7 +58,7 @@ export async function hasApprovedAccessType(user: AuthorizedUser, types: Account
 }
 
 export async function canWriteInternalNote(user: AuthorizedUser) {
-  if ([UserRole.ADMIN, UserRole.INSPECTOR].includes(user.role)) return true;
+  if (internalNoteWriterRoles.includes(user.role)) return true;
   return hasApprovedAccessType(user, internalNoteAccessTypes);
 }
 

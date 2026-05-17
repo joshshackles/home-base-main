@@ -1,3 +1,8 @@
+## v3.0.1 - Enum Type Narrowing Build Fix
+
+- Fixed enum-safe role checks in authorization helpers so Vercel/Next TypeScript builds do not fail on narrowed array literal `.includes()` calls.
+- Bumped package and README version from `3.0.0` to `3.0.1`.
+
 
 ## v3.0.0 - Tenant Transition and Interface Fluidity Foundation
 
