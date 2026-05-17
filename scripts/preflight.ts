@@ -29,7 +29,9 @@ const requiredFiles = [
   "docs/WORKFLOW_VERIFICATION.md"
 ];
 
-const requiredEnv = ["DATABASE_URL", "DIRECT_URL", "AUTH_SECRET"];
+const databaseEnvAlternates = ["DATABASE_URL", "POSTGRES_PRISMA_URL", "POSTGRES_URL", "NEON_DATABASE_URL"];
+const directEnvAlternates = ["DIRECT_URL", "POSTGRES_URL_NON_POOLING", "POSTGRES_URL_NON_POOLING_DIRECT", "NEON_DIRECT_URL"];
+const requiredEnv = ["AUTH_SECRET"];
 const unsafeSecrets = new Set(["", "dev-only-change-this-secret-before-deployment", "change-me", "changeme", "replace-this-with-a-long-random-secret", "replace-with-a-long-random-secret", "replace-with-at-least-32-random-characters"]);
 let failed = false;
 const nextConfigFile = existingConfigFile();
@@ -60,6 +62,15 @@ for (const key of requiredEnv) {
   if (!process.env[key]) {
     console.warn(`Environment warning: ${key} is not set in this shell.`);
   }
+}
+
+if (!databaseEnvAlternates.some((key) => Boolean(process.env[key]))) {
+  console.warn(`Environment warning: set one database URL variable: ${databaseEnvAlternates.join(", ")}.`);
+  failed = true;
+}
+
+if (!directEnvAlternates.some((key) => Boolean(process.env[key])) && !process.env.DATABASE_URL) {
+  console.warn(`Environment warning: set DIRECT_URL for migrations, or one alternate direct URL variable: ${directEnvAlternates.join(", ")}.`);
 }
 
 if (unsafeSecrets.has(process.env.AUTH_SECRET || "") || (process.env.AUTH_SECRET || "").length < 32) {

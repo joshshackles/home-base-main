@@ -1,11 +1,17 @@
 
 
-# HomeBase MLS v2.6.11
+# HomeBase MLS v2.6.12
+
+## v2.6.12 - Vercel/Neon Environment Alias Support
+
+- Maps common Vercel/Neon database variables (`POSTGRES_PRISMA_URL`, `POSTGRES_URL`, `NEON_DATABASE_URL`) into Prisma's required `DATABASE_URL` at runtime.
+- Maps common direct migration variables (`POSTGRES_URL_NON_POOLING`, `POSTGRES_URL_NON_POOLING_DIRECT`, `NEON_DIRECT_URL`) into `DIRECT_URL`.
+- Adds a clearer runtime error when no database URL is available.
 
 ## v2.6.11 - Vercel Build-Time Database Guard
 
 - Forces the app route tree to render dynamically so Vercel does not attempt build-time Prisma queries while collecting pages.
-- Vercel still needs these environment variables in Project Settings: `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `DOCUMENT_STORAGE_PROVIDER`, `APP_URL`, and email provider values.
+- Vercel still needs database, auth, storage, app URL, and email provider values in Project Settings.
 
 ## v2.6.10 - Vercel/Neon Production Hardening
 

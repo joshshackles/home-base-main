@@ -1,3 +1,5 @@
+import { hasDatabaseUrl } from "@/lib/database-env";
+
 const unsafeSecrets = new Set(["", "dev-only-change-this-secret-before-deployment", "change-me", "changeme", "replace-this-with-a-long-random-secret", "replace-with-a-long-random-secret", "replace-with-at-least-32-random-characters"]);
 
 export function getDocumentStorageProvider() {
@@ -15,7 +17,7 @@ export function getRequiredAuthSecret() {
 export function getEnvironmentWarnings() {
   const warnings: string[] = [];
 
-  if (!process.env.DATABASE_URL) warnings.push("DATABASE_URL is not set.");
+  if (!hasDatabaseUrl()) warnings.push("DATABASE_URL is not set. Add DATABASE_URL, POSTGRES_PRISMA_URL, POSTGRES_URL, or NEON_DATABASE_URL.");
   if (!process.env.AUTH_SECRET) warnings.push("AUTH_SECRET is not set.");
   if (unsafeSecrets.has(process.env.AUTH_SECRET || "") || (process.env.AUTH_SECRET || "").length < 32) warnings.push("AUTH_SECRET is missing, too short, or using a development placeholder.");
   const storageProvider = getDocumentStorageProvider();
