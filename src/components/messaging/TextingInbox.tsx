@@ -23,7 +23,7 @@ type Thread = {
   type: string;
   status: string;
   createdAt: Date;
-  lastMessageAt: Date;
+  lastMessageAt: Date | null;
   createdBy: Sender;
   application: { unit: { unitNumber: string; property: { name: string } } } | null;
   maintenanceRequest: { subject: string } | null;

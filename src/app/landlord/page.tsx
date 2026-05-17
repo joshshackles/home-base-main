@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { WorkhorseDashboard, dashboardIcons } from "@/components/dashboard/WorkhorseDashboard";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Prisma } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";

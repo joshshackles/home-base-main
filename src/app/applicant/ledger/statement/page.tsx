@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { LedgerEntryStatus } from "@prisma/client";
 import { requireRole } from "@/lib/auth";

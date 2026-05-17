@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import type { ReactNode } from "react";
 import { PayrollFrequency, TenantPaymentMethod, TenantPaymentStatus, UtilityAccountStatus } from "@prisma/client";
 import { deletePayrollReminder, deleteTenantPayment, deleteUtilityAccount, savePayrollReminder, saveTenantPayment, saveUtilityAccount } from "@/app/applicant/actions";

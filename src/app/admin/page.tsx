@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { prisma } from "@/lib/prisma";
 import { ledgerTotals } from "@/lib/ledger-queries";
 import { formatCurrency } from "@/lib/format";

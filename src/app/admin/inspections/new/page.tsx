@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Field, inputClass, selectClass, textareaClass, SubmitButton, SecondaryLink } from "@/components/admin/FormFields";
 import { createInspection } from "@/app/admin/actions";

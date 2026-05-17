@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createLeaseTemplate, updateLeaseTemplate } from "@/app/admin/actions";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Field, inputClass, textareaClass } from "@/components/admin/FormFields";

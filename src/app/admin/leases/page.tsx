@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { LeasePacketStatus, Prisma } from "@prisma/client";
 import { AdminListControls, FilterSelect } from "@/components/admin/AdminListControls";

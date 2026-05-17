@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
 import { agingBucket, installmentStatusLabel, ledgerBalance, ledgerSignedAmount, ledgerStatusLabel, ledgerTypeLabel, paymentPlanStatusLabel } from "@/lib/ledger";

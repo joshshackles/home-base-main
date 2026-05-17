@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { MIN_PASSWORD_LENGTH, passwordPolicyMessage } from "@/lib/password";
 import { changePasswordAction } from "@/app/account/actions";
 import { requireUser } from "@/lib/auth";

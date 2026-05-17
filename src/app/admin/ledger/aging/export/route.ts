@@ -1,3 +1,6 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 import { LedgerEntryStatus } from "@prisma/client";
 import { csvDownloadResponse, toCsv } from "@/lib/csv";
 import { requireRole } from "@/lib/auth";

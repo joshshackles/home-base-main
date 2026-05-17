@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { UserRole } from "@prisma/client";
 import { notFound } from "next/navigation";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";

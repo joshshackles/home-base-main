@@ -1,3 +1,6 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 import { csvDownloadResponse, toCsv } from "@/lib/csv";
 import { requireRole } from "@/lib/auth";
 import { ledgerCsvHeaders, ledgerCsvRows } from "@/lib/ledger-reports";

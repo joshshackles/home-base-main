@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";

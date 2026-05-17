@@ -42,7 +42,10 @@
     "workflow-update1:verify": "tsx scripts/verify-workflow-update1.ts",
     "workflow-update2:verify": "tsx scripts/verify-workflow-update2.ts",
     "workflow-update3:verify": "tsx scripts/verify-workflow-update3.ts",
-    "workflow-update4:verify": "tsx scripts/verify-workflow-update4.ts"
+    "workflow-update4:verify": "tsx scripts/verify-workflow-update4.ts",
+    "vercel-build:no-migrate": "npm run vercel:preflight && prisma generate && next build",
+    "vercel:build": "npm run vercel-build",
+    "vercel:postbuild": "npm run routes:check"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.716.0",

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { MaintenanceRequestStatus, UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";

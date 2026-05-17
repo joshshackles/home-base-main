@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TextingInbox } from "@/components/messaging/TextingInbox";
@@ -5,7 +7,7 @@ import { TextingInbox } from "@/components/messaging/TextingInbox";
 export default async function LandlordInboxPage() {
   const user = await requireRole(["LANDLORD"], "/landlord/inbox");
   const ownerScope = user.role === "ADMIN" ? {} : { ownerId: user.userId };
-  const threads = await prisma.messageThread.findMany({
+  const rawThreads = await prisma.messageThread.findMany({
     where: {
       OR: [
         { maintenanceRequest: { unit: { property: ownerScope } } },
@@ -21,6 +23,11 @@ export default async function LandlordInboxPage() {
     },
     orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }]
   });
+
+  const threads = rawThreads.map((thread) => ({
+    ...thread,
+    lastMessageAt: thread.lastMessageAt ?? thread.createdAt
+  }));
 
   return <TextingInbox currentUserId={user.userId} threads={threads} allowInternalNotes />;
 }

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { LedgerEntryType, PaymentMethod } from "@prisma/client";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { createLedgerEntry } from "@/app/admin/actions";

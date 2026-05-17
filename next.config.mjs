@@ -53,12 +53,16 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  serverExternalPackages: ["@prisma/client", "prisma"],
   poweredByHeader: false,
   compress: true,
   experimental: {
     serverActions: {
       bodySizeLimit: "12mb",
     },
+  },
+  outputFileTracingIncludes: {
+    "/**": ["./prisma/schema.prisma", "./prisma/migrations/**/*"],
   },
   async headers() {
     return [

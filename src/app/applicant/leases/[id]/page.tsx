@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { SignatureStatus } from "@prisma/client";
 import { signApplicantLease } from "@/app/applicant/actions";

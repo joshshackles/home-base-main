@@ -1,10 +1,12 @@
+export const dynamic = "force-dynamic";
+
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TextingInbox } from "@/components/messaging/TextingInbox";
 
 export default async function ApplicantInboxPage() {
   const user = await requireUser("/applicant/inbox");
-  const threads = await prisma.messageThread.findMany({
+  const rawThreads = await prisma.messageThread.findMany({
     where: {
       OR: [
         { createdById: user.userId },
@@ -20,6 +22,11 @@ export default async function ApplicantInboxPage() {
     },
     orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }]
   });
+
+  const threads = rawThreads.map((thread) => ({
+    ...thread,
+    lastMessageAt: thread.lastMessageAt ?? thread.createdAt
+  }));
 
   return <TextingInbox currentUserId={user.userId} threads={threads} />;
 }

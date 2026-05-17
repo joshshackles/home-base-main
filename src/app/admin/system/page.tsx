@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { CheckCircle2, ServerCog, TriangleAlert } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { prisma } from "@/lib/prisma";

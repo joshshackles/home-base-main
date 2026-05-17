@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { PaymentPlanStatus } from "@prisma/client";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";

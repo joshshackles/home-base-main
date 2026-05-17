@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { prisma } from "@/lib/prisma";
 

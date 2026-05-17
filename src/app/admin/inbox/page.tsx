@@ -1,10 +1,12 @@
+export const dynamic = "force-dynamic";
+
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TextingInbox } from "@/components/messaging/TextingInbox";
 
 export default async function AdminInboxPage() {
   const user = await requireRole(["ADMIN"], "/admin/inbox");
-  const threads = await prisma.messageThread.findMany({
+  const rawThreads = await prisma.messageThread.findMany({
     include: {
       createdBy: { select: { id: true, name: true, email: true, role: true } },
       application: { include: { unit: { include: { property: true } } } },
@@ -13,6 +15,11 @@ export default async function AdminInboxPage() {
     },
     orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }]
   });
+
+  const threads = rawThreads.map((thread) => ({
+    ...thread,
+    lastMessageAt: thread.lastMessageAt ?? thread.createdAt
+  }));
 
   return <TextingInbox currentUserId={user.userId} threads={threads} allowInternalNotes />;
 }

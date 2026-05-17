@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { PaymentPlanInstallmentStatus, PaymentPlanStatus } from "@prisma/client";
 import { updatePaymentPlanInstallment, updatePaymentPlanStatus } from "@/app/admin/actions";

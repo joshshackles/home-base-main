@@ -67,8 +67,20 @@ try {
 }
 
 const nextConfig = existsSync(nextConfigPath) ? readFileSync(nextConfigPath, "utf8") : "";
-for (const required of ["Content-Security-Policy", "Strict-Transport-Security", "X-Frame-Options", "X-Content-Type-Options", "Referrer-Policy", "Permissions-Policy", "poweredByHeader: false", "bodySizeLimit: \"12mb\""]) {
+for (const required of ["serverExternalPackages", "outputFileTracingIncludes", "Content-Security-Policy", "Strict-Transport-Security", "X-Frame-Options", "X-Content-Type-Options", "Referrer-Policy", "Permissions-Policy", "poweredByHeader: false", "bodySizeLimit: \"12mb\""]) {
   if (!nextConfig.includes(required)) fail(`next.config.mjs is missing ${required}.`);
+}
+
+
+const dynamicCandidates = ["src/app/admin/page.tsx", "src/app/admin/inbox/page.tsx", "src/app/applicant/page.tsx", "src/app/landlord/page.tsx", "src/app/marketplace/page.tsx"];
+for (const relativePath of dynamicCandidates) {
+  const fullPath = path.join(root, relativePath);
+  if (existsSync(fullPath)) {
+    const contents = readFileSync(fullPath, "utf8");
+    if (!contents.includes('export const dynamic = "force-dynamic"')) {
+      fail(`${relativePath} should opt out of static prerendering because it reads request/auth/database state.`);
+    }
+  }
 }
 
 const schema = existsSync(schemaPath) ? readFileSync(schemaPath, "utf8") : "";
@@ -81,7 +93,7 @@ for (const key of ["DATABASE_URL", "DIRECT_URL", "AUTH_SECRET", "APP_URL", "DOCU
   if (!envExample.includes(key)) fail(`.env.example is missing ${key}.`);
 }
 
-const storageProvider = (process.env.DOCUMENT_STORAGE_PROVIDER || "s3").toLowerCase();
+const storageProvider = (process.env.DOCUMENT_STORAGE_PROVIDER || (process.env.NODE_ENV === "production" ? "database" : "local")).toLowerCase();
 if (process.env.VERCEL === "1" || process.env.NODE_ENV === "production") {
   const authSecret = process.env.AUTH_SECRET || "";
   if (authSecret.length < 32 || /replace|change|dev-only/i.test(authSecret)) fail("AUTH_SECRET must be a unique 32+ character production secret.");

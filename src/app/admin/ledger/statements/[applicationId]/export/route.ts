@@ -1,3 +1,6 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { LedgerEntryStatus } from "@prisma/client";
 import { requireRole } from "@/lib/auth";

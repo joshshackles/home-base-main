@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";

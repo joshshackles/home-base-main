@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { HouseholdRelationship, IncomeFrequency } from "@prisma/client";
 import { addHouseholdMember, addIncomeSource, deleteHouseholdMember, deleteIncomeSource, saveApplicantProfile } from "@/app/applicant/actions";
 import { Field, inputClass, selectClass, textareaClass } from "@/components/admin/FormFields";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { AuditAction, Prisma } from "@prisma/client";
 import { AdminListControls, FilterSelect } from "@/components/admin/AdminListControls";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";

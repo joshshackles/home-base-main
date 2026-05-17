@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { SignatureStatus } from "@prisma/client";
 import { requireRole } from "@/lib/auth";

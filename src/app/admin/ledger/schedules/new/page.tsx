@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { RecurringChargeFrequency } from "@prisma/client";
 import { createRecurringChargeSchedule } from "@/app/admin/actions";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";

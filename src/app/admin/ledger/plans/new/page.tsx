@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createPaymentPlan } from "@/app/admin/actions";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { formatCurrency } from "@/lib/format";

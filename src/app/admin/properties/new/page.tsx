@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { UserRole } from "@prisma/client";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { PropertyForm } from "@/components/admin/PropertyForm";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { DocumentCategory, DocumentStatus, DocumentVisibility, Prisma } from "@prisma/client";
 import { deleteDocument, updateDocumentStatus, uploadAdminDocument } from "@/app/admin/actions";

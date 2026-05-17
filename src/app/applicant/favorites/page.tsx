@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { messagePotentialLandlord, removeFavoriteRental, saveFavoriteRental } from "@/app/applicant/actions";
 import { Field, textareaClass } from "@/components/admin/FormFields";
