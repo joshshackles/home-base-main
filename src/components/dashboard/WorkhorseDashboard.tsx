@@ -1,6 +1,26 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowUpRight, BadgeCheck, BriefcaseBusiness, CheckCircle2, ClipboardList, Clock3, Home, Inbox, KeyRound, Layers3, Search, ShieldCheck, UserRound, Wrench } from "lucide-react";
+import {
+  Activity,
+  ArrowUpRight,
+  BadgeCheck,
+  Bell,
+  BriefcaseBusiness,
+  CheckCircle2,
+  ClipboardList,
+  Clock3,
+  Home,
+  Inbox,
+  KeyRound,
+  Layers3,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+  UserRound,
+  Wrench,
+  Zap
+} from "lucide-react";
 import { requestAccountAccessAction, reviewAccountAccessAction } from "@/app/account/actions";
 
 type DashboardMetric = {
@@ -75,6 +95,18 @@ function statusBadgeClass(status: string) {
   return "border-slate-200 bg-slate-100 text-slate-700";
 }
 
+function taskToneClass(tone?: DashboardTask["tone"]) {
+  if (tone === "urgent") return "border-red-200 bg-red-50 text-red-800";
+  if (tone === "success") return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  return "border-slate-200 bg-white text-slate-800";
+}
+
+function activityVerb(task: DashboardTask) {
+  if (task.tone === "urgent") return "Priority";
+  if (task.tone === "success") return "Healthy";
+  return "Queued";
+}
+
 export function WorkhorseDashboard({ name, accountLabel, headline, summary, metrics, tasks, tools, accessRequests, showAccessBuilder = true, adminAccessQueue = [] }: WorkhorseDashboardProps) {
   const pendingTypes = new Set(accessRequests.filter((request) => request.status === "PENDING").map((request) => request.type));
   const approvedTypes = new Set(accessRequests.filter((request) => request.status === "APPROVED").map((request) => request.type));
@@ -82,190 +114,252 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
     .map((task, index) => ({ task, index }))
     .sort((a, b) => taskPriority(a.task) - taskPriority(b.task) || a.index - b.index)
     .map(({ task }) => task);
+  const criticalCount = sortedTasks.filter((task) => task.tone === "urgent").length;
+  const reviewItems = adminAccessQueue.length > 0 ? adminAccessQueue : accessRequests;
+  const inboxHref = tools.find((tool) => tool.href.includes("inbox"))?.href ?? "/applicant/inbox";
+  const quickLinks = [
+    { href: "/marketplace", label: "Search", icon: <Search size={15} /> },
+    { href: "/applicant/profile", label: "Profile", icon: <UserRound size={15} /> },
+    { href: "/account/password", label: "Security", icon: <KeyRound size={15} /> },
+    ...(tools.slice(0, 3).map((tool) => ({ href: tool.href, label: tool.title, icon: tool.icon ?? <BriefcaseBusiness size={15} /> })))
+  ];
 
   return (
-    <main id="main-content" className="bg-slate-50">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <section className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-7 text-slate-950 shadow-sm">
-          <div className="flex flex-wrap items-center gap-3 text-sm font-black text-slate-500">
-            <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2"><Layers3 size={15} /> Main dashboard</span>
-            <span className="rounded-full bg-emerald-50 px-4 py-2 text-emerald-700">{accountLabel}</span>
-          </div>
-          <h1 className="mt-5 max-w-3xl text-4xl font-black leading-tight tracking-tight sm:text-5xl">{headline}</h1>
-          <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-600">{summary}</p>
-          <div className="mt-7 grid gap-3 sm:grid-cols-3">
-            <Link href="/marketplace" className="group rounded-3xl border border-slate-200 bg-slate-50 p-4 text-slate-950 transition hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white hover:shadow-sm">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-50 text-brand-700"><Search size={20} /></span>
-              <span className="mt-4 block text-sm font-black">Find Rentals</span>
-              <span className="mt-1 block text-xs font-semibold leading-5 text-slate-600">Profile-aware search and saved homes.</span>
-            </Link>
-            <Link href="/applicant/profile" className="group rounded-3xl border border-slate-200 bg-slate-50 p-4 text-slate-950 transition hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white hover:shadow-sm">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700"><UserRound size={20} /></span>
-              <span className="mt-4 block text-sm font-black">Renter Profile</span>
-              <span className="mt-1 block text-xs font-semibold leading-5 text-slate-600">Household, income, preferences, and story.</span>
-            </Link>
-            <Link href="/account/password" className="group rounded-3xl border border-slate-200 bg-slate-50 p-4 text-slate-950 transition hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white hover:shadow-sm">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700"><KeyRound size={20} /></span>
-              <span className="mt-4 block text-sm font-black">Account</span>
-              <span className="mt-1 block text-xs font-semibold leading-5 text-slate-600">Security and password controls.</span>
-            </Link>
-          </div>
-        </div>
-
-        <aside className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-start gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-700"><KeyRound size={22} /></span>
-            <div>
-              <p className="text-sm font-black uppercase tracking-wide text-slate-500">Signed in as</p>
-              <h2 className="mt-1 text-2xl font-black text-slate-950">{name || "HomeBase user"}</h2>
-              <p className="mt-1 text-sm leading-6 text-slate-600">Applicant access is the base account. Additional work modules appear here when access is approved.</p>
+    <main id="main-content" className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-7xl px-3 py-4 sm:px-4 lg:px-6">
+        <section className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-black text-slate-500">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5"><Layers3 size={14} /> Command center</span>
+                <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700">{accountLabel}</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-blue-700"><SlidersHorizontal size={14} /> Compact</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Link href={inboxHref} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-black text-slate-700 hover:bg-slate-50"><Bell size={14} /> Inbox</Link>
+                <Link href="/marketplace" className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-3 py-1.5 text-xs font-black text-white hover:bg-brand-700"><Zap size={14} /> Quick action</Link>
+              </div>
             </div>
-          </div>
-          <div className="mt-5 space-y-2 text-sm">
-            <AccessLine icon={<CheckCircle2 size={16} />} label="Applicant tools" value="Active" />
-            <AccessLine icon={<Clock3 size={16} />} label="Pending requests" value={`${pendingTypes.size}`} />
-            <AccessLine icon={<BadgeCheck size={16} />} label="Approved additions" value={`${approvedTypes.size}`} />
-          </div>
-        </aside>
-      </section>
-
-      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <Link key={metric.label} href={metric.href} className="rounded-[1.7rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white">
-            <div className="flex items-start justify-between gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50 text-brand-700">{metric.icon ?? <Home size={20} />}</span>
-              <ArrowUpRight size={18} className="text-slate-400" />
+            <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+              <div>
+                <h1 className="max-w-3xl text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl">{headline}</h1>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{summary}</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 text-center">
+                <MiniSignal label="Tasks" value={sortedTasks.length} />
+                <MiniSignal label="Critical" value={criticalCount} />
+                <MiniSignal label="Modules" value={tools.length} />
+              </div>
             </div>
-            <p className="mt-5 text-sm font-black text-slate-500">{metric.label}</p>
-            <p className="mt-1 truncate text-4xl font-black text-slate-950">{metric.value}</p>
-            {metric.detail ? <p className="mt-2 text-sm leading-6 text-slate-600">{metric.detail}</p> : null}
-          </Link>
-        ))}
-      </section>
-
-      <section className="mt-6 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-2xl font-black text-slate-950">Work queue</h2>
-              <p className="mt-1 text-sm leading-6 text-slate-600">The highest-value next actions across your active modules.</p>
-            </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase tracking-wide text-slate-600">{sortedTasks.length} items</span>
-          </div>
-          <div className="mt-5 space-y-3">
-            {sortedTasks.length === 0 ? <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">No urgent work is waiting right now.</p> : sortedTasks.map((task) => (
-              <Link key={`${task.title}-${task.href}`} href={task.href} className="block rounded-3xl border border-slate-200 bg-slate-50 p-4 transition hover:border-brand-200 hover:bg-white">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-black text-slate-950">{task.title}</p>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">{task.detail}</p>
-                  </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${task.tone === "urgent" ? "bg-red-50 text-red-700" : task.tone === "success" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-700"}`}>{task.cta}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-2xl font-black text-slate-950">Work modules</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">Every account uses the same dashboard; access simply adds more modules to the surface.</p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {tools.map((tool) => (
-              <Link key={`${tool.title}-${tool.href}`} href={tool.href} className="rounded-3xl border border-slate-200 bg-slate-50 p-4 hover:border-brand-200 hover:bg-white">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">{tool.icon ?? <BriefcaseBusiness size={19} />}</span>
-                <p className="mt-4 font-black text-slate-950">{tool.title}</p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">{tool.detail}</p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-        {showAccessBuilder ? (
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-black text-slate-950">Add access</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-600">Start as an applicant, then request work modules as your responsibilities grow.</p>
-            <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50 p-4 text-sm leading-6 text-brand-950">
-              <p className="font-black">Becoming a landlord</p>
-              <p className="mt-1">Request landlord access here. Once an admin approves it, your dashboard opens the landlord module where you can create a property, add units, and publish available listings to the public directory.</p>
-            </div>
-            <form action={requestAccountAccessAction} className="mt-5 space-y-4">
-              <label className="block">
-                <span className="text-sm font-bold text-slate-700">Access type</span>
-                <select name="type" required className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-900">
-                  {accessOptions.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-sm font-bold text-slate-700">Organization, optional</span>
-                <input name="organization" className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900" placeholder="Property company, agency, or team" />
-              </label>
-              <label className="block">
-                <span className="text-sm font-bold text-slate-700">Why do you need this access?</span>
-                <textarea name="reason" rows={4} required className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm leading-6 text-slate-900" placeholder="Example: I own two units and need to list them, review leads, and manage repairs." />
-              </label>
-              <button className="w-full rounded-2xl bg-brand-600 px-5 py-3 font-black text-white hover:bg-brand-700">Request Access</button>
-            </form>
-            <div className="mt-5 space-y-2">
-              {accessOptions.map((option) => (
-                <p key={option.value} className="rounded-2xl bg-slate-50 p-3 text-sm leading-6 text-slate-600">
-                  <strong className="text-slate-950">{option.label}:</strong> {pendingTypes.has(option.value) ? "Request pending." : approvedTypes.has(option.value) ? "Approved." : option.detail}
-                </p>
+            <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+              {quickLinks.map((link) => (
+                <Link key={`${link.href}-${link.label}`} href={link.href} className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-800 transition hover:border-brand-200 hover:bg-white">
+                  <span className="text-brand-700">{link.icon}</span>{link.label}
+                </Link>
               ))}
             </div>
           </div>
-        ) : null}
 
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-2xl font-black text-slate-950">{adminAccessQueue.length > 0 ? "Access review queue" : "Access history"}</h2>
-          <div className="mt-5 space-y-3">
-            {(adminAccessQueue.length > 0 ? adminAccessQueue : accessRequests).slice(0, 8).map((request) => (
-              <div key={request.id} className="rounded-2xl border border-slate-200 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-black text-slate-950">{pretty(request.type)}</p>
-                    <p className="mt-1 text-sm text-slate-600">{request.requester ? `${request.requester} - ` : ""}{request.organization || "No organization listed"} - {request.createdAt.toLocaleDateString()}</p>
-                    {request.reason ? <p className="mt-2 rounded-xl bg-slate-50 p-3 text-sm leading-6 text-slate-700">{request.reason}</p> : null}
-                  </div>
-                  <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${statusBadgeClass(request.status)}`}>{pretty(request.status)}</span>
-                </div>
-                {adminAccessQueue.length > 0 ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <form action={reviewAccountAccessAction}>
-                      <input type="hidden" name="id" value={request.id} />
-                      <input type="hidden" name="status" value="APPROVED" />
-                      <input type="hidden" name="reviewNote" value="Approved from dashboard review queue." />
-                      <button className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white hover:bg-emerald-700" type="submit">Approve</button>
-                    </form>
-                    <form action={reviewAccountAccessAction}>
-                      <input type="hidden" name="id" value={request.id} />
-                      <input type="hidden" name="status" value="DECLINED" />
-                      <input type="hidden" name="reviewNote" value="Declined from dashboard review queue." />
-                      <button className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-800 hover:bg-slate-50" type="submit">Decline</button>
-                    </form>
-                  </div>
-                ) : null}
+          <aside className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700"><KeyRound size={19} /></span>
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-500">Signed in as</p>
+                <h2 className="mt-0.5 truncate text-xl font-black text-slate-950">{name || "HomeBase user"}</h2>
+                <p className="mt-1 text-xs leading-5 text-slate-600">One account, role-based modules, compact operational surface.</p>
               </div>
-            ))}
-            {(adminAccessQueue.length > 0 ? adminAccessQueue : accessRequests).length === 0 ? (
-              <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">No access requests yet.</p>
-            ) : null}
+            </div>
+            <div className="mt-3 space-y-1.5 text-xs">
+              <AccessLine icon={<CheckCircle2 size={15} />} label="Applicant tools" value="Active" />
+              <AccessLine icon={<Clock3 size={15} />} label="Pending" value={`${pendingTypes.size}`} />
+              <AccessLine icon={<BadgeCheck size={15} />} label="Approved" value={`${approvedTypes.size}`} />
+            </div>
+          </aside>
+        </section>
+
+        <section className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {metrics.map((metric) => (
+            <Link key={metric.label} href={metric.href} className="rounded-[1.25rem] border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white">
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-50 text-brand-700">{metric.icon ?? <Home size={18} />}</span>
+                <ArrowUpRight size={16} className="text-slate-400" />
+              </div>
+              <p className="mt-3 text-xs font-black uppercase tracking-wide text-slate-500">{metric.label}</p>
+              <p className="mt-0.5 truncate text-3xl font-black text-slate-950">{metric.value}</p>
+              {metric.detail ? <p className="mt-1 truncate text-xs font-semibold text-slate-600">{metric.detail}</p> : null}
+            </Link>
+          ))}
+        </section>
+
+        <section className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+            <SectionHeader eyebrow="Operational queue" title="Next best actions" detail="Sorted by urgency with denser rows for smaller screens." count={`${sortedTasks.length} items`} />
+            <div className="mt-3 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
+              {sortedTasks.length === 0 ? <p className="bg-slate-50 p-4 text-sm text-slate-600">No urgent work is waiting right now.</p> : sortedTasks.map((task) => (
+                <Link key={`${task.title}-${task.href}`} href={task.href} className="grid gap-2 bg-white p-3 transition hover:bg-slate-50 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-slate-950">{task.title}</p>
+                    <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-slate-600">{task.detail}</p>
+                  </div>
+                  <span className={`w-fit rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-wide ${taskToneClass(task.tone)}`}>{task.cta}</span>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+
+          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+            <SectionHeader eyebrow="Activity feed" title="Operational heartbeat" detail="Generated from current work and access events." />
+            <div className="mt-3 space-y-2">
+              {sortedTasks.slice(0, 5).map((task) => (
+                <Link key={`activity-${task.title}`} href={task.href} className="flex gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 hover:bg-white">
+                  <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl border ${taskToneClass(task.tone)}`}><Activity size={15} /></span>
+                  <span className="min-w-0">
+                    <span className="block text-xs font-black uppercase tracking-wide text-slate-500">{activityVerb(task)}</span>
+                    <span className="block truncate text-sm font-black text-slate-950">{task.title}</span>
+                    <span className="block truncate text-xs text-slate-600">{task.detail}</span>
+                  </span>
+                </Link>
+              ))}
+              {sortedTasks.length === 0 ? <p className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-600">Nothing new in the operational feed.</p> : null}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+            <SectionHeader eyebrow="Workspace" title="Modules" detail="Compact cards keep more tools visible above the fold." count={`${tools.length} modules`} />
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {tools.map((tool) => (
+                <Link key={`${tool.title}-${tool.href}`} href={tool.href} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 hover:border-brand-200 hover:bg-white">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">{tool.icon ?? <BriefcaseBusiness size={17} />}</span>
+                    <p className="truncate text-sm font-black text-slate-950">{tool.title}</p>
+                  </div>
+                  <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-600">{tool.detail}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <AccessPanel
+            showAccessBuilder={showAccessBuilder}
+            accessRequests={accessRequests}
+            adminAccessQueue={adminAccessQueue}
+            pendingTypes={pendingTypes}
+            approvedTypes={approvedTypes}
+            reviewItems={reviewItems}
+          />
+        </section>
       </div>
     </main>
   );
 }
 
+function MiniSignal({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-xl bg-white px-2 py-2 shadow-sm">
+      <p className="text-lg font-black text-slate-950">{value}</p>
+      <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">{label}</p>
+    </div>
+  );
+}
+
+function SectionHeader({ eyebrow, title, detail, count }: { eyebrow: string; title: string; detail: string; count?: string }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-2">
+      <div>
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-brand-700">{eyebrow}</p>
+        <h2 className="mt-0.5 text-xl font-black text-slate-950">{title}</h2>
+        <p className="mt-0.5 text-xs leading-5 text-slate-600">{detail}</p>
+      </div>
+      {count ? <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-slate-600">{count}</span> : null}
+    </div>
+  );
+}
+
+function AccessPanel({ showAccessBuilder, accessRequests, adminAccessQueue, pendingTypes, approvedTypes, reviewItems }: {
+  showAccessBuilder: boolean;
+  accessRequests: AccessRequest[];
+  adminAccessQueue: AccessRequest[];
+  pendingTypes: Set<string>;
+  approvedTypes: Set<string>;
+  reviewItems: AccessRequest[];
+}) {
+  if (showAccessBuilder) {
+    return (
+      <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+        <SectionHeader eyebrow="Access" title="Add modules" detail="Request new operational access without leaving the dashboard." />
+        <form action={requestAccountAccessAction} className="mt-3 space-y-3">
+          <label className="block">
+            <span className="text-xs font-bold text-slate-700">Access type</span>
+            <select name="type" required className="mt-1.5 w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-900">
+              {accessOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold text-slate-700">Organization, optional</span>
+            <input name="organization" className="mt-1.5 w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm text-slate-900" placeholder="Property company, agency, or team" />
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold text-slate-700">Why do you need this access?</span>
+            <textarea name="reason" rows={3} required className="mt-1.5 w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm leading-6 text-slate-900" placeholder="Example: I own two units and need to list them." />
+          </label>
+          <button className="w-full rounded-2xl bg-brand-600 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-700">Request Access</button>
+        </form>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+          {accessOptions.slice(0, 6).map((option) => (
+            <p key={option.value} className="rounded-2xl bg-slate-50 p-2.5 text-xs leading-5 text-slate-600">
+              <strong className="text-slate-950">{option.label}:</strong> {pendingTypes.has(option.value) ? "Request pending." : approvedTypes.has(option.value) ? "Approved." : option.detail}
+            </p>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <SectionHeader eyebrow="Governance" title={adminAccessQueue.length > 0 ? "Access review" : "Access history"} detail="Review account permission requests from the compact dashboard." count={`${reviewItems.length} records`} />
+      <div className="mt-3 space-y-2">
+        {reviewItems.slice(0, 8).map((request) => (
+          <div key={request.id} className="rounded-2xl border border-slate-200 p-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-slate-950">{pretty(request.type)}</p>
+                <p className="mt-0.5 text-xs text-slate-600">{request.requester ? `${request.requester} - ` : ""}{request.organization || "No organization listed"} - {request.createdAt.toLocaleDateString()}</p>
+                {request.reason ? <p className="mt-2 line-clamp-2 rounded-xl bg-slate-50 p-2 text-xs leading-5 text-slate-700">{request.reason}</p> : null}
+              </div>
+              <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black uppercase ${statusBadgeClass(request.status)}`}>{pretty(request.status)}</span>
+            </div>
+            {adminAccessQueue.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <form action={reviewAccountAccessAction}>
+                  <input type="hidden" name="id" value={request.id} />
+                  <input type="hidden" name="status" value="APPROVED" />
+                  <input type="hidden" name="reviewNote" value="Approved from dashboard review queue." />
+                  <button className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-black text-white hover:bg-emerald-700" type="submit">Approve</button>
+                </form>
+                <form action={reviewAccountAccessAction}>
+                  <input type="hidden" name="id" value={request.id} />
+                  <input type="hidden" name="status" value="DECLINED" />
+                  <input type="hidden" name="reviewNote" value="Declined from dashboard review queue." />
+                  <button className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-black text-slate-800 hover:bg-slate-50" type="submit">Decline</button>
+                </form>
+              </div>
+            ) : null}
+          </div>
+        ))}
+        {reviewItems.length === 0 ? <p className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-600">No access requests yet.</p> : null}
+      </div>
+    </div>
+  );
+}
+
 function AccessLine({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+    <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-2">
       <span className="inline-flex items-center gap-2 font-bold text-slate-700">{icon}{label}</span>
       <span className="font-black text-slate-950">{value}</span>
     </div>
@@ -273,10 +367,12 @@ function AccessLine({ icon, label, value }: { icon: ReactNode; label: string; va
 }
 
 export const dashboardIcons = {
-  applications: <ClipboardList size={20} />,
-  inbox: <Inbox size={20} />,
-  homes: <Home size={20} />,
-  maintenance: <Wrench size={20} />,
-  security: <ShieldCheck size={20} />,
-  work: <BriefcaseBusiness size={20} />
+  applications: <ClipboardList size={18} />,
+  inbox: <Inbox size={18} />,
+  homes: <Home size={18} />,
+  maintenance: <Wrench size={18} />,
+  security: <ShieldCheck size={18} />,
+  work: <BriefcaseBusiness size={18} />,
+  activity: <Activity size={18} />,
+  sparkles: <Sparkles size={18} />
 };

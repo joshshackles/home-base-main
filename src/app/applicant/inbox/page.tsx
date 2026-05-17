@@ -3,10 +3,12 @@ export const dynamic = "force-dynamic";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TextingInbox } from "@/components/messaging/TextingInbox";
+import { applyOptimisticInboxReadState, markVisibleInboxThreadRead, selectedInboxThreadId } from "@/lib/messaging";
 import { visibleMessageWhereForUser, visibleThreadWhereForUser } from "@/lib/authorization";
 
-export default async function ApplicantInboxPage({ searchParams }: { searchParams?: { thread?: string } }) {
+export default async function ApplicantInboxPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const user = await requireUser("/applicant/inbox");
+  const selectedThreadId = selectedInboxThreadId(searchParams);
   const messageVisibilityWhere = await visibleMessageWhereForUser(user);
   const threadVisibilityWhere = await visibleThreadWhereForUser(user);
   const rawThreads = await prisma.messageThread.findMany({
@@ -31,10 +33,8 @@ export default async function ApplicantInboxPage({ searchParams }: { searchParam
     orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }]
   });
 
-  const threads = rawThreads.map((thread) => ({
-    ...thread,
-    lastMessageAt: thread.lastMessageAt ?? thread.createdAt
-  }));
+  await markVisibleInboxThreadRead(user, selectedThreadId, rawThreads.map((thread) => thread.id));
+  const threads = applyOptimisticInboxReadState(rawThreads, user, selectedThreadId);
 
-  return <TextingInbox currentUserId={user.userId} threads={threads} selectedThreadId={searchParams?.thread} />;
+  return <TextingInbox currentUserId={user.userId} threads={threads} selectedThreadId={selectedThreadId} filters={searchParams} basePath="/applicant/inbox" staffInbox={false} />;
 }

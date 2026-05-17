@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireRole, requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isStaffMessagingUser } from "@/lib/messaging";
 import { writeAuditLog } from "@/lib/audit";
 import { writeSecurityEvent } from "@/lib/security-events";
 import { assertCanCreateMessageThread, assertCanAccessMessageThread, canWriteInternalNote, assertCanWriteInternalNote, assertCanAccessApplication, assertCanAccessMaintenanceRequest, assertCanAccessUnit } from "@/lib/authorization";
@@ -35,6 +36,11 @@ const messageSchema = z.object({
   isInternal: z.coerce.boolean().optional()
 });
 
+const messageThreadStatusSchema = z.object({
+  threadId: z.string().min(1),
+  status: z.nativeEnum(MessageThreadStatus)
+});
+
 function obj(formData: FormData) {
   return Object.fromEntries(formData.entries());
 }
@@ -47,6 +53,19 @@ function inboxPathForUser(user: { role: UserRole }, threadId: string) {
   if (user.role === UserRole.ADMIN) return `/admin/inbox?thread=${encodeURIComponent(threadId)}`;
   if (user.role === UserRole.LANDLORD) return `/landlord/inbox?thread=${encodeURIComponent(threadId)}`;
   return `/applicant/inbox?thread=${encodeURIComponent(threadId)}`;
+}
+
+function safeInboxReturnTo(formData: FormData, user: { role: UserRole }, threadId: string) {
+  const raw = formData.get("returnTo");
+  const fallback = inboxPathForUser(user, threadId);
+  if (typeof raw !== "string" || !raw.startsWith("/")) return fallback;
+  const allowedPrefix = user.role === UserRole.ADMIN ? "/admin/inbox" : user.role === UserRole.LANDLORD ? "/landlord/inbox" : "/applicant/inbox";
+  if (!raw.startsWith(allowedPrefix)) return fallback;
+
+  const [path, query = ""] = raw.split("?");
+  const params = new URLSearchParams(query);
+  params.set("thread", threadId);
+  return `${path}?${params.toString()}`;
 }
 
 async function ensureApplicantApplicationAccess(userId: string, email: string, applicationId?: string) {
@@ -145,7 +164,7 @@ export async function sendWorkflowMessage(formData: FormData) {
     const created = await prisma.messageThread.create({
       data: {
         type: parsed.type,
-        status: isStaff ? MessageThreadStatus.WAITING_ON_APPLICANT : MessageThreadStatus.WAITING_ON_STAFF,
+        status: isInternal ? MessageThreadStatus.OPEN : isStaff ? MessageThreadStatus.WAITING_ON_APPLICANT : MessageThreadStatus.WAITING_ON_STAFF,
         subject: parsed.subject,
         applicationId: applicationId ?? null,
         maintenanceRequestId: maintenanceRequestId ?? null,
@@ -172,5 +191,32 @@ export async function sendWorkflowMessage(formData: FormData) {
   revalidatePath("/admin/inbox");
   revalidatePath("/landlord/inbox");
   revalidatePath("/applicant/inbox");
-  redirect(inboxPathForUser(user, threadId));
+  redirect(safeInboxReturnTo(formData, user, threadId));
+}
+
+export async function updateMessageThreadStatus(formData: FormData) {
+  const user = await requireUser("/inbox");
+  const parsed = messageThreadStatusSchema.parse(obj(formData));
+  await assertCanAccessMessageThread(user, parsed.threadId);
+  if (!isStaffMessagingUser(user)) {
+    throw new Error("Only staff users can update conversation status.");
+  }
+
+  await prisma.messageThread.update({
+    where: { id: parsed.threadId },
+    data: { status: parsed.status }
+  });
+
+  await writeAuditLog({
+    actor: user,
+    action: AuditAction.STATUS_CHANGE,
+    entityType: "MessageThread",
+    entityId: parsed.threadId,
+    message: `Updated message thread status to ${parsed.status}.`
+  });
+
+  revalidatePath("/admin/inbox");
+  revalidatePath("/landlord/inbox");
+  revalidatePath("/applicant/inbox");
+  redirect(safeInboxReturnTo(formData, user, parsed.threadId));
 }

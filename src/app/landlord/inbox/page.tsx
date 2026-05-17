@@ -3,14 +3,16 @@ export const dynamic = "force-dynamic";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TextingInbox } from "@/components/messaging/TextingInbox";
+import { applyOptimisticInboxReadState, markVisibleInboxThreadRead, selectedInboxThreadId } from "@/lib/messaging";
 import { canWriteInternalNote, visibleMessageWhereForUser, visibleThreadWhereForUser } from "@/lib/authorization";
 
-export default async function LandlordInboxPage({ searchParams }: { searchParams?: { thread?: string } }) {
+export default async function LandlordInboxPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const user = await requireRole(["LANDLORD"], "/landlord/inbox");
+  const selectedThreadId = selectedInboxThreadId(searchParams);
   const allowInternalNotes = await canWriteInternalNote(user);
   const messageVisibilityWhere = await visibleMessageWhereForUser(user);
   const threadVisibilityWhere = await visibleThreadWhereForUser(user);
-  const ownerScope = user.role === "ADMIN" ? {} : { ownerId: user.userId };
+  const ownerScope = { ownerId: user.userId };
   const rawThreads = await prisma.messageThread.findMany({
     where: {
       AND: [
@@ -33,10 +35,8 @@ export default async function LandlordInboxPage({ searchParams }: { searchParams
     orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }]
   });
 
-  const threads = rawThreads.map((thread) => ({
-    ...thread,
-    lastMessageAt: thread.lastMessageAt ?? thread.createdAt
-  }));
+  await markVisibleInboxThreadRead(user, selectedThreadId, rawThreads.map((thread) => thread.id));
+  const threads = applyOptimisticInboxReadState(rawThreads, user, selectedThreadId);
 
-  return <TextingInbox currentUserId={user.userId} threads={threads} allowInternalNotes={allowInternalNotes} selectedThreadId={searchParams?.thread} />;
+  return <TextingInbox currentUserId={user.userId} threads={threads} allowInternalNotes={allowInternalNotes} selectedThreadId={selectedThreadId} filters={searchParams} basePath="/landlord/inbox" staffInbox />;
 }

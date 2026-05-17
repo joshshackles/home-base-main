@@ -1,3 +1,59 @@
+# v3.2.6 — Messaging performance and read-state safety
+
+- Centralized inbox selected-thread parsing and optimistic read-state projection in `src/lib/messaging.ts` so admin, landlord, and applicant inbox pages share the same behavior.
+- Hardened read-state updates so a selected thread is only marked read after it is confirmed visible in the current user's inbox result set.
+- Removed duplicated selected-thread/read-state mapping code from all three inbox pages.
+- Simplified the landlord inbox ownership scope and removed dead role-branch logic.
+- Reduced repeated read-receipt calculation during message rendering.
+
+# v3.2.5 — Messaging code quality and permission hardening
+
+- Separated staff inbox behavior from internal-note permission so landlord/staff inboxes keep correct SLA, unread, and waiting-state logic even when internal notes are disabled.
+- Locked conversation status management to staff users in both the UI and server action instead of exposing workflow controls to applicant-side inboxes.
+- Preserved true last-message timestamps when only status changes, keeping SLA and escalation scoring tied to real communication activity.
+- Reduced repeated active-thread computations in the inbox render path for cleaner, more efficient UI logic.
+- Hid staff-only internal-note filters from applicant inboxes and improved quick-reply accessibility labels.
+
+# v3.2.4 — Messaging triage intelligence upgrade
+
+- Added smart triage scoring that ranks conversations by waiting state, unread replies, SLA age, escalation age, workflow type, and maintenance priority.
+- Added escalation-first messaging views with a 48-hour escalation metric, filter, badges, and next-best-action guidance.
+- Expanded inbox filters with sort modes and maintenance-priority filtering for dispatch workflows.
+- Improved thread cards with participants, message counts, priority chips, action state, unread state, and clearer workflow context.
+- Added active-thread operational guidance so staff can see the next best action before replying.
+
+# v3.2.3 — Messaging read-state and triage polish
+
+- Added shared messaging read-state helpers for staff and applicant inboxes.
+- Opening a selected thread now marks only that conversation as read instead of clearing the whole inbox.
+- Added unread conversation metrics, unread filtering, and unread badges on thread cards.
+- Added sent/seen receipt text for the sender side of a conversation.
+- Tightened message triage copy and preserved the prior SLA, quick reply, and filter workflow improvements.
+
+
+## v3.2.2 - Messaging Feature Hardening
+
+- Improved the command-center inbox with SLA overdue detection and an overdue filter.
+- Fixed thread selection links so search/status/type/scope filters are preserved while moving between conversations.
+- Converted smart suggestion chips into working one-click quick replies.
+- Added richer thread cards with avatars, action badges, context, and compact message previews.
+- Added date separators, response status actions, and clearer operational accountability panels.
+
+# 3.2.1 - Messaging Command Center Overhaul
+
+- Rebuilt the inbox into a compact communication command center with operational metrics, search, status/type/scope filters, quick tabs, and richer thread cards.
+- Added thread close/reopen workflow actions with audit logging and safe authorization checks.
+- Improved conversation detail panels with SLA context, internal note visibility, thread summaries, suggested response snippets, and clearer status/type badges.
+- Updated admin, landlord, and applicant inbox pages to support future-safe query parameters and polished Vercel-ready routing.
+
+## 3.2.0 - Compact Dashboard Command Center
+
+- Reworked the shared Workhorse dashboard into a tighter command-center layout with reduced padding, smaller metric tiles, compact queue rows, and denser module cards.
+- Added a dashboard quick-action strip, operational activity feed, compact status signals, and better above-the-fold visibility for smaller screens.
+- Polished landlord and applicant dashboard navigation into sticky compact bars with smaller controls and improved mobile horizontal scrolling.
+- Preserved existing dashboard actions, links, account access requests, and admin approval forms while making the UI more accessible in less vertical space.
+- Bumped package version to 3.2.0.
+
 ## 3.1.9 - Contact Intelligence and Export Improvements
 
 - Added a landlord Contacts CSV export that respects the active search, source, and assignment filters.
