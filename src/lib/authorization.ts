@@ -1,4 +1,4 @@
-import { AccountAccessRequestStatus, AccountAccessType, AuditAction, DocumentVisibility, UserRole } from "@prisma/client";
+import { AccountAccessRequestStatus, AccountAccessType, AuditAction, ConnectionStatus, DocumentVisibility, UserRole } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
@@ -39,6 +39,26 @@ export function isAdmin(user: AuthorizedUser) {
 
 export function isApplicantLike(user: AuthorizedUser) {
   return user.role === UserRole.APPLICANT || user.role === UserRole.TENANT;
+}
+
+
+async function hasActiveProfileConnection(user: AuthorizedUser, landlordUserId: string | null | undefined, unitId?: string | null) {
+  if (!landlordUserId) return false;
+
+  const connection = await prisma.profileConnection.findFirst({
+    where: {
+      landlordUserId,
+      targetUserId: user.userId,
+      status: ConnectionStatus.ACTIVE,
+      OR: [
+        { scopeKey: "PORTFOLIO" },
+        ...(unitId ? [{ unitId }] : [])
+      ]
+    },
+    select: { id: true }
+  });
+
+  return Boolean(connection);
 }
 
 export async function hasApprovedAccessType(user: AuthorizedUser, types: AccountAccessType[]) {
@@ -108,10 +128,15 @@ export async function assertAuthorized(
 export async function canAccessProperty(user: AuthorizedUser, propertyId: string) {
   if (isAdmin(user)) return true;
 
-  if (user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) {
-    const property = await prisma.property.findFirst({ where: { id: propertyId, ownerId: user.userId, isArchived: false }, select: { id: true } });
-    return Boolean(property);
-  }
+  const property = await prisma.property.findUnique({
+    where: { id: propertyId },
+    select: { id: true, ownerId: true, isArchived: true }
+  });
+
+  if (!property || property.isArchived) return false;
+
+  if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && property.ownerId === user.userId) return true;
+  if (await hasActiveProfileConnection(user, property.ownerId, null)) return true;
 
   return false;
 }
@@ -132,6 +157,7 @@ export async function canAccessUnit(user: AuthorizedUser, unitId: string) {
   if (!unit) return false;
   if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && unit.property.ownerId === user.userId && !unit.property.isArchived) return true;
   if (isApplicantLike(user) && (unit.tenantUserId === user.userId || unit.applications.length > 0)) return true;
+  if (!unit.property.isArchived && (await hasActiveProfileConnection(user, unit.property.ownerId, unit.id))) return true;
 
   return false;
 }
@@ -145,13 +171,14 @@ export async function canAccessApplication(user: AuthorizedUser, applicationId: 
       id: true,
       applicantUserId: true,
       applicantEmail: true,
-      unit: { select: { property: { select: { ownerId: true, isArchived: true } } } }
+      unit: { select: { id: true, property: { select: { ownerId: true, isArchived: true } } } }
     }
   });
 
   if (!application) return false;
   if (isApplicantLike(user) && (application.applicantUserId === user.userId || application.applicantEmail.toLowerCase() === user.email.toLowerCase())) return true;
   if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && application.unit.property.ownerId === user.userId && !application.unit.property.isArchived) return true;
+  if (!application.unit.property.isArchived && (await hasActiveProfileConnection(user, application.unit.property.ownerId, application.unit.id))) return true;
 
   return false;
 }
@@ -166,7 +193,7 @@ export async function canAccessMaintenanceRequest(user: AuthorizedUser, maintena
       requesterId: true,
       assignedToId: true,
       applicationId: true,
-      unit: { select: { property: { select: { ownerId: true, isArchived: true } } } }
+      unit: { select: { id: true, property: { select: { ownerId: true, isArchived: true } } } }
     }
   });
 
@@ -174,6 +201,7 @@ export async function canAccessMaintenanceRequest(user: AuthorizedUser, maintena
   if (request.requesterId === user.userId || request.assignedToId === user.userId) return true;
   if (request.applicationId && (await canAccessApplication(user, request.applicationId))) return true;
   if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && request.unit?.property.ownerId === user.userId && !request.unit.property.isArchived) return true;
+  if (request.unit && !request.unit.property.isArchived && (await hasActiveProfileConnection(user, request.unit.property.ownerId, request.unit.id))) return true;
   if (user.role === UserRole.INSPECTOR || (await hasApprovedAccessType(user, [AccountAccessType.MAINTENANCE, AccountAccessType.VENDOR]))) return request.assignedToId === user.userId;
 
   return false;
@@ -271,18 +299,32 @@ export async function canAccessDocument(user: AuthorizedUser, documentId: string
 }
 
 export async function getAuthorizedDocument(user: AuthorizedUser, documentId: string) {
+  const include = {
+    application: { include: { unit: { include: { property: true } } } },
+    property: true,
+    unit: { include: { property: true } },
+    leasePacket: { include: { application: { include: { unit: { include: { property: true } } } } } },
+    uploadedBy: true,
+    reviewedBy: true
+  } satisfies Prisma.DocumentInclude;
+
   const visibleWhere = await visibleDocumentWhereForUser(user);
-  return prisma.document.findFirst({
+  const directlyVisibleDocument = await prisma.document.findFirst({
     where: { id: documentId, AND: [visibleWhere] },
-    include: {
-      application: { include: { unit: { include: { property: true } } } },
-      property: true,
-      unit: { include: { property: true } },
-      leasePacket: { include: { application: { include: { unit: { include: { property: true } } } } } },
-      uploadedBy: true,
-      reviewedBy: true
-    }
+    include
   });
+
+  if (directlyVisibleDocument) return directlyVisibleDocument;
+
+  const document = await prisma.document.findUnique({ where: { id: documentId }, include });
+  if (!document || document.visibility === DocumentVisibility.INTERNAL) return null;
+
+  if (document.unitId && (await canAccessUnit(user, document.unitId))) return document;
+  if (document.applicationId && (await canAccessApplication(user, document.applicationId))) return document;
+  if (document.leasePacketId && (await canAccessLeasePacket(user, document.leasePacketId))) return document;
+  if (document.propertyId && (await canAccessProperty(user, document.propertyId))) return document;
+
+  return null;
 }
 
 export async function canAccessLeasePacket(user: AuthorizedUser, leasePacketId: string) {
@@ -311,7 +353,7 @@ export async function canAccessInspection(user: AuthorizedUser, inspectionId: st
       id: true,
       assignedToId: true,
       applicationId: true,
-      unit: { select: { property: { select: { ownerId: true, isArchived: true } } } }
+      unit: { select: { id: true, property: { select: { ownerId: true, isArchived: true } } } }
     }
   });
 
@@ -319,6 +361,7 @@ export async function canAccessInspection(user: AuthorizedUser, inspectionId: st
   if (inspection.assignedToId === user.userId) return true;
   if (inspection.applicationId && (await canAccessApplication(user, inspection.applicationId))) return true;
   if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && inspection.unit.property.ownerId === user.userId && !inspection.unit.property.isArchived) return true;
+  if (!inspection.unit.property.isArchived && (await hasActiveProfileConnection(user, inspection.unit.property.ownerId, inspection.unit.id))) return true;
 
   return false;
 }
@@ -332,7 +375,7 @@ export async function canAccessLedgerEntry(user: AuthorizedUser, ledgerEntryId: 
       id: true,
       tenantUserId: true,
       applicationId: true,
-      unit: { select: { property: { select: { ownerId: true, isArchived: true } } } }
+      unit: { select: { id: true, property: { select: { ownerId: true, isArchived: true } } } }
     }
   });
 
@@ -340,6 +383,7 @@ export async function canAccessLedgerEntry(user: AuthorizedUser, ledgerEntryId: 
   if (isApplicantLike(user) && entry.tenantUserId === user.userId) return true;
   if (entry.applicationId && (await canAccessApplication(user, entry.applicationId))) return true;
   if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && entry.unit.property.ownerId === user.userId && !entry.unit.property.isArchived) return true;
+  if (!entry.unit.property.isArchived && (await hasActiveProfileConnection(user, entry.unit.property.ownerId, entry.unit.id))) return true;
 
   return false;
 }

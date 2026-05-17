@@ -1,6 +1,6 @@
 "use server";
 
-import { AccountAccessType, AuditAction, ApplicationStatus, LeasePacketStatus, MaintenancePriority, MessageThreadStatus, MessageThreadType, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
+import { AccountAccessType, AuditAction, ApplicationStatus, ConnectionRole, ConnectionStatus, LeasePacketStatus, MaintenancePriority, MessageThreadStatus, MessageThreadType, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -13,6 +13,7 @@ import { baseSignatureRequestWhere, completeSignatureRequest } from "@/lib/signa
 import { removeStoredDocument, saveUploadedDocument } from "@/lib/storage";
 import { sendEmail } from "@/lib/email";
 import { appUrl, createSecureToken, hashToken } from "@/lib/tokens";
+import { syncUnitStaffConnections, upsertProfileConnection } from "@/lib/profile-connections";
 
 async function requireLandlordAction() {
   return await requireRole(["LANDLORD"], "/landlord");
@@ -503,6 +504,14 @@ export async function assignLandlordUnitTenant(formData: FormData) {
     }
   });
 
+  await upsertProfileConnection({
+    landlordUserId: user.userId,
+    targetUserId: tenant.id,
+    unitId: parsed.data.unitId,
+    assignedRole: ConnectionRole.CONNECTED_RENTER,
+    notes: "Current tenant assigned from landlord unit workflow."
+  });
+
   if (createdInviteToken) {
     const inviteUrl = `${appUrl()}/reset-password?token=${encodeURIComponent(createdInviteToken)}`;
     await sendEmail({
@@ -533,9 +542,19 @@ export async function assignLandlordUnitStaff(formData: FormData) {
   if (maintenanceUserId && !(await userHasAccess(maintenanceUserId, [AccountAccessType.MAINTENANCE, AccountAccessType.VENDOR]))) throw new Error("Selected maintenance contact does not have approved maintenance access.");
   if (caseworkerUserId && !(await userHasAccess(caseworkerUserId, [AccountAccessType.CASEWORKER]))) throw new Error("Selected caseworker does not have approved caseworker access.");
 
-  await prisma.unit.update({
-    where: { id: parsed.data.unitId },
-    data: { propertyManagerUserId, maintenanceUserId, caseworkerUserId }
+  await prisma.$transaction(async (tx) => {
+    await tx.unit.update({
+      where: { id: parsed.data.unitId },
+      data: { propertyManagerUserId, maintenanceUserId, caseworkerUserId }
+    });
+  });
+
+  await syncUnitStaffConnections({
+    landlordUserId: user.userId,
+    unitId: parsed.data.unitId,
+    propertyManagerUserId,
+    maintenanceUserId,
+    caseworkerUserId
   });
 
   await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: parsed.data.unitId, message: "Updated unit staff assignments." });
@@ -563,6 +582,47 @@ export async function addLandlordUnitContact(formData: FormData) {
   await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: unit.id, message: "Added an important unit contact." });
   revalidatePath(`/landlord/units/${unit.id}`);
   redirect(`/landlord/units/${unit.id}?contact=added`);
+}
+
+
+export async function revokeLandlordProfileConnection(formData: FormData) {
+  const user = await requireLandlordAction();
+  const connectionId = String(formData.get("connectionId") ?? "").trim();
+  if (!connectionId) throw new Error("Choose a profile connection to revoke.");
+
+  const connection = await prisma.profileConnection.findFirst({
+    where: {
+      id: connectionId,
+      landlordUserId: user.userId,
+      status: ConnectionStatus.ACTIVE
+    },
+    select: {
+      id: true,
+      target: { select: { email: true, name: true } },
+      assignedRole: true,
+      unitId: true
+    }
+  });
+
+  if (!connection) throw new Error("This profile connection was not found or is already inactive.");
+
+  await prisma.profileConnection.update({
+    where: { id: connection.id },
+    data: { status: ConnectionStatus.REVOKED }
+  });
+
+  await writeAuditLog({
+    actor: user,
+    action: AuditAction.UPDATE,
+    entityType: "ProfileConnection",
+    entityId: connection.id,
+    message: `Revoked ${connection.assignedRole} access for ${connection.target.email}.`,
+    metadata: { unitId: connection.unitId ?? null }
+  });
+
+  revalidatePath("/landlord/contacts");
+  if (connection.unitId) revalidatePath(`/landlord/units/${connection.unitId}`);
+  redirect("/landlord/contacts?status=revoked");
 }
 
 export async function updateLandlordUnitTerms(formData: FormData) {

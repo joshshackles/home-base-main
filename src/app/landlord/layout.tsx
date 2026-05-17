@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, ClipboardList, DollarSign, FileSignature, Home, Inbox, LayoutDashboard, ClipboardCheck, MessageSquare, Wrench } from "lucide-react";
+import { Building2, ClipboardList, DollarSign, FileSignature, Home, Inbox, LayoutDashboard, ClipboardCheck, MessageSquare, Wrench, Users } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 
 const nav = [
@@ -11,6 +11,7 @@ const nav = [
   { href: "/landlord/leases", label: "Leases", icon: FileSignature },
   { href: "/landlord/inspections", label: "Inspections", icon: ClipboardCheck },
   { href: "/landlord/maintenance", label: "Maintenance", icon: Wrench },
+  { href: "/landlord/contacts", label: "Contacts", icon: Users },
   { href: "/landlord/inbox", label: "Inbox", icon: MessageSquare },
   { href: "/landlord/ledger", label: "Ledger", icon: DollarSign }
 ];

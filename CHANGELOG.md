@@ -1,3 +1,43 @@
+## 3.1.9 - Contact Intelligence and Export Improvements
+
+- Added a landlord Contacts CSV export that respects the active search, source, and assignment filters.
+- Centralized contact filtering and governance summary logic in the profile-connections library so the page and export route stay consistent.
+- Added contact governance checks for stale explicit links, duplicate scoped relationships, and missing display names.
+- Preserved multiple contact sources on deduplicated rows so a person can show as both an explicit connection and a live workflow contact.
+
+## 3.1.8 - Contact System Governance Improvements
+
+- Added landlord-side revocation for explicit profile connections from the Contacts screen.
+- Improved contact cards with unit deep links, last-updated dates, and scope metrics.
+- Kept workflow-derived contacts read-only so tenants, applicants, and maintenance assignees stay controlled by their source records.
+- Added audit logging and cache revalidation when a landlord revokes a profile connection.
+
+# v3.1.7 - Contacts usability and connection management polish
+
+- Upgraded the landlord Contacts page with working search, source filters, assignment filters, and reset controls.
+- Added mailto contact actions, clearer system-role labels, scoped assignment visibility, and source-specific badges.
+- Added a direct “Manage unit assignments” path so landlords can update staff/contact assignments from the Contacts workflow.
+- Hardened the contacts display against empty results and stale filters for cleaner Vercel production rendering.
+
+## v3.1.6 - Profile Connection Hardening and Contacts Upgrade
+
+- Fixed the ProfileConnection schema so portfolio-level connections cannot be duplicated when unitId is null.
+- Removed an invalid Application/ProfileConnection back relation that would break Prisma schema validation.
+- Added scopeKey migration support for reliable portfolio-versus-unit scoped uniqueness.
+- Added ProfileConnection upsert, revoke, staff-assignment sync, and richer landlord contact list helpers.
+- Synced unit staff assignments and tenant assignments into explicit ProfileConnection records for the authorization engine.
+- Expanded unit, property, application, maintenance, inspection, ledger, and document authorization to respect active profile connections.
+- Added a landlord Contacts screen that combines explicit connections with active tenants, applicants, and maintenance contacts.
+- Bumped package version to 3.1.6.
+
+## v3.1.5 - Profile Connections Security Model
+
+- Added ProfileConnection with ConnectionRole and ConnectionStatus enums for explicit landlord/staff/contact relationships.
+- Added database migration for profile connections with indexes and unique assignment protection.
+- Added landlord contact list query helper for active connected users and scoped unit labels.
+- Updated unit authorization to allow active profile connections to access their assigned unit.
+- Bumped package version to 3.1.5.
+
 ## v3.1.4 - Vercel Clean Build Fix
 
 - Fixed the landlord unit detail page search parameter typing so tenant, terms, contact, staff, repair, and photo success states compile cleanly on Vercel.

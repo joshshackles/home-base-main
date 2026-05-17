@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
-import { AccountAccessType, MaintenancePriority, MessageThreadType, UserRole } from "@prisma/client";
+import { AccountAccessType, ConnectionStatus, MaintenancePriority, MessageThreadType, UserRole } from "@prisma/client";
 import { addLandlordUnitContact, assignLandlordUnitStaff, assignLandlordUnitTenant, createLandlordMaintenanceRequest, deleteLandlordUnitPhoto, setFeaturedLandlordUnitPhoto, updateLandlordUnitTerms, uploadLandlordUnitPhotos } from "@/app/landlord/actions";
 import { sendWorkflowMessage } from "@/app/workflow-actions";
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";
@@ -49,7 +49,12 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
       caseworker: true,
       currentApplication: { include: { applicantUser: true } },
       applications: { orderBy: { updatedAt: "desc" }, include: { applicantUser: true } },
-      photos: { orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }] }
+      photos: { orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }] },
+      profileConnections: {
+        where: { status: ConnectionStatus.ACTIVE },
+        include: { target: { select: { id: true, name: true, email: true, role: true } } },
+        orderBy: [{ assignedRole: "asc" }, { updatedAt: "desc" }]
+      }
     }
   });
 
@@ -130,11 +135,7 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
   const moveInTotal = unit.rentAmount + (unit.deposit ?? 0);
   const tenantHistory = unit.applications.filter((application) => application.id !== primaryApplication?.id);
   const featuredPhoto = unit.photos[0];
-  const staffContacts = [
-    unit.propertyManager ? `Property manager: ${unit.propertyManager.name || unit.propertyManager.email} - ${unit.propertyManager.email}` : null,
-    unit.maintenanceUser ? `Maintenance: ${unit.maintenanceUser.name || unit.maintenanceUser.email} - ${unit.maintenanceUser.email}` : null,
-    unit.caseworker ? `Caseworker: ${unit.caseworker.name || unit.caseworker.email} - ${unit.caseworker.email}` : null
-  ].filter(Boolean) as string[];
+  const staffContacts = unit.profileConnections.map((connection) => `${label(connection.assignedRole)}: ${connection.target.name || connection.target.email} - ${connection.target.email}`);
   const propertyManagerOptions = staffUsers.filter((staff) => hasStaffAccess(staff, [AccountAccessType.PROPERTY_MANAGER, AccountAccessType.LANDLORD]));
   const maintenanceOptions = staffUsers.filter((staff) => hasStaffAccess(staff, [AccountAccessType.MAINTENANCE, AccountAccessType.VENDOR]));
   const caseworkerOptions = staffUsers.filter((staff) => hasStaffAccess(staff, [AccountAccessType.CASEWORKER]));

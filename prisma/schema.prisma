@@ -33,6 +33,21 @@ enum AccountAccessRequestStatus {
   CANCELLED
 }
 
+enum ConnectionRole {
+  PROPERTY_MANAGER
+  CASEWORKER
+  INSPECTOR
+  MAINTENANCE_STAFF
+  PREFERRED_VENDOR
+  CONNECTED_RENTER
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+}
+
 enum UnitStatus {
   AVAILABLE
   PENDING
@@ -311,10 +326,35 @@ model User {
   managedUnits Unit[] @relation("UnitPropertyManagers")
   maintainedUnits Unit[] @relation("UnitMaintenanceAssignees")
   caseworkUnits Unit[] @relation("UnitCaseworkers")
+  landlordConnections ProfileConnection[] @relation("LandlordConnections")
+  targetConnections ProfileConnection[] @relation("TargetConnections")
 
   @@index([role, isActive])
   @@index([passwordResetTokenHash])
   @@index([lockedUntil])
+}
+
+model ProfileConnection {
+  id             String           @id @default(cuid())
+  landlordUserId String
+  targetUserId   String
+  unitId         String?
+  scopeKey       String           @default("PORTFOLIO")
+  assignedRole   ConnectionRole
+  status         ConnectionStatus @default(ACTIVE)
+  notes          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  landlord User  @relation("LandlordConnections", fields: [landlordUserId], references: [id], onDelete: Cascade)
+  target   User  @relation("TargetConnections", fields: [targetUserId], references: [id], onDelete: Cascade)
+  unit     Unit? @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  @@unique([landlordUserId, targetUserId, scopeKey, assignedRole])
+  @@index([landlordUserId, status])
+  @@index([targetUserId, status])
+  @@index([unitId])
+  @@index([scopeKey])
 }
 
 model AccountAccessRequest {
@@ -472,6 +512,7 @@ model Unit {
   ledgerEntries LedgerEntry[]
   recurringChargeSchedules RecurringChargeSchedule[]
   paymentPlans PaymentPlan[]
+  profileConnections ProfileConnection[]
 
   @@index([propertyId])
   @@index([tenantUserId])
