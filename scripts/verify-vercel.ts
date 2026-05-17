@@ -38,17 +38,29 @@ for (const dep of ["next", "react", "react-dom", "@prisma/client", "prisma", "ts
 }
 
 const vercelJson = existsSync(vercelJsonPath) ? readFileSync(vercelJsonPath, "utf8") : "";
-if (!vercelJson.includes('"framework": "nextjs"')) fail("vercel.json should explicitly set the Next.js framework.");
-if (!vercelJson.includes('"buildCommand": "npm run vercel-build"')) fail("vercel.json should use npm run vercel-build.");
 
 try {
   const parsedVercel = JSON.parse(vercelJson || "{}");
+
+  if (parsedVercel.framework !== "nextjs") {
+    fail('vercel.json should explicitly set "framework" to "nextjs".');
+  }
+
+  if (parsedVercel.buildCommand !== "npm run vercel-build") {
+    fail('vercel.json should explicitly set "buildCommand" to "npm run vercel-build".');
+  }
+
   const crons = Array.isArray(parsedVercel.crons) ? parsedVercel.crons : [];
   const emailCron = crons.find((cron: { path?: string }) => cron.path === "/api/cron/send-queued-email");
   if (!emailCron) {
     fail("vercel.json should register the queued-email cron route.");
   } else if (emailCron.schedule !== "0 3 * * *") {
     fail('Vercel Hobby deployments require the queued-email cron schedule to be "0 3 * * *".');
+  }
+
+  const tooFrequentCron = crons.find((cron: { schedule?: string }) => typeof cron.schedule === "string" && cron.schedule.startsWith("*/"));
+  if (tooFrequentCron) {
+    fail("Vercel Hobby cron schedules must not run more than once daily.");
   }
 } catch {
   fail("vercel.json must be valid JSON.");
@@ -96,7 +108,12 @@ if (process.env.VERCEL === "1" || process.env.NODE_ENV === "production") {
   }
 
   const emailProvider = (process.env.EMAIL_PROVIDER || "console").toLowerCase();
-  if (emailProvider !== "disabled" && !process.env.CRON_SECRET) fail("CRON_SECRET must be set so Vercel Cron requests are authorized.");
+  const strictEnv = process.env.VERCEL_STRICT_ENV === "1" || process.env.REQUIRE_CRON_SECRET === "true";
+  if (emailProvider !== "disabled" && !process.env.CRON_SECRET) {
+    const message = "CRON_SECRET is not set. The build can continue for Hobby/demo deployments, but the cron route will reject scheduled requests until CRON_SECRET is added in Vercel Project Settings.";
+    if (strictEnv) fail(message);
+    else warn(message);
+  }
 }
 
 if (failed) process.exit(1);

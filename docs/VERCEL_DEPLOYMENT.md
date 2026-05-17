@@ -64,7 +64,15 @@ This package is configured for **Vercel Hobby** until full production rollout. H
 /api/cron/send-queued-email — 0 3 * * *
 ```
 
-Set `CRON_SECRET`. Vercel Cron will send it as a bearer token when the environment variable exists.
+Set `CRON_SECRET` in Vercel Project Settings before relying on scheduled email processing. Vercel Cron will send it as a bearer token when the environment variable exists.
+
+For Hobby/demo builds, the preflight check now warns instead of failing when `CRON_SECRET` is not set. This keeps deployment unblocked while configuration is still being finalized. The cron endpoint still rejects scheduled requests until the secret exists, so add it before testing the queue. To make missing `CRON_SECRET` fail the build again, set either:
+
+```env
+VERCEL_STRICT_ENV=1
+# or
+REQUIRE_CRON_SECRET=true
+```
 
 ### Production upgrade note
 

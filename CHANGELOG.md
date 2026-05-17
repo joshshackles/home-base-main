@@ -1,3 +1,11 @@
+## v1.7.0 — Vercel Hobby compatibility follow-up
+
+- Fixed the Vercel preflight checker so it parses `vercel.json` instead of relying on whitespace-sensitive string matches.
+- Confirmed `framework: nextjs` and `buildCommand: npm run vercel-build` are required in `vercel.json`.
+- Kept Hobby-safe daily cron scheduling for queued email processing.
+- Changed missing `CRON_SECRET` from a hard build failure to a deployment warning unless `VERCEL_STRICT_ENV=1` or `REQUIRE_CRON_SECRET=true` is set.
+- Documented that scheduled cron requests will be rejected until `CRON_SECRET` is configured in Vercel.
+
 ## v1.7.0 — Vercel Hobby compatibility
 
 - Adjusted Vercel cron configuration to comply with Hobby plan limits by running the queued-email processor once daily.
