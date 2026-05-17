@@ -1,6 +1,6 @@
 "use server";
 
-import { AuditAction, MaintenancePriority, MaintenanceRequestStatus, MessageThreadStatus, MessageThreadType, SecurityEventType, UserRole } from "@prisma/client";
+import { AccountAccessType, AuditAction, MaintenancePriority, MaintenanceRequestStatus, MessageThreadStatus, MessageThreadType, SecurityEventType, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -62,6 +62,21 @@ async function ensureStaffMaintenanceAccess(user: { userId: string; role: UserRo
   });
 }
 
+async function hasStaffMessagingAccess(user: { userId: string; role: UserRole }) {
+  if (user.role === UserRole.ADMIN || user.role === UserRole.LANDLORD || user.role === UserRole.INSPECTOR) return true;
+
+  const approvedAccess = await prisma.accountAccessRequest.findFirst({
+    where: {
+      userId: user.userId,
+      status: "APPROVED",
+      type: { in: [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER, AccountAccessType.CASEWORKER, AccountAccessType.INSPECTOR, AccountAccessType.MAINTENANCE, AccountAccessType.VENDOR] }
+    },
+    select: { id: true }
+  });
+
+  return Boolean(approvedAccess);
+}
+
 export async function createMaintenanceRequest(formData: FormData) {
   const user = await requireRole(["APPLICANT", "TENANT"], "/applicant/maintenance");
   const parsed = maintenanceSchema.parse(obj(formData));
@@ -119,7 +134,7 @@ export async function updateMaintenanceRequestStatus(formData: FormData) {
 export async function sendWorkflowMessage(formData: FormData) {
   const user = await requireUser("/inbox");
   const parsed = messageSchema.parse(obj(formData));
-  const isStaff = user.role === UserRole.ADMIN || user.role === UserRole.LANDLORD;
+  const isStaff = await hasStaffMessagingAccess(user);
   const isInternal = Boolean(parsed.isInternal && isStaff);
   let threadId = cleanId(parsed.threadId);
 

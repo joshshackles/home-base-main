@@ -1,7 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
-import type { UserRole } from "@prisma/client";
+import { AccountAccessType, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getRequiredAuthSecret } from "@/lib/env";
 import { hashToken } from "@/lib/tokens";
@@ -154,10 +154,29 @@ export async function requireUser(nextPath = "/admin") {
   } satisfies SessionPayload;
 }
 
+const roleAccessTypes: Partial<Record<UserRole, AccountAccessType[]>> = {
+  [UserRole.LANDLORD]: [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER],
+  [UserRole.INSPECTOR]: [AccountAccessType.INSPECTOR]
+};
+
 export async function requireRole(allowedRoles: UserRole[], nextPath = "/admin") {
   const user = await requireUser(nextPath);
-  if (!allowedRoles.includes(user.role)) redirect("/not-authorized");
-  return user;
+  if (user.role === UserRole.ADMIN || allowedRoles.includes(user.role)) return user;
+
+  const accessTypes = allowedRoles.flatMap((role) => roleAccessTypes[role] ?? []);
+  if (accessTypes.length > 0) {
+    const approvedAccess = await prisma.accountAccessRequest.findFirst({
+      where: {
+        userId: user.userId,
+        type: { in: accessTypes },
+        status: "APPROVED"
+      },
+      select: { id: true }
+    });
+    if (approvedAccess) return user;
+  }
+
+  redirect("/not-authorized");
 }
 
 export function getRequestClientMetadata() {

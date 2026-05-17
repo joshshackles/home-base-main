@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ClipboardCheck, ClipboardList, DollarSign, FileSignature, Heart, Home, LayoutDashboard, MessageSquare, Wrench, UserRound } from "lucide-react";
-import { requireRole } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 
 const nav = [
   { href: "/applicant", label: "Dashboard", icon: LayoutDashboard },
@@ -16,7 +16,7 @@ const nav = [
 ];
 
 export default async function ApplicantLayout({ children }: { children: React.ReactNode }) {
-  await requireRole(["APPLICANT", "TENANT"], "/applicant");
+  await requireUser("/applicant");
 
   return (
     <div>

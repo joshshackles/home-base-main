@@ -71,6 +71,8 @@ export default async function AdminPage() {
       tasks={tasks}
       tools={[
         { title: "Marketplace inventory", detail: `${propertyCount} properties, ${unitCount} units, public availability, and listing quality.`, href: "/admin/units", icon: dashboardIcons.homes },
+        { title: "Applicant module", detail: "Open the base dashboard every account receives: profile, applications, favorites, and home tools.", href: "/applicant", icon: dashboardIcons.applications },
+        { title: "Landlord module", detail: "Use the owner/property-manager dashboard for listings, leads, tenant records, and repairs.", href: "/landlord", icon: dashboardIcons.homes },
         { title: "People and access", detail: "Users, account types, password controls, access requests, and staff setup.", href: "/admin/users", icon: dashboardIcons.security },
         { title: "Application pipeline", detail: "Leads, documents, applications, lease packets, signatures, and notices.", href: "/admin/applications", icon: dashboardIcons.applications },
         { title: "Field operations", detail: `${inspectionCount} inspections, ${maintenanceCount} repairs, and ${inboxCount} open conversations.`, href: "/admin/maintenance", icon: dashboardIcons.maintenance },

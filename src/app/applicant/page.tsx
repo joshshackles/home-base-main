@@ -1,11 +1,19 @@
 import { ApplicationStatus, type Prisma } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { WorkhorseDashboard, dashboardIcons } from "@/components/dashboard/WorkhorseDashboard";
 
+function baseAccountLabel(role: string) {
+  if (role === "ADMIN") return "Applicant base + admin";
+  if (role === "LANDLORD") return "Applicant base + landlord";
+  if (role === "INSPECTOR") return "Applicant base + inspector";
+  if (role === "TENANT") return "Tenant + applicant";
+  return "Applicant";
+}
+
 export default async function ApplicantDashboardPage() {
-  const user = await requireRole(["APPLICANT", "TENANT"], "/applicant");
+  const user = await requireUser("/applicant");
   const applicationWhere: Prisma.ApplicationWhereInput = { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] };
 
   const [profile, applications, submittedCount, favoritesCount, utilitiesCount, payrollCount, plannedPayments, accessRequests] = await Promise.all([
@@ -36,6 +44,9 @@ export default async function ApplicantDashboardPage() {
     (profile?.incomeSources.length ?? 0) > 0,
     Boolean(profile?.maxRent || profile?.desiredBedrooms || profile?.desiredMoveInDate)
   ].filter(Boolean).length;
+  const approvedAccessTypes = new Set(accessRequests.filter((request) => request.status === "APPROVED").map((request) => request.type));
+  const canOpenLandlordModule = user.role === "ADMIN" || user.role === "LANDLORD" || approvedAccessTypes.has("LANDLORD") || approvedAccessTypes.has("PROPERTY_MANAGER");
+  const canOpenAdminModule = user.role === "ADMIN";
 
   const tasks = [
     missingDocuments > 0 ? { title: "Upload requested documents", detail: `${missingDocuments} document request${missingDocuments === 1 ? "" : "s"} need attention across recent applications.`, href: "/applicant/applications", cta: "Documents", tone: "urgent" as const } : null,
@@ -44,10 +55,19 @@ export default async function ApplicantDashboardPage() {
     plannedPaymentTotal > 0 ? { title: "Review planned payments", detail: `${formatCurrency(plannedPaymentTotal)} is currently planned or submitted in your tenant tools.`, href: "/applicant/home-tools", cta: "Payments", tone: "success" as const } : null
   ].filter((task): task is NonNullable<typeof task> => Boolean(task));
 
+  const tools = [
+    { title: "Renter profile", detail: "Household, income, rental goals, references, voucher, pets, accessibility, and bio.", href: "/applicant/profile", icon: dashboardIcons.applications },
+    { title: "Available rentals", detail: "Search the public directory, save matches, and contact potential landlords.", href: "/marketplace", icon: dashboardIcons.homes },
+    { title: "Applications", detail: "Track application status, document requests, lease packets, and inspections.", href: "/applicant/applications", icon: dashboardIcons.inbox },
+    { title: "Home tools", detail: "Utilities, payroll reminders, payment planning, and maintenance scheduling.", href: "/applicant/home-tools", icon: dashboardIcons.maintenance },
+    canOpenLandlordModule ? { title: "Landlord module", detail: "Open listings, leads, tenant records, maintenance, ledger, and landlord messages.", href: "/landlord", icon: dashboardIcons.homes } : null,
+    canOpenAdminModule ? { title: "Admin module", detail: "Review access requests, users, all records, system health, and cross-module work.", href: "/admin", icon: dashboardIcons.security } : null
+  ].filter((tool): tool is NonNullable<typeof tool> => Boolean(tool));
+
   return (
     <WorkhorseDashboard
       name={user.name}
-      accountLabel={user.role === "TENANT" ? "Tenant + applicant" : "Applicant"}
+      accountLabel={baseAccountLabel(user.role)}
       headline={`Welcome${user.name ? `, ${user.name}` : ""}`}
       summary="This is your HomeBase workbench: build a renter profile, track applications, save rentals, manage home responsibilities, and request new access when your role expands."
       metrics={[
@@ -57,12 +77,7 @@ export default async function ApplicantDashboardPage() {
         { label: "Planned payments", value: formatCurrency(plannedPaymentTotal), href: "/applicant/home-tools", detail: `${submittedCount} submitted applications`, icon: dashboardIcons.inbox }
       ]}
       tasks={tasks}
-      tools={[
-        { title: "Renter profile", detail: "Household, income, rental goals, references, voucher, pets, accessibility, and bio.", href: "/applicant/profile", icon: dashboardIcons.applications },
-        { title: "Available rentals", detail: "Search the public directory, save matches, and contact potential landlords.", href: "/marketplace", icon: dashboardIcons.homes },
-        { title: "Applications", detail: "Track application status, document requests, lease packets, and inspections.", href: "/applicant/applications", icon: dashboardIcons.inbox },
-        { title: "Home tools", detail: "Utilities, payroll reminders, payment planning, and maintenance scheduling.", href: "/applicant/home-tools", icon: dashboardIcons.maintenance }
-      ]}
+      tools={tools}
       accessRequests={accessRequests}
     />
   );

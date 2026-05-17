@@ -1,3 +1,11 @@
+# v1.8.0 - Dashboard Modules and Text Messaging
+
+- Kept the applicant dashboard available to every signed-in user as the base dashboard.
+- Treated admin users as superusers for module access while preserving module-specific dashboards.
+- Allowed approved landlord/property-manager access requests to open landlord module routes without removing the applicant dashboard.
+- Added applicant-dashboard module launch cards for approved landlord/admin access.
+- Rebuilt applicant, landlord, and admin inboxes with a shared text-message style conversation UI.
+
 # v1.7.9 - Workhorse Dashboard Foundation
 
 - Rebuilt applicant, landlord, and admin landing pages on one shared main dashboard component with consistent metrics, work queue, module launcher, and access state.
