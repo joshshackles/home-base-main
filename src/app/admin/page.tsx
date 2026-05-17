@@ -1,11 +1,29 @@
-import Link from "next/link";
-import { Activity, Building2, ClipboardList, BellRing, ClipboardCheck, MessageSquare, Wrench, DollarSign, FileSignature, FileText, Home, Inbox, Plus, ServerCog, ShieldCheck, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ledgerTotals } from "@/lib/ledger-queries";
+import { formatCurrency } from "@/lib/format";
 import { APP_VERSION } from "@/lib/app-version";
+import { WorkhorseDashboard, dashboardIcons } from "@/components/dashboard/WorkhorseDashboard";
 
 export default async function AdminPage() {
-  const [propertyCount, unitCount, availableCount, userCount, leadCount, applicationCount, documentCount, leaseCount, notificationCount, auditCount, securityEventCount, inspectionCount, maintenanceCount, inboxCount, ledgerBalance] = await Promise.all([
+  const [
+    propertyCount,
+    unitCount,
+    availableCount,
+    userCount,
+    leadCount,
+    applicationCount,
+    documentCount,
+    leaseCount,
+    notificationCount,
+    auditCount,
+    securityEventCount,
+    inspectionCount,
+    maintenanceCount,
+    inboxCount,
+    accessRequestCount,
+    accessRequests,
+    ledgerBalance
+  ] = await Promise.all([
     prisma.property.count({ where: { isArchived: false } }),
     prisma.unit.count({ where: { NOT: { status: "ARCHIVED" } } }),
     prisma.unit.count({ where: { status: "AVAILABLE", property: { isArchived: false } } }),
@@ -20,67 +38,55 @@ export default async function AdminPage() {
     prisma.inspection.count({ where: { status: { in: ["SCHEDULED", "IN_PROGRESS", "NEEDS_REINSPECTION"] } } }),
     prisma.maintenanceRequest.count({ where: { status: { in: ["NEW", "IN_PROGRESS", "WAITING_ON_TENANT", "WAITING_ON_VENDOR"] } } }),
     prisma.messageThread.count({ where: { status: { not: "CLOSED" } } }),
+    prisma.accountAccessRequest.count({ where: { status: "PENDING" } }),
+    prisma.accountAccessRequest.findMany({
+      where: { status: "PENDING" },
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { createdAt: "asc" },
+      take: 8
+    }),
     ledgerTotals().then((totals) => totals.balance)
   ]);
 
-  const cards = [
-    { label: "Properties", value: propertyCount, icon: Building2, href: "/admin/properties" },
-    { label: "Units", value: unitCount, icon: Home, href: "/admin/units" },
-    { label: "Available", value: availableCount, icon: Plus, href: "/marketplace" },
-    { label: "New Leads", value: leadCount, icon: Inbox, href: "/admin/leads" },
-    { label: "Applications", value: applicationCount, icon: ClipboardList, href: "/admin/applications" },
-    { label: "Inspections", value: inspectionCount, icon: ClipboardCheck, href: "/admin/inspections" },
-    { label: "Maintenance", value: maintenanceCount, icon: Wrench, href: "/admin/maintenance" },
-    { label: "Inbox", value: inboxCount, icon: MessageSquare, href: "/admin/inbox" },
-    { label: "Ledger", value: `$${ledgerBalance.toLocaleString()}`, icon: DollarSign, href: "/admin/ledger" },
-    { label: "Documents", value: documentCount, icon: FileText, href: "/admin/documents" },
-    { label: "Leases", value: leaseCount, icon: FileSignature, href: "/admin/leases" },
-    { label: "Notices", value: notificationCount, icon: BellRing, href: "/admin/notifications" },
-    { label: "Users", value: userCount, icon: Users, href: "/admin/users" },
-    { label: "Audit", value: auditCount, icon: Activity, href: "/admin/audit" },
-    { label: "System", value: APP_VERSION, icon: ServerCog, href: "/admin/system" },
-    { label: "Security", value: securityEventCount, icon: ShieldCheck, href: "/admin/security/events" }
-  ];
+  const tasks = [
+    accessRequestCount > 0 ? { title: "Review account access requests", detail: `${accessRequestCount} user${accessRequestCount === 1 ? "" : "s"} requested expanded dashboard access.`, href: "/admin/users", cta: "Access", tone: "urgent" as const } : null,
+    leadCount > 0 ? { title: "Work new leads", detail: `${leadCount} new marketplace lead${leadCount === 1 ? "" : "s"} are waiting for follow-up.`, href: "/admin/leads", cta: "Leads" } : null,
+    applicationCount > 0 ? { title: "Review applications", detail: `${applicationCount} active application${applicationCount === 1 ? "" : "s"} are in progress or under review.`, href: "/admin/applications", cta: "Applications" } : null,
+    maintenanceCount > 0 ? { title: "Move repairs forward", detail: `${maintenanceCount} maintenance request${maintenanceCount === 1 ? "" : "s"} need coordination.`, href: "/admin/maintenance", cta: "Repairs", tone: "urgent" as const } : null,
+    notificationCount > 0 ? { title: "Send queued notices", detail: `${notificationCount} signature notification${notificationCount === 1 ? "" : "s"} are queued.`, href: "/admin/notifications", cta: "Notices" } : null
+  ].filter((task): task is NonNullable<typeof task> => Boolean(task));
 
   return (
-    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <p className="font-bold uppercase tracking-[0.25em] text-brand-700">Admin</p>
-          <h1 className="mt-2 text-4xl font-black text-slate-950">HomeBase MLS Dashboard</h1>
-          <p className="mt-2 text-slate-600">Manage marketplace inventory, review leads, and track application starts.</p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Link href="/admin/leads" className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-center font-bold text-slate-900 shadow-sm hover:bg-slate-50">
-            View Leads
-          </Link>
-          <Link href="/admin/properties" className="rounded-2xl bg-brand-600 px-5 py-3 text-center font-bold text-white shadow-sm hover:bg-brand-700">
-            Manage Properties
-          </Link>
-        </div>
-      </div>
-
-      <section className="grid gap-4 md:grid-cols-4 lg:grid-cols-5">
-        {cards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Link key={card.label} href={card.href} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
-                <Icon size={22} />
-              </span>
-              <p className="mt-5 text-sm font-bold uppercase tracking-wide text-slate-500">{card.label}</p>
-              <p className="mt-1 text-4xl font-black text-slate-950">{card.value}</p>
-            </Link>
-          );
-        })}
-      </section>
-
-      <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-2xl font-black text-slate-950">Current build focus</h2>
-        <p className="mt-3 max-w-3xl leading-7 text-slate-600">
-          This release combines production hardening, object storage, PDF/e-signature evidence, automated verification, accessibility, SEO, and legal-page readiness with the existing housing workflow foundation.
-        </p>
-      </section>
-    </main>
+    <WorkhorseDashboard
+      name="Admin"
+      accountLabel="System operator"
+      headline="HomeBase command dashboard"
+      summary="One dashboard model for every user: applicant tools at the foundation, then operational modules for listings, applications, inspections, maintenance, ledger, messaging, security, and account access."
+      metrics={[
+        { label: "Available listings", value: availableCount, href: "/marketplace", detail: `${unitCount} total active units`, icon: dashboardIcons.homes },
+        { label: "Active work", value: applicationCount + leadCount + maintenanceCount, href: "/admin/applications", detail: "Leads, applications, repairs", icon: dashboardIcons.work },
+        { label: "Ledger balance", value: formatCurrency(ledgerBalance), href: "/admin/ledger", detail: "Open charges less payments", icon: dashboardIcons.inbox },
+        { label: "Access requests", value: accessRequestCount, href: "/admin/users", detail: `${userCount} total user accounts`, icon: dashboardIcons.security }
+      ]}
+      tasks={tasks}
+      tools={[
+        { title: "Marketplace inventory", detail: `${propertyCount} properties, ${unitCount} units, public availability, and listing quality.`, href: "/admin/units", icon: dashboardIcons.homes },
+        { title: "People and access", detail: "Users, account types, password controls, access requests, and staff setup.", href: "/admin/users", icon: dashboardIcons.security },
+        { title: "Application pipeline", detail: "Leads, documents, applications, lease packets, signatures, and notices.", href: "/admin/applications", icon: dashboardIcons.applications },
+        { title: "Field operations", detail: `${inspectionCount} inspections, ${maintenanceCount} repairs, and ${inboxCount} open conversations.`, href: "/admin/maintenance", icon: dashboardIcons.maintenance },
+        { title: "Ledger and documents", detail: `${formatCurrency(ledgerBalance)} ledger balance, ${documentCount} documents, ${leaseCount} lease packets.`, href: "/admin/ledger", icon: dashboardIcons.inbox },
+        { title: "System health", detail: `Version ${APP_VERSION}, ${auditCount} audit events, ${securityEventCount} security events.`, href: "/admin/system", icon: dashboardIcons.security }
+      ]}
+      accessRequests={[]}
+      adminAccessQueue={accessRequests.map((request) => ({
+        id: request.id,
+        type: request.type,
+        status: request.status,
+        organization: request.organization,
+        createdAt: request.createdAt,
+        requester: request.user.name || request.user.email
+      }))}
+      showAccessBuilder={false}
+    />
   );
 }

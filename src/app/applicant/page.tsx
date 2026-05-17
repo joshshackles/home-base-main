@@ -1,116 +1,69 @@
-import Link from "next/link";
-import { ApplicationStatus } from "@prisma/client";
+import { ApplicationStatus, type Prisma } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { claimMatchingApplications } from "@/app/applicant/actions";
-
-function label(value: string) {
-  return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
-}
+import { WorkhorseDashboard, dashboardIcons } from "@/components/dashboard/WorkhorseDashboard";
 
 export default async function ApplicantDashboardPage() {
   const user = await requireRole(["APPLICANT", "TENANT"], "/applicant");
-  const [profile, applications, submittedCount, favoritesCount, utilitiesCount, payrollCount, plannedPayments] = await Promise.all([
+  const applicationWhere: Prisma.ApplicationWhereInput = { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] };
+
+  const [profile, applications, submittedCount, favoritesCount, utilitiesCount, payrollCount, plannedPayments, accessRequests] = await Promise.all([
     prisma.applicantProfile.findUnique({
       where: { userId: user.userId },
       include: { householdMembers: true, incomeSources: true }
     }),
     prisma.application.findMany({
-      where: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] },
+      where: applicationWhere,
       include: { unit: { include: { property: true } }, documentRequests: true },
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
+      take: 5
     }),
-    prisma.application.count({ where: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }], status: ApplicationStatus.SUBMITTED } }),
+    prisma.application.count({ where: { ...applicationWhere, status: ApplicationStatus.SUBMITTED } }),
     prisma.favoriteRental.count({ where: { userId: user.userId } }),
     prisma.utilityAccount.count({ where: { userId: user.userId } }),
     prisma.payrollReminder.count({ where: { userId: user.userId } }),
-    prisma.tenantPayment.findMany({ where: { userId: user.userId, status: { in: ["PLANNED", "SUBMITTED"] } }, select: { amount: true } })
+    prisma.tenantPayment.findMany({ where: { userId: user.userId, status: { in: ["PLANNED", "SUBMITTED"] } }, select: { amount: true } }),
+    prisma.accountAccessRequest.findMany({ where: { userId: user.userId }, orderBy: { createdAt: "desc" } })
   ]);
 
-  const active = applications.filter((application) => !["APPROVED", "DENIED", "WITHDRAWN"].includes(application.status)).length;
+  const activeApplications = applications.filter((application) => !["APPROVED", "DENIED", "WITHDRAWN"].includes(application.status)).length;
   const missingDocuments = applications.reduce((total, application) => total + application.documentRequests.filter((request) => ["REQUESTED", "REJECTED"].includes(request.status)).length, 0);
   const plannedPaymentTotal = plannedPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  const profileSteps = [
+    Boolean(profile),
+    (profile?.householdMembers.length ?? 0) > 0,
+    (profile?.incomeSources.length ?? 0) > 0,
+    Boolean(profile?.maxRent || profile?.desiredBedrooms || profile?.desiredMoveInDate)
+  ].filter(Boolean).length;
+
+  const tasks = [
+    missingDocuments > 0 ? { title: "Upload requested documents", detail: `${missingDocuments} document request${missingDocuments === 1 ? "" : "s"} need attention across recent applications.`, href: "/applicant/applications", cta: "Documents", tone: "urgent" as const } : null,
+    profileSteps < 4 ? { title: "Strengthen renter profile", detail: `${profileSteps}/4 profile readiness areas are complete. Add household, income, rental goals, and bio details.`, href: "/applicant/profile", cta: "Profile" } : null,
+    favoritesCount > 0 ? { title: "Compare saved rentals", detail: `${favoritesCount} saved rental${favoritesCount === 1 ? "" : "s"} are waiting in your favorites list.`, href: "/applicant/favorites", cta: "Favorites" } : null,
+    plannedPaymentTotal > 0 ? { title: "Review planned payments", detail: `${formatCurrency(plannedPaymentTotal)} is currently planned or submitted in your tenant tools.`, href: "/applicant/home-tools", cta: "Payments", tone: "success" as const } : null
+  ].filter((task): task is NonNullable<typeof task> => Boolean(task));
 
   return (
-    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="rounded-3xl bg-slate-950 p-8 text-white shadow-sm">
-        <p className="text-sm font-bold uppercase tracking-wide text-brand-200">Applicant portal</p>
-        <h1 className="mt-3 text-4xl font-black tracking-tight">Welcome, {user.name || "Applicant"}</h1>
-        <p className="mt-3 max-w-3xl text-lg leading-8 text-slate-300">Complete your profile, review your applications, and submit your application package when your household and income details are ready.</p>
-      </div>
-
-      <section className="mt-8 grid gap-4 md:grid-cols-4">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-bold uppercase text-slate-500">Applications</p>
-          <p className="mt-2 text-4xl font-black text-slate-950">{applications.length}</p>
-        </div>
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-bold uppercase text-slate-500">Active</p>
-          <p className="mt-2 text-4xl font-black text-slate-950">{active}</p>
-        </div>
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-bold uppercase text-slate-500">Submitted</p>
-          <p className="mt-2 text-4xl font-black text-slate-950">{submittedCount}</p>
-        </div>
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-bold uppercase text-slate-500">Missing Docs</p>
-          <p className="mt-2 text-4xl font-black text-slate-950">{missingDocuments}</p>
-        </div>
-      </section>
-
-      <section className="mt-8 grid gap-4 md:grid-cols-4">
-        <QuickCard title="Saved rentals" value={`${favoritesCount}`} href="/applicant/favorites" cta="Compare favorites" />
-        <QuickCard title="Utilities" value={`${utilitiesCount}`} href="/applicant/home-tools" cta="Track bills" />
-        <QuickCard title="Payroll" value={`${payrollCount}`} href="/applicant/home-tools" cta="Track paydays" />
-        <QuickCard title="Payments" value={formatCurrency(plannedPaymentTotal)} href="/applicant/home-tools" cta="Plan rent" />
-      </section>
-
-      <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-2xl font-black text-slate-950">Recent applications</h2>
-            <Link href="/applicant/applications" className="rounded-2xl bg-brand-600 px-4 py-2 text-sm font-bold text-white hover:bg-brand-700">View All</Link>
-          </div>
-          <div className="mt-5 space-y-3">
-            {applications.slice(0, 5).length === 0 ? <p className="text-slate-600">No applications are connected to your account yet.</p> : applications.slice(0, 5).map((application) => (
-              <Link key={application.id} href={`/applicant/applications/${application.id}`} className="block rounded-2xl border border-slate-200 p-4 hover:border-brand-200 hover:bg-brand-50">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-black text-slate-950">{application.unit.property.name} #{application.unit.unitNumber}</p>
-                    <p className="mt-1 text-sm text-slate-600">{application.unit.property.city}, {application.unit.property.state} · {formatCurrency(application.unit.rentAmount)}</p>
-                  </div>
-                  <div className="text-right"><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase text-slate-700">{label(application.status)}</span><p className="mt-2 text-xs font-bold text-slate-500">{application.documentRequests.filter((request) => ["REQUESTED", "REJECTED"].includes(request.status)).length} missing docs</p></div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-2xl font-black text-slate-950">Profile readiness</h2>
-          <div className="mt-5 space-y-3 text-sm text-slate-700">
-            <p className="rounded-2xl bg-slate-50 p-3"><strong>Basic profile:</strong> {profile ? "Started" : "Not started"}</p>
-            <p className="rounded-2xl bg-slate-50 p-3"><strong>Household members:</strong> {profile?.householdMembers.length ?? 0}</p>
-            <p className="rounded-2xl bg-slate-50 p-3"><strong>Income sources:</strong> {profile?.incomeSources.length ?? 0}</p>
-            <p className="rounded-2xl bg-slate-50 p-3"><strong>Rental goals:</strong> {profile?.maxRent ? `Up to ${formatCurrency(profile.maxRent)}` : "Not set"}</p>
-          </div>
-          <Link href="/applicant/profile" className="mt-5 inline-flex w-full justify-center rounded-2xl bg-slate-950 px-5 py-3 font-bold text-white hover:bg-slate-800">Update Profile</Link>
-          <form action={claimMatchingApplications} className="mt-3">
-            <button className="w-full rounded-2xl border border-slate-300 px-5 py-3 font-bold text-slate-900 hover:bg-slate-50" type="submit">Claim Matching Applications</button>
-          </form>
-        </aside>
-      </section>
-    </main>
-  );
-}
-
-function QuickCard({ title, value, href, cta }: { title: string; value: string; href: string; cta: string }) {
-  return (
-    <Link href={href} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:border-brand-200 hover:bg-brand-50">
-      <p className="text-sm font-bold uppercase text-slate-500">{title}</p>
-      <p className="mt-2 text-3xl font-black text-slate-950">{value}</p>
-      <p className="mt-3 text-sm font-bold text-brand-700">{cta}</p>
-    </Link>
+    <WorkhorseDashboard
+      name={user.name}
+      accountLabel={user.role === "TENANT" ? "Tenant + applicant" : "Applicant"}
+      headline={`Welcome${user.name ? `, ${user.name}` : ""}`}
+      summary="This is your HomeBase workbench: build a renter profile, track applications, save rentals, manage home responsibilities, and request new access when your role expands."
+      metrics={[
+        { label: "Applications", value: applications.length, href: "/applicant/applications", detail: `${activeApplications} active`, icon: dashboardIcons.applications },
+        { label: "Saved rentals", value: favoritesCount, href: "/applicant/favorites", detail: "Favorites and landlord messages", icon: dashboardIcons.homes },
+        { label: "Home tools", value: utilitiesCount + payrollCount, href: "/applicant/home-tools", detail: `${utilitiesCount} utilities - ${payrollCount} payroll reminders`, icon: dashboardIcons.work },
+        { label: "Planned payments", value: formatCurrency(plannedPaymentTotal), href: "/applicant/home-tools", detail: `${submittedCount} submitted applications`, icon: dashboardIcons.inbox }
+      ]}
+      tasks={tasks}
+      tools={[
+        { title: "Renter profile", detail: "Household, income, rental goals, references, voucher, pets, accessibility, and bio.", href: "/applicant/profile", icon: dashboardIcons.applications },
+        { title: "Available rentals", detail: "Search the public directory, save matches, and contact potential landlords.", href: "/marketplace", icon: dashboardIcons.homes },
+        { title: "Applications", detail: "Track application status, document requests, lease packets, and inspections.", href: "/applicant/applications", icon: dashboardIcons.inbox },
+        { title: "Home tools", detail: "Utilities, payroll reminders, payment planning, and maintenance scheduling.", href: "/applicant/home-tools", icon: dashboardIcons.maintenance }
+      ]}
+      accessRequests={accessRequests}
+    />
   );
 }

@@ -15,7 +15,7 @@ const DATABASE_LOCK_THRESHOLD = 8;
 const DATABASE_LOCK_MINUTES = 15;
 
 function safeNextPath(value: string) {
-  if (!value.startsWith("/") || value.startsWith("//")) return "/admin";
+  if (!value.startsWith("/") || value.startsWith("//")) return "/applicant";
   return value;
 }
 
@@ -61,11 +61,11 @@ export async function loginAction(formData: FormData) {
   const parsed = loginSchema.safeParse(formDataToObject(formData));
 
   if (!parsed.success) {
-    redirect(`/login?error=${encodeURIComponent(validationMessage(parsed.error))}&next=${encodeURIComponent("/admin")}`);
+    redirect(`/login?error=${encodeURIComponent(validationMessage(parsed.error))}&next=${encodeURIComponent("/applicant")}`);
   }
 
   const { email, password } = parsed.data;
-  const next = safeNextPath(parsed.data.next || "/admin");
+  const next = safeNextPath(parsed.data.next || "/applicant");
 
   const clientIp = getClientIp();
   const rateLimit = await checkLoginRateLimit(email, clientIp);

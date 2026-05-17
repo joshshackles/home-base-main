@@ -1,4 +1,4 @@
-import { ApplicationStatus, DocumentCategory, DocumentRequestStatus, DocumentStatus, DocumentVisibility, HouseholdRelationship, InspectionChecklistStatus, InspectionStatus, IncomeFrequency, LedgerEntryType, PaymentMethod, PaymentPlanInstallmentStatus, PaymentPlanStatus, RecurringChargeFrequency, LeadStatus, LeasePacketStatus, PayrollFrequency, SignatureNotificationType, SignatureStatus, TenantPaymentMethod, TenantPaymentStatus, UnitStatus, UserRole, UtilityAccountStatus } from "@prisma/client";
+import { AccountAccessType, ApplicationStatus, DocumentCategory, DocumentRequestStatus, DocumentStatus, DocumentVisibility, HouseholdRelationship, InspectionChecklistStatus, InspectionStatus, IncomeFrequency, LedgerEntryType, PaymentMethod, PaymentPlanInstallmentStatus, PaymentPlanStatus, RecurringChargeFrequency, LeadStatus, LeasePacketStatus, PayrollFrequency, SignatureNotificationType, SignatureStatus, TenantPaymentMethod, TenantPaymentStatus, UnitStatus, UserRole, UtilityAccountStatus } from "@prisma/client";
 import { z } from "zod";
 import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from "@/lib/password";
 
@@ -67,7 +67,7 @@ export const leadSchema = z.object({
 export const loginSchema = z.object({
   email: z.string().trim().email("A valid email address is required.").transform((value) => value.toLowerCase()),
   password: z.string().min(1, "Password is required."),
-  next: z.string().trim().default("/admin")
+  next: z.string().trim().default("/applicant")
 });
 
 
@@ -87,6 +87,18 @@ export const applicantSignupSchema = z.object({
   for (const message of result.errors) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message });
   }
+});
+
+export const accountAccessRequestSchema = z.object({
+  type: z.nativeEnum(AccountAccessType),
+  organization: optionalText,
+  reason: z.string().trim().min(10, "Tell us a little more about why you need this access.").max(1200, "Reason must be 1200 characters or fewer.")
+});
+
+export const accountAccessReviewSchema = z.object({
+  id: requiredText("Access request ID"),
+  status: z.enum(["APPROVED", "DECLINED"]),
+  reviewNote: optionalText
 });
 
 export const applicationClaimSchema = z.object({

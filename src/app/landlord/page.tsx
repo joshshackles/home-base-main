@@ -1,60 +1,49 @@
-import Link from "next/link";
-import { Building2, ClipboardList, Home, Inbox, Plus, MessageSquare, Wrench } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { WorkhorseDashboard, dashboardIcons } from "@/components/dashboard/WorkhorseDashboard";
 
 export default async function LandlordDashboardPage() {
   const user = await requireRole(["LANDLORD"], "/landlord");
-
   const scope = { property: { ownerId: user.userId, isArchived: false } };
-  const [propertyCount, unitCount, availableCount, leadCount, applicationCount, maintenanceCount, inboxCount] = await Promise.all([
+
+  const [propertyCount, unitCount, availableCount, leadCount, applicationCount, maintenanceCount, inboxCount, accessRequests] = await Promise.all([
     prisma.property.count({ where: { ownerId: user.userId, isArchived: false } }),
     prisma.unit.count({ where: { ...scope, NOT: { status: "ARCHIVED" } } }),
     prisma.unit.count({ where: { ...scope, status: "AVAILABLE" } }),
     prisma.lead.count({ where: { unit: scope } }),
     prisma.application.count({ where: { unit: scope, status: { in: ["STARTED", "SUBMITTED", "UNDER_REVIEW"] } } }),
     prisma.maintenanceRequest.count({ where: { unit: scope, status: { in: ["NEW", "IN_PROGRESS", "WAITING_ON_TENANT", "WAITING_ON_VENDOR"] } } }),
-    prisma.messageThread.count({ where: { OR: [{ maintenanceRequest: { unit: scope } }, { application: { unit: scope } }] } })
+    prisma.messageThread.count({ where: { OR: [{ maintenanceRequest: { unit: scope } }, { application: { unit: scope } }] } }),
+    prisma.accountAccessRequest.findMany({ where: { userId: user.userId }, orderBy: { createdAt: "desc" } })
   ]);
 
-  const cards = [
-    { label: "Properties", value: propertyCount, icon: Building2, href: "/landlord/properties" },
-    { label: "Units", value: unitCount, icon: Home, href: "/landlord/units" },
-    { label: "Available", value: availableCount, icon: Plus, href: "/landlord/units" },
-    { label: "Leads", value: leadCount, icon: Inbox, href: "/landlord/leads" },
-    { label: "Active Applications", value: applicationCount, icon: ClipboardList, href: "/landlord/applications" },
-    { label: "Maintenance", value: maintenanceCount, icon: Wrench, href: "/landlord/maintenance" },
-    { label: "Inbox", value: inboxCount, icon: MessageSquare, href: "/landlord/inbox" }
-  ];
+  const tasks = [
+    availableCount === 0 ? { title: "List an available unit", detail: "Available units automatically appear in the public rental directory.", href: "/landlord/units/new", cta: "Create", tone: "urgent" as const } : null,
+    leadCount > 0 ? { title: "Review rental leads", detail: `${leadCount} prospect lead${leadCount === 1 ? "" : "s"} are tied to your units.`, href: "/landlord/leads", cta: "Leads" } : null,
+    applicationCount > 0 ? { title: "Move applications forward", detail: `${applicationCount} active application${applicationCount === 1 ? "" : "s"} need review or follow-up.`, href: "/landlord/applications", cta: "Applications" } : null,
+    maintenanceCount > 0 ? { title: "Coordinate maintenance", detail: `${maintenanceCount} open maintenance request${maintenanceCount === 1 ? "" : "s"} need status, assignment, or messaging.`, href: "/landlord/maintenance", cta: "Repairs", tone: "urgent" as const } : null
+  ].filter((task): task is NonNullable<typeof task> => Boolean(task));
 
   return (
-    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <p className="font-bold uppercase tracking-[0.25em] text-brand-700">Landlord Portal</p>
-          <h1 className="mt-2 text-4xl font-black text-slate-950">Welcome{user.name ? `, ${user.name}` : ""}</h1>
-          <p className="mt-2 max-w-3xl leading-7 text-slate-600">View assigned properties, maintain unit listing details, and track leads and applications tied to your units.</p>
-        </div>
-        <Link href="/landlord/units" className="rounded-2xl bg-brand-600 px-5 py-3 text-center font-bold text-white shadow-sm hover:bg-brand-700">Manage Units</Link>
-      </div>
-
-      <section className="grid gap-4 md:grid-cols-4 lg:grid-cols-7">
-        {cards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Link key={card.label} href={card.href} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-700"><Icon size={22} /></span>
-              <p className="mt-5 text-sm font-bold uppercase tracking-wide text-slate-500">{card.label}</p>
-              <p className="mt-1 text-4xl font-black text-slate-950">{card.value}</p>
-            </Link>
-          );
-        })}
-      </section>
-
-      <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-2xl font-black text-slate-950">v0.7.0 landlord access</h2>
-        <p className="mt-3 max-w-3xl leading-7 text-slate-600">This portal is scoped to properties assigned to your landlord account. You can update unit listing details and add notes to leads and applications, but admin-only actions such as ownership changes, user management, archiving, and record deletion stay protected.</p>
-      </section>
-    </main>
+    <WorkhorseDashboard
+      name={user.name}
+      accountLabel="Applicant + landlord"
+      headline="Your property workbench"
+      summary="The dashboard keeps the renter foundation, then adds landlord tools for listings, leads, tenant records, leases, ledger activity, messaging, and repairs."
+      metrics={[
+        { label: "Properties", value: propertyCount, href: "/landlord/properties", detail: "Assigned portfolio", icon: dashboardIcons.homes },
+        { label: "Units", value: unitCount, href: "/landlord/units", detail: `${availableCount} public listings`, icon: dashboardIcons.homes },
+        { label: "Leads", value: leadCount, href: "/landlord/leads", detail: "Prospects and inquiries", icon: dashboardIcons.inbox },
+        { label: "Maintenance", value: maintenanceCount, href: "/landlord/maintenance", detail: `${inboxCount} message threads`, icon: dashboardIcons.maintenance }
+      ]}
+      tasks={tasks}
+      tools={[
+        { title: "Unit operations", detail: "Create listings, mark availability, assign tenants, and open tenant records.", href: "/landlord/units", icon: dashboardIcons.homes },
+        { title: "Leads and applications", detail: "Review prospects, notes, applications, documents, and next steps.", href: "/landlord/applications", icon: dashboardIcons.applications },
+        { title: "Maintenance queue", detail: "Assign repairs, message tenants, and track completion.", href: "/landlord/maintenance", icon: dashboardIcons.maintenance },
+        { title: "Messages", detail: "Keep application, lease, and repair conversations in one place.", href: "/landlord/inbox", icon: dashboardIcons.inbox }
+      ]}
+      accessRequests={accessRequests}
+    />
   );
 }

@@ -1,7 +1,7 @@
 import { loginAction } from "./actions";
 
 export default function LoginPage({ searchParams }: { searchParams?: { error?: string; message?: string; next?: string } }) {
-  const next = searchParams?.next || "/admin";
+  const next = searchParams?.next || "/applicant";
   const error = searchParams?.error;
 
   return (
@@ -10,7 +10,7 @@ export default function LoginPage({ searchParams }: { searchParams?: { error?: s
         <p className="font-bold uppercase tracking-[0.25em] text-brand-700">Login</p>
         <h1 className="mt-2 text-3xl font-black text-slate-950">Sign in to HomeBase MLS</h1>
         <p className="mt-3 leading-7 text-slate-600">
-          Dashboard access is protected. Administrators use the admin area, landlords are sent to their assigned property portal, and applicants are sent to their application dashboard.
+          Everyone starts with the applicant dashboard. Approved access adds landlord, staff, inspection, maintenance, or admin modules to the same workbench.
         </p>
 
         {error ? (

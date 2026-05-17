@@ -1,3 +1,10 @@
+# v1.7.9 - Workhorse Dashboard Foundation
+
+- Rebuilt applicant, landlord, and admin landing pages on one shared main dashboard component with consistent metrics, work queue, module launcher, and access state.
+- Added account access request records so users can start as applicants and request landlord, property manager, caseworker, inspector, maintenance, vendor, or admin access.
+- Added a dashboard access request form and admin-facing approve/decline controls for pending access requests.
+- Updated the global header to expose a single Dashboard entry while preserving role-specific admin/landlord/applicant areas.
+
 # v1.7.8 - Admin Route String Hotfix
 
 - Fixed malformed admin maintenance and admin inbox route strings that caused Vercel webpack syntax errors.

@@ -16,6 +16,23 @@ enum UserRole {
   INSPECTOR
 }
 
+enum AccountAccessType {
+  LANDLORD
+  PROPERTY_MANAGER
+  CASEWORKER
+  INSPECTOR
+  MAINTENANCE
+  VENDOR
+  ADMIN
+}
+
+enum AccountAccessRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  CANCELLED
+}
+
 enum UnitStatus {
   AVAILABLE
   PENDING
@@ -287,12 +304,35 @@ model User {
   utilityAccounts UtilityAccount[]
   payrollReminders PayrollReminder[]
   tenantPayments TenantPayment[]
+  accountAccessRequests AccountAccessRequest[] @relation("AccountAccessRequests")
+  reviewedAccountAccessRequests AccountAccessRequest[] @relation("ReviewedAccountAccessRequests")
   sessions UserSession[]
   createdClaimTokens ApplicationClaimToken[] @relation("CreatedApplicationClaimTokens")
 
   @@index([role, isActive])
   @@index([passwordResetTokenHash])
   @@index([lockedUntil])
+}
+
+model AccountAccessRequest {
+  id          String   @id @default(cuid())
+  userId      String
+  type        AccountAccessType
+  status      AccountAccessRequestStatus @default(PENDING)
+  organization String?
+  reason      String?
+  reviewedById String?
+  reviewedAt  DateTime?
+  reviewNote  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation("AccountAccessRequests", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("ReviewedAccountAccessRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, type])
+  @@index([userId, type, status])
+  @@index([reviewedById])
 }
 
 
