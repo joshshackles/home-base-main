@@ -59,6 +59,17 @@ import { defaultSignatureExpirationDate, queueSignatureNotification } from "@/li
 import { sendEmail, sendQueuedSignatureNotificationEmails, sendSignatureNotificationEmail } from "@/lib/email";
 import { addMonthsSafe, advanceMonthlyRunDate, isScheduleDue, nextMonthlyRunDate, plannedInstallmentCount, recurringChargePeriodKey } from "@/lib/ledger";
 
+const LOCKED_LEASE_PACKET_STATUSES: LeasePacketStatus[] = [
+  LeasePacketStatus.SENT_FOR_SIGNATURE,
+  LeasePacketStatus.COMPLETED,
+  LeasePacketStatus.VOIDED
+];
+
+const PAID_OR_WAIVED_INSTALLMENT_STATUSES: PaymentPlanInstallmentStatus[] = [
+  PaymentPlanInstallmentStatus.PAID,
+  PaymentPlanInstallmentStatus.WAIVED
+];
+
 async function requireAdminAction() {
   return await requireRole(["ADMIN"]);
 }
@@ -736,7 +747,7 @@ export async function updateLeasePacket(formData: FormData) {
     select: { id: true, status: true, lockedAt: true }
   });
   if (!existingPacket) throw new Error("Lease packet was not found.");
-  if ([LeasePacketStatus.SENT_FOR_SIGNATURE, LeasePacketStatus.COMPLETED, LeasePacketStatus.VOIDED].includes(existingPacket.status)) {
+  if (LOCKED_LEASE_PACKET_STATUSES.includes(existingPacket.status)) {
     throw new Error("This lease packet is locked. Void and reissue it before changing lease terms.");
   }
 
@@ -1651,7 +1662,7 @@ export async function updatePaymentPlanInstallment(formData: FormData) {
   });
 
   const plan = installment.paymentPlan;
-  const allPaidOrWaived = plan.installments.every((item) => item.id === installment.id ? [PaymentPlanInstallmentStatus.PAID, PaymentPlanInstallmentStatus.WAIVED].includes(installment.status) : [PaymentPlanInstallmentStatus.PAID, PaymentPlanInstallmentStatus.WAIVED].includes(item.status));
+  const allPaidOrWaived = plan.installments.every((item) => item.id === installment.id ? PAID_OR_WAIVED_INSTALLMENT_STATUSES.includes(installment.status) : PAID_OR_WAIVED_INSTALLMENT_STATUSES.includes(item.status));
   if (allPaidOrWaived && plan.status === PaymentPlanStatus.ACTIVE) {
     await prisma.paymentPlan.update({ where: { id: plan.id }, data: { status: PaymentPlanStatus.COMPLETED, completedAt: new Date() } });
   }

@@ -1,5 +1,10 @@
+## v2.6.6 - Vercel TypeScript locked status fix
 
-## v2.6.5 - Vercel React Server Action Type Fix
+- Fixed strict TypeScript build errors caused by narrowed enum arrays in admin lease/payment-plan actions.
+- Kept prior Vercel, Prisma, and server-action build fixes.
+
+
+## v2.6.6 - Vercel React Server Action Type Fix
 
 - Added a React type augmentation for server action form submissions so Vercel/TypeScript accepts `<form action={serverAction}>` in App Router server components.
 - Kept the prior Vercel fixes for Prisma generation, `next.config.mjs`, the inspection relation, seed verification typing, and account action redirects.
