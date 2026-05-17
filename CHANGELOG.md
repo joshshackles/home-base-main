@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.6.1 - Vercel deployment fix
+
+- Replaced unsupported `next.config.ts` with Vercel-compatible `next.config.mjs`.
+- Updated the build script to run `prisma generate` before `next build`.
+- Added a `postinstall` script so hosted installs generate the Prisma Client automatically.
+- This release is focused only on deployment reliability and does not change app workflows.
+
 ## v2.6.0
 
 - Added storage verification script for protected document storage.
