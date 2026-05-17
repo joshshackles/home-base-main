@@ -1,3 +1,11 @@
+## v3.1.4 - Vercel Clean Build Fix
+
+- Fixed the landlord unit detail page search parameter typing so tenant, terms, contact, staff, repair, and photo success states compile cleanly on Vercel.
+- Added a small search-parameter helper to safely handle string array query values from Next.js.
+- Removed unsupported Next.js config keys that produced Vercel build warnings under Next 14.2.23.
+- Updated Vercel preflight checks to match the cleaned Next config.
+- Bumped package version to 3.1.4.
+
 ## v3.1.3 - Landlord Unit Workflow Hardening
 
 - Added photo uploads directly to add-unit and add-home creation forms, reusing the 12-photo unit library and featured-photo behavior.

@@ -67,7 +67,7 @@ try {
 }
 
 const nextConfig = existsSync(nextConfigPath) ? readFileSync(nextConfigPath, "utf8") : "";
-for (const required of ["serverExternalPackages", "outputFileTracingIncludes", "Content-Security-Policy", "Strict-Transport-Security", "X-Frame-Options", "X-Content-Type-Options", "Referrer-Policy", "Permissions-Policy", "poweredByHeader: false", "bodySizeLimit: \"12mb\""]) {
+for (const required of ["Content-Security-Policy", "Strict-Transport-Security", "X-Frame-Options", "X-Content-Type-Options", "Referrer-Policy", "Permissions-Policy", "poweredByHeader: false", "bodySizeLimit: \"12mb\""]) {
   if (!nextConfig.includes(required)) fail(`next.config.mjs is missing ${required}.`);
 }
 

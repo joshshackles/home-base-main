@@ -24,13 +24,20 @@ function userOptionLabel(user: { name: string | null; email: string }) {
   return user.name ? `${user.name} (${user.email})` : user.email;
 }
 
+type PageSearchParams = Record<string, string | string[] | undefined>;
+
+function getSearchParam(searchParams: PageSearchParams | undefined, key: string) {
+  const value = searchParams?.[key];
+  return Array.isArray(value) ? value[0] : value;
+}
+
 function hasStaffAccess(user: { role: UserRole; accountAccessRequests: Array<{ type: AccountAccessType }> }, types: AccountAccessType[]) {
   if (user.role === UserRole.ADMIN || user.role === UserRole.LANDLORD) return true;
   if (types.includes(AccountAccessType.MAINTENANCE) && user.role === UserRole.INSPECTOR) return true;
   return user.accountAccessRequests.some((request) => types.includes(request.type));
 }
 
-export default async function LandlordUnitDetailPage({ params, searchParams }: { params: { id: string }; searchParams?: { repair?: string; photos?: string } }) {
+export default async function LandlordUnitDetailPage({ params, searchParams }: { params: { id: string }; searchParams?: PageSearchParams }) {
   const user = await requireRole(["LANDLORD"], "/landlord");
   const unit = await prisma.unit.findFirst({
     where: { id: params.id, property: { ownerId: user.userId, isArchived: false }, NOT: { status: "ARCHIVED" } },
@@ -118,8 +125,8 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
 
   const balance = ledgerBalance(ledgerEntries);
   const payments = ledgerEntries.filter((entry) => entry.type === "PAYMENT" || entry.type === "CREDIT");
-  const repairCreated = searchParams?.repair === "created";
-  const photoStatus = searchParams?.photos;
+  const repairCreated = getSearchParam(searchParams, "repair") === "created";
+  const photoStatus = getSearchParam(searchParams, "photos");
   const moveInTotal = unit.rentAmount + (unit.deposit ?? 0);
   const tenantHistory = unit.applications.filter((application) => application.id !== primaryApplication?.id);
   const featuredPhoto = unit.photos[0];
@@ -204,7 +211,7 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
           </Panel>
 
           <Panel title="Tenant">
-            {searchParams?.tenant === "assigned" ? <p className="mb-4 rounded-2xl bg-emerald-50 p-4 font-bold text-emerald-900">Tenant assigned and unit marked occupied.</p> : null}
+            {getSearchParam(searchParams, "tenant") === "assigned" ? <p className="mb-4 rounded-2xl bg-emerald-50 p-4 font-bold text-emerald-900">Tenant assigned and unit marked occupied.</p> : null}
             <div className="grid gap-4 md:grid-cols-2">
               <Info label="Name" value={tenantName} />
               <Info label="Email" value={unit.tenantUser?.email ?? unit.currentApplication?.applicantEmail ?? "Not linked"} />
@@ -245,7 +252,7 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
           </Panel>
 
           <Panel title="Rent, Deposit, and Move-In Terms">
-            {searchParams?.terms === "updated" ? <p className="mb-4 rounded-2xl bg-emerald-50 p-4 font-bold text-emerald-900">Rent and move-in terms updated.</p> : null}
+            {getSearchParam(searchParams, "terms") === "updated" ? <p className="mb-4 rounded-2xl bg-emerald-50 p-4 font-bold text-emerald-900">Rent and move-in terms updated.</p> : null}
             <div className="grid gap-4 md:grid-cols-3">
               <Info label="Monthly rent" value={formatCurrency(unit.rentAmount)} />
               <Info label="Deposit" value={unit.deposit ? formatCurrency(unit.deposit) : "Not set"} />
@@ -409,7 +416,7 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
 
         <aside className="space-y-6">
           <Panel title="Important Contacts">
-            {searchParams?.contact === "added" ? <p className="mb-4 rounded-2xl bg-emerald-50 p-4 font-bold text-emerald-900">Contact added.</p> : null}
+            {getSearchParam(searchParams, "contact") === "added" ? <p className="mb-4 rounded-2xl bg-emerald-50 p-4 font-bold text-emerald-900">Contact added.</p> : null}
             {staffContacts.length > 0 ? (
               <div className="mb-4 space-y-2">
                 {staffContacts.map((contact) => <p key={contact} className="rounded-2xl bg-brand-50 p-3 text-sm font-bold text-brand-950">{contact}</p>)}
@@ -431,7 +438,7 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
           </Panel>
 
           <Panel title="Assigned Support">
-            {searchParams?.staff === "assigned" ? <p className="mb-4 rounded-2xl bg-emerald-50 p-4 font-bold text-emerald-900">Support assignments updated.</p> : null}
+            {getSearchParam(searchParams, "staff") === "assigned" ? <p className="mb-4 rounded-2xl bg-emerald-50 p-4 font-bold text-emerald-900">Support assignments updated.</p> : null}
             <form action={assignLandlordUnitStaff} className="grid gap-3">
               <input type="hidden" name="unitId" value={unit.id} />
               <label className="block">
