@@ -2,11 +2,12 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { submitApplicantApplication, uploadApplicantDocument } from "@/app/applicant/actions";
-import { DocumentCategory } from "@prisma/client";
+import { submitApplicantApplication, uploadApplicantDocument, withdrawApplicantApplication } from "@/app/applicant/actions";
+import { ApplicationStatus, DocumentCategory } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { visibleDocumentRequestWhereForUser, visibleDocumentWhereForUser } from "@/lib/authorization";
 
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
@@ -23,13 +24,18 @@ function requestTone(status: string) {
 export default async function ApplicantApplicationDetailPage({ params }: { params: { id: string } }) {
   const user = await requireRole(["APPLICANT", "TENANT"], `/applicant/applications/${params.id}`);
 
+  const [documentWhere, documentRequestWhere] = await Promise.all([
+    visibleDocumentWhereForUser(user),
+    visibleDocumentRequestWhereForUser(user)
+  ]);
+
   const application = await prisma.application.findFirst({
     where: { id: params.id, OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] },
     include: {
       unit: { include: { property: true } },
       notes: { orderBy: { createdAt: "desc" } },
-      documents: { where: { OR: [{ visibility: { in: ["APPLICANT", "SHARED"] } }, { uploadedById: user.userId }] }, orderBy: { createdAt: "desc" } },
-      documentRequests: { where: { visibility: { in: ["APPLICANT", "SHARED"] } }, include: { fulfilledDocument: true }, orderBy: { createdAt: "desc" } }
+      documents: { where: documentWhere, orderBy: { createdAt: "desc" } },
+      documentRequests: { where: documentRequestWhere, include: { fulfilledDocument: true }, orderBy: { createdAt: "desc" } }
     }
   });
 
@@ -42,6 +48,7 @@ export default async function ApplicantApplicationDetailPage({ params }: { param
 
   const unresolvedRequests = application.documentRequests.filter((request) => ["REQUESTED", "REJECTED"].includes(request.status));
   const canSubmit = application.status === "STARTED" && profile && profile.householdMembers.length > 0 && profile.incomeSources.length > 0 && unresolvedRequests.length === 0;
+  const canWithdraw = [ApplicationStatus.STARTED, ApplicationStatus.SUBMITTED, ApplicationStatus.UNDER_REVIEW].includes(application.status);
 
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
@@ -81,7 +88,7 @@ export default async function ApplicantApplicationDetailPage({ params }: { param
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="font-black text-slate-950">{request.title}</p>
-                        <p className="mt-1 text-sm">{label(request.category)}{request.dueDate ? ` · Due ${request.dueDate.toLocaleDateString()}` : ""}</p>
+                        <p className="mt-1 text-sm">{label(request.category)}{request.dueDate ? ` - Due ${request.dueDate.toLocaleDateString()}` : ""}</p>
                         {request.instructions ? <p className="mt-2 text-sm leading-6 text-slate-700">{request.instructions}</p> : null}
                         {request.reviewNotes ? <p className="mt-2 rounded-xl bg-white/70 p-3 text-sm leading-6 text-slate-700"><strong>Review note:</strong> {request.reviewNotes}</p> : null}
                         {request.fulfilledDocument ? <Link href={`/api/documents/${request.fulfilledDocument.id}`} className="mt-3 inline-flex rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-900 hover:bg-slate-50">Download submitted file</Link> : null}
@@ -125,7 +132,7 @@ export default async function ApplicantApplicationDetailPage({ params }: { param
               {application.documents.length === 0 ? <p className="text-slate-600">No documents have been uploaded for this application yet.</p> : application.documents.map((document) => (
                 <article key={document.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div><p className="font-black text-slate-950">{document.title}</p><p className="mt-1 text-sm text-slate-600">{label(document.category)} · {label(document.status)}</p>{document.notes ? <p className="mt-2 text-sm leading-6 text-slate-700">{document.notes}</p> : null}</div>
+                    <div><p className="font-black text-slate-950">{document.title}</p><p className="mt-1 text-sm text-slate-600">{label(document.category)} - {label(document.status)}</p>{document.notes ? <p className="mt-2 text-sm leading-6 text-slate-700">{document.notes}</p> : null}</div>
                     <Link href={`/api/documents/${document.id}`} className="rounded-xl bg-brand-600 px-3 py-2 text-xs font-bold text-white hover:bg-brand-700">Download</Link>
                   </div>
                 </article>
@@ -147,7 +154,7 @@ export default async function ApplicantApplicationDetailPage({ params }: { param
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-black text-slate-950">Requested unit</h2>
             <p className="mt-3 text-3xl font-black text-slate-950">{formatCurrency(application.unit.rentAmount)}</p>
-            <p className="mt-2 text-slate-600">{application.unit.bedrooms} bed · {application.unit.bathrooms} bath</p>
+            <p className="mt-2 text-slate-600">{application.unit.bedrooms} bed - {application.unit.bathrooms} bath</p>
             <Link href={`/marketplace/${application.unit.id}`} className="mt-4 inline-flex w-full justify-center rounded-2xl border border-slate-300 px-4 py-2 font-bold text-slate-900 hover:bg-slate-50">View Listing</Link>
           </div>
 
@@ -167,6 +174,17 @@ export default async function ApplicantApplicationDetailPage({ params }: { param
               </form>
             ) : <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">This application has already moved out of the starter step.</p>}
           </div>
+
+          {canWithdraw ? (
+            <div className="rounded-3xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
+              <h2 className="text-xl font-black text-rose-950">Withdraw application</h2>
+              <p className="mt-3 text-sm leading-6 text-rose-900">Use this if you found another home or no longer want this application reviewed. This moves the application out of the active queue but keeps its history.</p>
+              <form action={withdrawApplicantApplication} className="mt-5">
+                <input type="hidden" name="applicationId" value={application.id} />
+                <button type="submit" className="w-full rounded-2xl bg-rose-700 px-5 py-3 font-bold text-white hover:bg-rose-800">Withdraw Application</button>
+              </form>
+            </div>
+          ) : null}
         </aside>
       </section>
     </main>

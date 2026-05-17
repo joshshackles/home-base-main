@@ -1,3 +1,56 @@
+
+## v3.0.0 - Tenant Transition and Interface Fluidity Foundation
+
+- Elevated the shared workhorse dashboard with primary action tiles, urgent-first task ordering, and structured access status badges.
+- Added applicant profile draft persistence so household or income subform submissions do not wipe unsaved parent profile text.
+- Added applicant self-service application withdrawal with audit logging and application history notes.
+- Added a consolidated applicant financial calendar for payroll, planned tenant payments, and open ledger due dates.
+- Replaced ledger dropdown identifiers with human-readable property/unit and description labels.
+- Hardened applicant lease preview wrapping to avoid mobile layout overflow.
+- Added `npm run test:form-persistence`, `npm run test:sort-priority`, `npm run test:label-masking`, and `npm run tenant-transition:verify` to the main verification chain.
+
+## v1.8.4 - Lease and E-signature Hardening
+
+- Added a centralized signature workflow helper for tenant and landlord lease signing.
+- Made signature completion idempotent by updating only pending signature requests and rejecting stale duplicate submissions.
+- Added typed-signature normalization and placeholder-signature rejection.
+- Added stronger readiness checks so completed, voided, expired, or already-evidenced requests cannot be signed.
+- Added expiration handling with security-event logging when a pending signature is attempted after expiration.
+- Added signature-completion security-event logging with lease text hash and signature evidence hash metadata.
+- Prevented resending a lease packet for signature after any signer has already completed a signature; admins must reissue instead.
+- Reset all electronic-signature evidence fields when a not-yet-signed request is legitimately refreshed.
+- Made final signed lease PDF generation idempotent so duplicate completion attempts reuse the existing final document when possible.
+- Added `npm run esignature:update4:verify` and included it in the main verification chain.
+
+# v1.8.2 - Messaging Security and Inbox Correctness
+
+## v1.8.3 - Document Access and Visibility Enforcement
+
+- Added centralized document visibility filters for applicant, landlord, and staff-facing document workflows.
+- Updated authorized document downloads so document visibility is applied in the database query instead of after an unrestricted lookup.
+- Updated applicant application and lease pages to use centralized document and document-request visibility helpers.
+- Updated landlord lease document lists to use centralized document visibility helpers.
+- Added stricter admin upload validation to reject mismatched application, unit, property, and lease-packet attachments.
+- Added document-access verification coverage to prevent regressions in document visibility and download authorization.
+
+
+- Made the shared text-message inbox thread-selectable with a `?thread=` route state instead of always rendering the first conversation.
+- Redirected message sends back to the correct role inbox with the active thread selected.
+- Added centralized message and thread visibility helpers so non-staff views do not receive internal notes or internal-only threads.
+- Changed internal-note behavior so unauthorized forged submissions are rejected instead of silently converted into public messages.
+- Removed hard-coded landlord internal-note access; the UI now shows internal-note controls only when the authorization layer allows them.
+- Kept admin inboxes able to see internal notes while applicant and standard landlord inboxes receive only public conversation content.
+- Added `scripts/verify-messaging-update2.ts` and included it in the main verification chain.
+
+# v1.8.1 - Authorization Foundation
+
+- Added `src/lib/authorization.ts` as the central permission layer for properties, units, applications, maintenance requests, message threads, documents, lease packets, inspections, and ledger entries.
+- Added reusable `assertCanAccess...` helpers so future server actions can reject unauthorized submitted IDs before reading, writing, signing, messaging, or downloading records.
+- Hardened workflow messaging so replies check thread-level access and new threads check linked application/maintenance access before creating records.
+- Restricted internal message notes to staff-authorized users and filtered internal notes out of the applicant inbox at query time.
+- Replaced duplicated document-download authorization with the centralized document visibility/ownership helper.
+- Added an authorization verification script and included it in the main verification chain.
+
 # v1.8.0 - Dashboard Modules and Text Messaging
 
 - Kept the applicant dashboard available to every signed-in user as the base dashboard.

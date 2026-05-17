@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { HouseholdRelationship, IncomeFrequency } from "@prisma/client";
 import { addHouseholdMember, addIncomeSource, deleteHouseholdMember, deleteIncomeSource, saveApplicantProfile } from "@/app/applicant/actions";
+import { ProfileDraftSaver } from "@/components/applicant/ProfileDraftSaver";
 import { Field, inputClass, selectClass, textareaClass } from "@/components/admin/FormFields";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -26,7 +27,8 @@ export default async function ApplicantProfilePage() {
       </div>
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_420px]">
-        <form action={saveApplicantProfile} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <form action={saveApplicantProfile} data-profile-draft-form className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <ProfileDraftSaver storageKey={`homebase-profile-draft-${user.userId}`} />
           <h2 className="text-2xl font-black text-slate-950">Basic information</h2>
           <div className="mt-5 grid gap-5 md:grid-cols-2">
             <Field label="Legal name"><input name="legalName" required defaultValue={profile?.legalName ?? user.name ?? ""} className={inputClass} /></Field>
@@ -69,7 +71,7 @@ export default async function ApplicantProfilePage() {
             <div className="mt-5 space-y-2">
               {profile?.householdMembers.length ? profile.householdMembers.map((member) => (
                 <div key={member.id} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3 text-sm">
-                  <span><strong>{member.name}</strong><br />{label(member.relationship)}{member.age !== null ? ` · Age ${member.age}` : ""}</span>
+                  <span><strong>{member.name}</strong><br />{label(member.relationship)}{member.age !== null ? ` - Age ${member.age}` : ""}</span>
                   <form action={deleteHouseholdMember}><input type="hidden" name="id" value={member.id} /><button className="font-bold text-rose-700">Remove</button></form>
                 </div>
               )) : <p className="text-sm text-slate-600">No household members added yet.</p>}
@@ -87,7 +89,7 @@ export default async function ApplicantProfilePage() {
             <div className="mt-5 space-y-2">
               {profile?.incomeSources.length ? profile.incomeSources.map((income) => (
                 <div key={income.id} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3 text-sm">
-                  <span><strong>{income.sourceName}</strong><br />${income.amount.toLocaleString()} · {label(income.frequency)}</span>
+                  <span><strong>{income.sourceName}</strong><br />${income.amount.toLocaleString()} - {label(income.frequency)}</span>
                   <form action={deleteIncomeSource}><input type="hidden" name="id" value={income.id} /><button className="font-bold text-rose-700">Remove</button></form>
                 </div>
               )) : <p className="text-sm text-slate-600">No income sources added yet.</p>}

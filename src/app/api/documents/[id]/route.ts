@@ -2,59 +2,26 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { getVerifiedCurrentUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getAuthorizedDocument, logAuthorizationDenied } from "@/lib/authorization";
 import { writeAuditLog } from "@/lib/audit";
 import { AuditAction } from "@prisma/client";
 import { readStoredDocument } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
-async function canAccessDocument(documentId: string) {
-  const user = await getVerifiedCurrentUser();
-  if (!user) return { allowed: false, status: 401 as const };
-
-  const document = await prisma.document.findUnique({
-    where: { id: documentId },
-    include: {
-      application: { include: { unit: { include: { property: true } } } },
-      property: true,
-      unit: { include: { property: true } },
-      leasePacket: { include: { application: { include: { unit: { include: { property: true } } } } } }
-    }
-  });
-
-  if (!document) return { allowed: false, status: 404 as const };
-  if (user.role === "ADMIN") return { allowed: true, document, user };
-
-  const documentApplication = document.application || document.leasePacket?.application || null;
-
-  if ((user.role === "APPLICANT" || user.role === "TENANT") && documentApplication) {
-    const ownsApplication = documentApplication.applicantUserId === user.userId || documentApplication.applicantEmail === user.email;
-    const visible = document.visibility === "APPLICANT" || document.visibility === "SHARED";
-    if (ownsApplication && visible) return { allowed: true, document, user };
-  }
-
-  if (user.role === "LANDLORD") {
-    const propertyOwnerId = document.property?.ownerId || document.unit?.property.ownerId || documentApplication?.unit.property.ownerId;
-    const visible = document.visibility === "LANDLORD" || document.visibility === "SHARED";
-    if (propertyOwnerId === user.userId && visible) return { allowed: true, document, user };
-  }
-
-  return { allowed: false, status: 403 as const };
-}
-
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
-  const result = await canAccessDocument(params.id);
-  if (!result.allowed) return NextResponse.json({ error: "Document is not available." }, { status: result.status });
+  const user = await getVerifiedCurrentUser();
+  if (!user) return NextResponse.json({ error: "Document is not available." }, { status: 401 });
 
-  const document = result.document;
+  const document = await getAuthorizedDocument(user, params.id);
   if (!document) {
-    return NextResponse.json({ error: "Document is not available." }, { status: 404 });
+    await logAuthorizationDenied(user, "Document", params.id, "Document download rejected by visibility or ownership rules.");
+    return NextResponse.json({ error: "Document is not available." }, { status: 403 });
   }
 
   const body = await readStoredDocument(document.storagePath);
 
-  await writeAuditLog({ actor: result.user, action: AuditAction.DOWNLOAD, entityType: "Document", entityId: document.id, message: `Downloaded document ${document.title}.` });
+  await writeAuditLog({ actor: user, action: AuditAction.DOWNLOAD, entityType: "Document", entityId: document.id, message: `Downloaded document ${document.title}.` });
 
   return new NextResponse(body, {
     headers: {

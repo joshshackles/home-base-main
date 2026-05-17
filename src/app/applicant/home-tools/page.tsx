@@ -16,6 +16,10 @@ function dateValue(date: Date | null | undefined) {
   return date ? date.toISOString().slice(0, 10) : "";
 }
 
+function eventDateLabel(date: Date) {
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 export default async function ApplicantHomeToolsPage() {
   const user = await requireRole(["APPLICANT", "TENANT"], "/applicant/home-tools");
   const [applications, utilities, payroll, payments, openLedger] = await Promise.all([
@@ -38,6 +42,29 @@ export default async function ApplicantHomeToolsPage() {
   const unitOptions = Array.from(new Map(applications.map((application) => [application.unit.id, application.unit])).values());
   const totalPlanned = payments.filter((payment) => payment.status === "PLANNED" || payment.status === "SUBMITTED").reduce((sum, payment) => sum + payment.amount, 0);
   const utilityMonthly = utilities.reduce((sum, utility) => sum + (utility.averageAmount ?? 0), 0);
+  const financialEvents = [
+    ...payroll.filter((item) => item.nextPayDate).map((item) => ({
+      id: `payroll-${item.id}`,
+      date: item.nextPayDate as Date,
+      title: item.employerName,
+      detail: `${label(item.frequency)} payroll${item.typicalAmount ? ` - ${formatCurrency(item.typicalAmount)}` : ""}`,
+      tone: "income"
+    })),
+    ...payments.filter((payment) => payment.dueDate).map((payment) => ({
+      id: `payment-${payment.id}`,
+      date: payment.dueDate as Date,
+      title: `${payment.unit.property.name} #${payment.unit.unitNumber}`,
+      detail: `${label(payment.status)} rent/payment - ${formatCurrency(payment.amount)}`,
+      tone: "payment"
+    })),
+    ...openLedger.filter((entry) => entry.dueDate).map((entry) => ({
+      id: `ledger-${entry.id}`,
+      date: entry.dueDate as Date,
+      title: entry.unit ? `${entry.unit.property.name} #${entry.unit.unitNumber}` : "Pending home",
+      detail: `${entry.description} - ${formatCurrency(entry.amount)}`,
+      tone: "ledger"
+    }))
+  ].sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 8);
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -52,6 +79,25 @@ export default async function ApplicantHomeToolsPage() {
         <Stat label="Utility Budget" value={formatCurrency(utilityMonthly)} />
         <Stat label="Paydays" value={`${payroll.length}`} />
         <Stat label="Planned Payments" value={formatCurrency(totalPlanned)} />
+      </section>
+
+      <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-2xl font-black text-slate-950">Financial calendar</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-600">Paydays, payment plans, and open ledger items in one timeline.</p>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase tracking-wide text-slate-600">{financialEvents.length} upcoming</span>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {financialEvents.length === 0 ? <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600 md:col-span-2 xl:col-span-4">Add payroll reminders, planned payments, or ledger items to build your timeline.</p> : financialEvents.map((event) => (
+            <article key={event.id} className="rounded-2xl border border-slate-200 p-4">
+              <p className={`text-xs font-black uppercase tracking-wide ${event.tone === "income" ? "text-emerald-700" : event.tone === "payment" ? "text-brand-700" : "text-amber-700"}`}>{eventDateLabel(event.date)}</p>
+              <h3 className="mt-2 font-black text-slate-950">{event.title}</h3>
+              <p className="mt-1 text-sm leading-6 text-slate-600">{event.detail}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[420px_1fr]">
@@ -86,7 +132,7 @@ export default async function ApplicantHomeToolsPage() {
             <form action={saveTenantPayment} className="grid gap-4">
               <Field label="Unit"><select name="unitId" required className={selectClass}><option value="">Select unit</option>{unitOptions.map((unit) => <option key={unit.id} value={unit.id}>{unit.property.name} #{unit.unitNumber}</option>)}</select></Field>
               <Field label="Application"><select name="applicationId" className={selectClass}><option value="">No application link</option>{applications.map((application) => <option key={application.id} value={application.id}>{application.unit.property.name} #{application.unit.unitNumber}</option>)}</select></Field>
-              <Field label="Ledger item, optional"><select name="ledgerEntryId" className={selectClass}><option value="">No ledger link</option>{openLedger.map((entry) => <option key={entry.id} value={entry.id}>{entry.description} - {formatCurrency(entry.amount)}</option>)}</select></Field>
+              <Field label="Ledger item, optional"><select name="ledgerEntryId" className={selectClass}><option value="">No ledger link</option>{openLedger.map((entry) => <option key={entry.id} value={entry.id}>{entry.unit ? `${entry.unit.property.name} #${entry.unit.unitNumber}` : "Pending home"} - {entry.description} ({formatCurrency(entry.amount)})</option>)}</select></Field>
               <Field label="Amount"><input name="amount" required type="number" min="1" className={inputClass} /></Field>
               <Field label="Method"><select name="method" className={selectClass}>{Object.values(TenantPaymentMethod).map((method) => <option key={method} value={method}>{label(method)}</option>)}</select></Field>
               <Field label="Status"><select name="status" className={selectClass}>{Object.values(TenantPaymentStatus).map((status) => <option key={status} value={status}>{label(status)}</option>)}</select></Field>

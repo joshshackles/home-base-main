@@ -2,7 +2,6 @@
 
 import { AuditAction, LeasePacketStatus, MaintenancePriority, MessageThreadStatus, MessageThreadType, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -10,7 +9,7 @@ import { requireRole } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 import { completeLeaseIfReadyAndFinalize } from "@/lib/signed-lease";
 import { formDataToObject, leadNoteSchema, applicationNoteSchema, leaseSignatureSchema, unitSchema, validationMessage } from "@/lib/validation";
-import { ELECTRONIC_SIGNATURE_CONSENT_TEXT, buildSignatureEvidenceHash, leaseTextHash } from "@/lib/e-signature";
+import { baseSignatureRequestWhere, completeSignatureRequest } from "@/lib/signature-workflow";
 
 async function requireLandlordAction() {
   return await requireRole(["LANDLORD"], "/landlord");
@@ -233,66 +232,25 @@ export async function signLandlordLease(formData: FormData) {
   const parsed = leaseSignatureSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) throw new Error(validationMessage(parsed.error));
 
-  const request = await prisma.signatureRequest.findFirst({
-    where: {
-      id: parsed.data.requestId,
-      signerRole: SignatureRole.LANDLORD,
-      status: SignatureStatus.PENDING,
-      leasePacket: {
-        status: LeasePacketStatus.SENT_FOR_SIGNATURE,
-        application: { unit: { property: { ownerId: user.userId, isArchived: false } } }
-      },
-      OR: [{ signerUserId: user.userId }, { signerEmail: user.email }]
-    },
-    include: { leasePacket: { include: { template: true, application: { include: { applicantUser: true, unit: { include: { property: { include: { owner: true } } } } } } } } }
-  });
-
-  if (!request) throw new Error("This signature request is not available for your landlord account.");
-  if (request.expiresAt && request.expiresAt < new Date()) {
-    await prisma.signatureRequest.update({ where: { id: request.id }, data: { status: SignatureStatus.EXPIRED } });
-    throw new Error("This signature request has expired. Please ask the administrator to resend or extend it.");
-  }
-
-  const h = headers();
-  const signedAt = new Date();
-  const ipAddress = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-  const userAgent = h.get("user-agent") ?? null;
-  const documentTextHash = leaseTextHash(request.leasePacket);
-  const signatureEvidenceHash = buildSignatureEvidenceHash({
-    leasePacketId: request.leasePacketId,
-    signatureRequestId: request.id,
-    signerEmail: request.signerEmail,
-    signerRole: request.signerRole,
+  const signature = await completeSignatureRequest({
+    actor: user,
+    actorLabel: "Landlord",
     signatureText: parsed.data.signatureText,
-    signedAt,
-    documentTextHash,
-    consentText: ELECTRONIC_SIGNATURE_CONSENT_TEXT,
-    ipAddress,
-    userAgent
+    requestWhere: baseSignatureRequestWhere({
+      requestId: parsed.data.requestId,
+      userId: user.userId,
+      email: user.email,
+      role: SignatureRole.LANDLORD,
+      leasePacketWhere: {
+        application: { unit: { property: { ownerId: user.userId, isArchived: false } } }
+      }
+    })
   });
 
-  await prisma.signatureRequest.update({
-    where: { id: request.id },
-    data: {
-      signerUserId: user.userId,
-      signatureText: parsed.data.signatureText,
-      status: SignatureStatus.SIGNED,
-      signedAt,
-      ipAddress,
-      userAgent,
-      electronicConsentAccepted: true,
-      electronicConsentText: ELECTRONIC_SIGNATURE_CONSENT_TEXT,
-      electronicConsentAcceptedAt: signedAt,
-      documentTextHash,
-      signatureEvidenceHash
-    }
-  });
-
-  await prisma.leaseNote.create({ data: { leasePacketId: request.leasePacketId, note: `[Landlord] ${user.email} signed the lease packet.` } });
-  await writeAuditLog({ actor: user, action: AuditAction.SIGN, entityType: "SignatureRequest", entityId: request.id, message: `Landlord signature completed by ${user.email}.`, metadata: { leasePacketId: request.leasePacketId, documentTextHash, signatureEvidenceHash, electronicConsentAccepted: true } });
-  await completeLeaseIfReadyAndFinalize({ leasePacketId: request.leasePacketId, actor: user });
+  await completeLeaseIfReadyAndFinalize({ leasePacketId: signature.leasePacketId, actor: user });
 
   revalidateLandlord();
-  revalidatePath(`/landlord/leases/${request.leasePacketId}`);
-  redirect(`/landlord/leases/${request.leasePacketId}`);
+  revalidatePath(`/landlord/leases/${signature.leasePacketId}`);
+  redirect(`/landlord/leases/${signature.leasePacketId}`);
 }
+

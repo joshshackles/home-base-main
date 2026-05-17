@@ -41,3 +41,49 @@ export function buildSignatureEvidenceHash(input: {
 export function leaseTextHash(packet: Parameters<typeof renderLeaseTemplate>[0]) {
   return sha256Hex(renderLeaseTemplate(packet));
 }
+
+
+export function normalizeTypedSignature(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+export function assertSignatureTextLooksIntentional(value: string, expectedName?: string | null) {
+  const normalized = normalizeTypedSignature(value);
+  if (normalized.length < 2) throw new Error("Typed signature must include your legal name.");
+  if (/^(test|asdf|signature|signed)$/i.test(normalized)) {
+    throw new Error("Typed signature must be your legal name, not placeholder text.");
+  }
+
+  if (expectedName) {
+    const expectedTokens = normalizeTypedSignature(expectedName).toLowerCase().split(" ").filter((token) => token.length > 1);
+    const provided = normalized.toLowerCase();
+    const hasMeaningfulOverlap = expectedTokens.length === 0 || expectedTokens.some((token) => provided.includes(token));
+    if (!hasMeaningfulOverlap) {
+      throw new Error("Typed signature should match the signer name on the signature request.");
+    }
+  }
+}
+
+export function validateSignatureReadiness(input: {
+  request: {
+    status: string;
+    signatureText?: string | null;
+    signedAt?: Date | null;
+    electronicConsentAccepted?: boolean | null;
+    signerName?: string | null;
+  };
+  leasePacket: { status: string; lockedAt?: Date | null; completedAt?: Date | null; voidedAt?: Date | null };
+}) {
+  if (input.request.status !== "PENDING") {
+    throw new Error("This signature request is no longer pending.");
+  }
+  if (input.request.signatureText || input.request.signedAt || input.request.electronicConsentAccepted) {
+    throw new Error("This signature request already contains completion evidence.");
+  }
+  if (input.leasePacket.status !== "SENT_FOR_SIGNATURE") {
+    throw new Error("This lease packet is not currently open for signature.");
+  }
+  if (input.leasePacket.completedAt || input.leasePacket.voidedAt) {
+    throw new Error("Completed or voided lease packets cannot accept new signatures.");
+  }
+}

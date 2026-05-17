@@ -613,24 +613,48 @@ export async function uploadAdminDocument(formData: FormData) {
     throw new Error("Attach this document to an application, property, unit, or lease packet.");
   }
 
-  if (parsed.data.applicationId) {
-    const application = await prisma.application.findUnique({ where: { id: parsed.data.applicationId }, select: { id: true } });
-    if (!application) throw new Error("Application was not found.");
+  const [application, property, unit, leasePacket] = await Promise.all([
+    parsed.data.applicationId
+      ? prisma.application.findUnique({ where: { id: parsed.data.applicationId }, select: { id: true, unitId: true, unit: { select: { propertyId: true } } } })
+      : null,
+    parsed.data.propertyId
+      ? prisma.property.findUnique({ where: { id: parsed.data.propertyId }, select: { id: true } })
+      : null,
+    parsed.data.unitId
+      ? prisma.unit.findUnique({ where: { id: parsed.data.unitId }, select: { id: true, propertyId: true } })
+      : null,
+    parsed.data.leasePacketId
+      ? prisma.leasePacket.findUnique({ where: { id: parsed.data.leasePacketId }, select: { id: true, applicationId: true, application: { select: { unitId: true, unit: { select: { propertyId: true } } } } } })
+      : null
+  ]);
+
+  if (parsed.data.applicationId && !application) throw new Error("Application was not found.");
+  if (parsed.data.propertyId && !property) throw new Error("Property was not found.");
+  if (parsed.data.unitId && !unit) throw new Error("Unit was not found.");
+  if (parsed.data.leasePacketId && !leasePacket) throw new Error("Lease packet was not found.");
+
+  if (application && unit && application.unitId !== unit.id) {
+    throw new Error("Selected application and unit do not match.");
   }
 
-  if (parsed.data.propertyId) {
-    const property = await prisma.property.findUnique({ where: { id: parsed.data.propertyId }, select: { id: true } });
-    if (!property) throw new Error("Property was not found.");
+  if (application && property && application.unit.propertyId !== property.id) {
+    throw new Error("Selected application and property do not match.");
   }
 
-  if (parsed.data.unitId) {
-    const unit = await prisma.unit.findUnique({ where: { id: parsed.data.unitId }, select: { id: true } });
-    if (!unit) throw new Error("Unit was not found.");
+  if (unit && property && unit.propertyId !== property.id) {
+    throw new Error("Selected unit and property do not match.");
   }
 
-  if (parsed.data.leasePacketId) {
-    const leasePacket = await prisma.leasePacket.findUnique({ where: { id: parsed.data.leasePacketId }, select: { id: true } });
-    if (!leasePacket) throw new Error("Lease packet was not found.");
+  if (leasePacket && application && leasePacket.applicationId !== application.id) {
+    throw new Error("Selected lease packet and application do not match.");
+  }
+
+  if (leasePacket && unit && leasePacket.application.unitId !== unit.id) {
+    throw new Error("Selected lease packet and unit do not match.");
+  }
+
+  if (leasePacket && property && leasePacket.application.unit.propertyId !== property.id) {
+    throw new Error("Selected lease packet and property do not match.");
   }
 
   const stored = await saveUploadedDocument(file);
@@ -937,6 +961,9 @@ export async function prepareLeaseForSignatures(formData: FormData) {
   if (!packet) throw new Error("Lease packet was not found.");
   if (packet.status === LeasePacketStatus.VOIDED) throw new Error("Voided lease packets cannot be sent for signature.");
   if (packet.status === LeasePacketStatus.COMPLETED) throw new Error("Completed lease packets cannot be sent again.");
+  if (packet.status === LeasePacketStatus.SENT_FOR_SIGNATURE && packet.signatureRequests.some((request) => request.status === SignatureStatus.SIGNED)) {
+    throw new Error("This packet already has completed signatures. Reissue the lease packet instead of resending it.");
+  }
 
   const applicant = packet.application.applicantUser;
   const landlord = packet.application.unit.property.owner;
@@ -983,6 +1010,14 @@ export async function prepareLeaseForSignatures(formData: FormData) {
         signatureText: null,
         signedAt: null,
         declinedAt: null,
+        ipAddress: null,
+        userAgent: null,
+        electronicConsentAccepted: false,
+        electronicConsentText: null,
+        electronicConsentAcceptedAt: null,
+        documentTextHash: null,
+        signatureEvidenceHash: null,
+        finalPdfHash: null,
         expiresAt: request.expiresAt,
         reminderCount: 0,
         lastReminderAt: null
@@ -1014,7 +1049,15 @@ export async function prepareLeaseForSignatures(formData: FormData) {
     entityType: "LeasePacket",
     entityId: packet.id,
     message: `Sent lease packet for signature for ${packet.application.applicantName}.`,
-    metadata: { applicationId: packet.applicationId, signatureRequestCount: preparedRequests.length, expiresAt: expiresAt.toISOString() }
+    metadata: { applicationId: packet.applicationId, signatureRequestCount: preparedRequests.length, expiresAt: expiresAt.toISOString(), lockedAt: new Date().toISOString() }
+  });
+
+  await writeSecurityEvent({
+    type: SecurityEventType.SIGNATURE_REQUESTED,
+    userId: actor.userId,
+    email: actor.email,
+    message: "Lease packet sent for electronic signature.",
+    metadata: { leasePacketId: packet.id, applicationId: packet.applicationId, signatureRequestCount: preparedRequests.length, expiresAt: expiresAt.toISOString() }
   });
 
   revalidateInventory();

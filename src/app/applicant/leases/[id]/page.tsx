@@ -8,6 +8,7 @@ import { requireRole } from "@/lib/auth";
 import { renderLeaseTemplate } from "@/lib/lease-render";
 import { ELECTRONIC_SIGNATURE_CONSENT_TEXT } from "@/lib/e-signature";
 import { prisma } from "@/lib/prisma";
+import { visibleDocumentWhereForUser } from "@/lib/authorization";
 
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
@@ -15,6 +16,8 @@ function label(value: string) {
 
 export default async function ApplicantLeaseDetailPage({ params }: { params: { id: string } }) {
   const user = await requireRole(["APPLICANT", "TENANT"], "/applicant/leases");
+  const documentWhere = await visibleDocumentWhereForUser(user);
+
   const packet = await prisma.leasePacket.findFirst({
     where: {
       id: params.id,
@@ -24,7 +27,7 @@ export default async function ApplicantLeaseDetailPage({ params }: { params: { i
       template: true,
       application: { include: { applicantUser: true, unit: { include: { property: { include: { owner: true } } } } } },
       signatureRequests: { orderBy: { createdAt: "asc" } },
-      documents: { where: { visibility: { in: ["APPLICANT", "SHARED"] } }, orderBy: { createdAt: "desc" } }
+      documents: { where: documentWhere, orderBy: { createdAt: "desc" } }
     }
   });
 
@@ -61,7 +64,7 @@ export default async function ApplicantLeaseDetailPage({ params }: { params: { i
       <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-slate-950">Lease preview</h2>
-          <pre className="mt-6 whitespace-pre-wrap rounded-2xl border border-slate-200 bg-slate-50 p-6 font-serif text-sm leading-8 text-slate-900">{preview}</pre>
+          <pre className="mt-6 max-w-full whitespace-pre-wrap break-words overflow-x-hidden rounded-2xl border border-slate-200 bg-slate-50 p-6 font-serif text-sm leading-8 text-slate-900">{preview}</pre>
         </div>
 
         <aside className="space-y-6">

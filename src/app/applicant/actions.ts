@@ -2,7 +2,6 @@
 
 import { ApplicationStatus, AuditAction, DocumentCategory, DocumentRequestStatus, DocumentStatus, DocumentVisibility, LeasePacketStatus, SignatureRole, SignatureStatus, TenantPaymentStatus, UnitStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -27,7 +26,7 @@ import {
 import { saveUploadedDocument } from "@/lib/storage";
 import { writeAuditLog } from "@/lib/audit";
 import { completeLeaseIfReadyAndFinalize } from "@/lib/signed-lease";
-import { ELECTRONIC_SIGNATURE_CONSENT_TEXT, buildSignatureEvidenceHash, leaseTextHash } from "@/lib/e-signature";
+import { baseSignatureRequestWhere, completeSignatureRequest } from "@/lib/signature-workflow";
 
 async function requireApplicantAction() {
   return await requireRole(["APPLICANT", "TENANT"], "/applicant");
@@ -362,6 +361,50 @@ export async function submitApplicantApplication(formData: FormData) {
   redirect(`/applicant/applications/${parsed.data.applicationId}`);
 }
 
+export async function withdrawApplicantApplication(formData: FormData) {
+  const user = await requireApplicantAction();
+  const parsed = applicantApplicationSubmitSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+
+  const application = await prisma.application.findFirst({
+    where: {
+      id: parsed.data.applicationId,
+      OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }]
+    },
+    select: { id: true, status: true }
+  });
+
+  if (!application) throw new Error("This application is not assigned to your account.");
+  if (![ApplicationStatus.STARTED, ApplicationStatus.SUBMITTED, ApplicationStatus.UNDER_REVIEW].includes(application.status)) {
+    throw new Error("This application can no longer be withdrawn from the applicant portal.");
+  }
+
+  await prisma.application.update({
+    where: { id: parsed.data.applicationId },
+    data: { applicantUserId: user.userId, status: ApplicationStatus.WITHDRAWN }
+  });
+
+  await prisma.applicationNote.create({
+    data: {
+      applicationId: parsed.data.applicationId,
+      note: "[Applicant] Application withdrawn by applicant."
+    }
+  });
+
+  await writeAuditLog({
+    actor: user,
+    action: AuditAction.STATUS_CHANGE,
+    entityType: "Application",
+    entityId: parsed.data.applicationId,
+    message: "Applicant withdrew application.",
+    metadata: { previousStatus: application.status, nextStatus: ApplicationStatus.WITHDRAWN }
+  });
+
+  revalidateApplicant();
+  revalidatePath(`/applicant/applications/${parsed.data.applicationId}`);
+  redirect("/applicant/applications?withdrawn=1");
+}
+
 
 export async function uploadApplicantDocument(formData: FormData) {
   const user = await requireApplicantAction();
@@ -426,70 +469,24 @@ export async function signApplicantLease(formData: FormData) {
   const parsed = leaseSignatureSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) throw new Error(validationMessage(parsed.error));
 
-  const request = await prisma.signatureRequest.findFirst({
-    where: {
-      id: parsed.data.requestId,
-      signerRole: SignatureRole.TENANT,
-      status: SignatureStatus.PENDING,
-      leasePacket: { status: LeasePacketStatus.SENT_FOR_SIGNATURE },
-      OR: [{ signerUserId: user.userId }, { signerEmail: user.email }]
-    },
-    include: {
-      leasePacket: {
-        include: {
-          template: true,
-          application: { include: { applicantUser: true, unit: { include: { property: { include: { owner: true } } } } } }
-        }
-      }
-    }
-  });
-
-  if (!request) throw new Error("This signature request is not available for your account.");
-  if (request.expiresAt && request.expiresAt < new Date()) {
-    await prisma.signatureRequest.update({ where: { id: request.id }, data: { status: SignatureStatus.EXPIRED } });
-    throw new Error("This signature request has expired. Please ask the administrator to resend or extend it.");
-  }
-
-  const h = headers();
-  const signedAt = new Date();
-  const ipAddress = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-  const userAgent = h.get("user-agent") ?? null;
-  const documentTextHash = leaseTextHash(request.leasePacket);
-  const signatureEvidenceHash = buildSignatureEvidenceHash({
-    leasePacketId: request.leasePacketId,
-    signatureRequestId: request.id,
-    signerEmail: request.signerEmail,
-    signerRole: request.signerRole,
+  const signature = await completeSignatureRequest({
+    actor: user,
+    actorLabel: "Tenant",
     signatureText: parsed.data.signatureText,
-    signedAt,
-    documentTextHash,
-    consentText: ELECTRONIC_SIGNATURE_CONSENT_TEXT,
-    ipAddress,
-    userAgent
+    requestWhere: baseSignatureRequestWhere({
+      requestId: parsed.data.requestId,
+      userId: user.userId,
+      email: user.email,
+      role: SignatureRole.TENANT,
+      leasePacketWhere: {
+        application: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] }
+      }
+    })
   });
 
-  await prisma.signatureRequest.update({
-    where: { id: request.id },
-    data: {
-      signerUserId: user.userId,
-      signatureText: parsed.data.signatureText,
-      status: SignatureStatus.SIGNED,
-      signedAt,
-      ipAddress,
-      userAgent,
-      electronicConsentAccepted: true,
-      electronicConsentText: ELECTRONIC_SIGNATURE_CONSENT_TEXT,
-      electronicConsentAcceptedAt: signedAt,
-      documentTextHash,
-      signatureEvidenceHash
-    }
-  });
-
-  await prisma.leaseNote.create({ data: { leasePacketId: request.leasePacketId, note: `[Tenant] ${user.email} signed the lease packet.` } });
-  await writeAuditLog({ actor: user, action: AuditAction.SIGN, entityType: "SignatureRequest", entityId: request.id, message: `Tenant signature completed by ${user.email}.`, metadata: { leasePacketId: request.leasePacketId, documentTextHash, signatureEvidenceHash, electronicConsentAccepted: true } });
-  await completeLeaseIfReadyAndFinalize({ leasePacketId: request.leasePacketId, actor: user });
+  await completeLeaseIfReadyAndFinalize({ leasePacketId: signature.leasePacketId, actor: user });
 
   revalidateApplicant();
-  revalidatePath(`/applicant/leases/${request.leasePacketId}`);
-  redirect(`/applicant/leases/${request.leasePacketId}`);
+  revalidatePath(`/applicant/leases/${signature.leasePacketId}`);
+  redirect(`/applicant/leases/${signature.leasePacketId}`);
 }

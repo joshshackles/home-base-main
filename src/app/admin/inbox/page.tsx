@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TextingInbox } from "@/components/messaging/TextingInbox";
 
-export default async function AdminInboxPage() {
+export default async function AdminInboxPage({ searchParams }: { searchParams?: { thread?: string } }) {
   const user = await requireRole(["ADMIN"], "/admin/inbox");
   const rawThreads = await prisma.messageThread.findMany({
     include: {
@@ -21,5 +21,5 @@ export default async function AdminInboxPage() {
     lastMessageAt: thread.lastMessageAt ?? thread.createdAt
   }));
 
-  return <TextingInbox currentUserId={user.userId} threads={threads} allowInternalNotes />;
+  return <TextingInbox currentUserId={user.userId} threads={threads} allowInternalNotes selectedThreadId={searchParams?.thread} />;
 }

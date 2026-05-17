@@ -72,6 +72,24 @@ export async function generateFinalSignedLeaseDocument({ leasePacketId, actor }:
     throw new Error("All signature requests must be signed before finalizing the lease.");
   }
 
+  if (packet.finalDocumentId) {
+    const existing = await prisma.document.findUnique({ where: { id: packet.finalDocumentId } });
+    if (existing) return existing;
+  }
+
+  const alreadyGenerated = await prisma.document.findFirst({
+    where: { leasePacketId: packet.id, category: DocumentCategory.LEASE, status: DocumentStatus.ACCEPTED, title: { startsWith: "Final signed lease" } },
+    orderBy: { createdAt: "desc" }
+  });
+
+  if (alreadyGenerated) {
+    await prisma.leasePacket.update({
+      where: { id: packet.id },
+      data: { finalDocumentId: alreadyGenerated.id, finalPdfGeneratedAt: packet.finalPdfGeneratedAt ?? alreadyGenerated.createdAt, lockedAt: packet.lockedAt ?? new Date() }
+    });
+    return alreadyGenerated;
+  }
+
   const text = await renderSignedLeaseText(leasePacketId);
   const safeApplicant = safeSlug(packet.application.applicantName);
   const originalName = `signed-lease-${safeApplicant}-${new Date().toISOString().slice(0, 10)}.pdf`;

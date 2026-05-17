@@ -8,6 +8,7 @@ import { requireRole } from "@/lib/auth";
 import { renderLeaseTemplate } from "@/lib/lease-render";
 import { ELECTRONIC_SIGNATURE_CONSENT_TEXT } from "@/lib/e-signature";
 import { prisma } from "@/lib/prisma";
+import { visibleDocumentWhereForUser } from "@/lib/authorization";
 
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
@@ -15,6 +16,8 @@ function label(value: string) {
 
 export default async function LandlordLeaseDetailPage({ params }: { params: { id: string } }) {
   const user = await requireRole(["LANDLORD"], "/landlord/leases");
+  const documentWhere = await visibleDocumentWhereForUser(user);
+
   const packet = await prisma.leasePacket.findFirst({
     where: {
       id: params.id,
@@ -24,7 +27,7 @@ export default async function LandlordLeaseDetailPage({ params }: { params: { id
       template: true,
       application: { include: { applicantUser: true, unit: { include: { property: { include: { owner: true } } } } } },
       signatureRequests: { orderBy: { createdAt: "asc" } },
-      documents: { where: { visibility: { in: ["LANDLORD", "SHARED"] } }, orderBy: { createdAt: "desc" } }
+      documents: { where: documentWhere, orderBy: { createdAt: "desc" } }
     }
   });
 

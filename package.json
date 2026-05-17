@@ -1,6 +1,6 @@
 {
   "name": "homebase-mls",
-  "version": "1.8.0",
+  "version": "3.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -19,7 +19,7 @@
     "db:reset": "prisma migrate reset",
     "routes:check": "tsx scripts/check-routes.ts",
     "email:send-queued": "tsx scripts/send-queued-email.ts",
-    "verify": "npm run preflight && npm run routes:check && npm run storage:verify && npm run seed:verify && npm run workflow:verify && npm run security:verify && npm run pdf:verify && npm run esignature:verify && npm run session:verify && npm run email:verify && npm run observability:verify && npm run update12:verify && npm run workflow-update1:verify && npm run workflow-update2:verify && npm run workflow-update3:verify && npm run workflow-update4:verify && npm run vercel:preflight && npm run test && npm run typecheck",
+    "verify": "npm run preflight && npm run routes:check && npm run storage:verify && npm run seed:verify && npm run workflow:verify && npm run security:verify && npm run authorization:verify && npm run messaging:update2:verify && npm run document-access:update3:verify && npm run esignature:update4:verify && npm run test:form-persistence && npm run test:sort-priority && npm run test:label-masking && npm run tenant-transition:verify && npm run pdf:verify && npm run esignature:verify && npm run session:verify && npm run email:verify && npm run observability:verify && npm run update12:verify && npm run workflow-update1:verify && npm run workflow-update2:verify && npm run workflow-update3:verify && npm run workflow-update4:verify && npm run vercel:preflight && npm run test && npm run typecheck",
     "migrations:check": "tsx scripts/check-migrations.ts",
     "storage:verify": "tsx scripts/verify-storage.ts",
     "seed:verify": "tsx scripts/verify-seed.ts",
@@ -34,6 +34,9 @@
     "session:verify": "tsx scripts/verify-session-correctness.ts",
     "email:verify": "tsx scripts/verify-email-queue.ts",
     "test": "vitest run",
+    "test:form-persistence": "tsx scripts/verify-v3-tenant-transition.ts",
+    "test:sort-priority": "tsx scripts/verify-v3-tenant-transition.ts",
+    "test:label-masking": "tsx scripts/verify-v3-tenant-transition.ts",
     "test:watch": "vitest",
     "observability:verify": "tsx scripts/verify-observability.ts",
     "update12:verify": "tsx scripts/verify-update12.ts",
@@ -45,7 +48,12 @@
     "workflow-update4:verify": "tsx scripts/verify-workflow-update4.ts",
     "vercel-build:no-migrate": "npm run vercel:preflight && prisma generate && next build",
     "vercel:build": "npm run vercel-build",
-    "vercel:postbuild": "npm run routes:check"
+    "vercel:postbuild": "npm run routes:check",
+    "authorization:verify": "tsx scripts/verify-authorization.ts",
+    "messaging:update2:verify": "tsx scripts/verify-messaging-update2.ts",
+    "document-access:update3:verify": "tsx scripts/verify-document-access-update3.ts",
+    "esignature:update4:verify": "tsx scripts/verify-esignature-update4.ts",
+    "tenant-transition:verify": "tsx scripts/verify-v3-tenant-transition.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.716.0",

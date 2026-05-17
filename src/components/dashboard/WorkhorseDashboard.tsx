@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowUpRight, BadgeCheck, BriefcaseBusiness, CheckCircle2, ClipboardList, Clock3, Home, Inbox, KeyRound, Layers3, ShieldCheck, Wrench } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, BriefcaseBusiness, CheckCircle2, ClipboardList, Clock3, Home, Inbox, KeyRound, Layers3, Search, ShieldCheck, UserRound, Wrench } from "lucide-react";
 import { requestAccountAccessAction, reviewAccountAccessAction } from "@/app/account/actions";
 
 type DashboardMetric = {
@@ -61,9 +61,26 @@ function pretty(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function taskPriority(task: DashboardTask) {
+  if (task.tone === "urgent") return 0;
+  if (task.tone === "default" || !task.tone) return 1;
+  return 2;
+}
+
+function statusBadgeClass(status: string) {
+  if (status === "APPROVED") return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  if (status === "PENDING") return "border-amber-200 bg-amber-50 text-amber-800";
+  if (status === "DECLINED") return "border-rose-200 bg-rose-50 text-rose-800";
+  return "border-slate-200 bg-slate-100 text-slate-700";
+}
+
 export function WorkhorseDashboard({ name, accountLabel, headline, summary, metrics, tasks, tools, accessRequests, showAccessBuilder = true, adminAccessQueue = [] }: WorkhorseDashboardProps) {
   const pendingTypes = new Set(accessRequests.filter((request) => request.status === "PENDING").map((request) => request.type));
   const approvedTypes = new Set(accessRequests.filter((request) => request.status === "APPROVED").map((request) => request.type));
+  const sortedTasks = tasks
+    .map((task, index) => ({ task, index }))
+    .sort((a, b) => taskPriority(a.task) - taskPriority(b.task) || a.index - b.index)
+    .map(({ task }) => task);
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -75,10 +92,22 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
           </div>
           <h1 className="mt-5 max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">{headline}</h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">{summary}</p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/marketplace" className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 hover:bg-slate-100">Find Rentals</Link>
-            <Link href="/applicant/profile" className="rounded-2xl border border-white/20 px-5 py-3 text-sm font-black text-white hover:bg-white/10">Renter Profile</Link>
-            <Link href="/account/password" className="rounded-2xl border border-white/20 px-5 py-3 text-sm font-black text-white hover:bg-white/10">Account</Link>
+          <div className="mt-7 grid gap-3 sm:grid-cols-3">
+            <Link href="/marketplace" className="group rounded-2xl bg-white p-4 text-slate-950 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-100">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-700"><Search size={20} /></span>
+              <span className="mt-4 block text-sm font-black">Find Rentals</span>
+              <span className="mt-1 block text-xs font-semibold leading-5 text-slate-600">Profile-aware search and saved homes.</span>
+            </Link>
+            <Link href="/applicant/profile" className="group rounded-2xl border border-white/15 bg-white/10 p-4 text-white transition hover:-translate-y-0.5 hover:bg-white/15">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-white"><UserRound size={20} /></span>
+              <span className="mt-4 block text-sm font-black">Renter Profile</span>
+              <span className="mt-1 block text-xs font-semibold leading-5 text-slate-300">Household, income, preferences, and story.</span>
+            </Link>
+            <Link href="/account/password" className="group rounded-2xl border border-white/15 bg-white/10 p-4 text-white transition hover:-translate-y-0.5 hover:bg-white/15">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-white"><KeyRound size={20} /></span>
+              <span className="mt-4 block text-sm font-black">Account</span>
+              <span className="mt-1 block text-xs font-semibold leading-5 text-slate-300">Security and password controls.</span>
+            </Link>
           </div>
         </div>
 
@@ -120,10 +149,10 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
               <h2 className="text-2xl font-black text-slate-950">Work queue</h2>
               <p className="mt-1 text-sm leading-6 text-slate-600">The highest-value next actions across your active modules.</p>
             </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase tracking-wide text-slate-600">{tasks.length} items</span>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase tracking-wide text-slate-600">{sortedTasks.length} items</span>
           </div>
           <div className="mt-5 space-y-3">
-            {tasks.length === 0 ? <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">No urgent work is waiting right now.</p> : tasks.map((task) => (
+            {sortedTasks.length === 0 ? <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">No urgent work is waiting right now.</p> : sortedTasks.map((task) => (
               <Link key={`${task.title}-${task.href}`} href={task.href} className="block rounded-2xl border border-slate-200 p-4 transition hover:border-brand-200 hover:bg-brand-50">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -196,7 +225,7 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
                     <p className="font-black text-slate-950">{pretty(request.type)}</p>
                     <p className="mt-1 text-sm text-slate-600">{request.requester ? `${request.requester} - ` : ""}{request.organization || "No organization listed"} - {request.createdAt.toLocaleDateString()}</p>
                   </div>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase text-slate-700">{pretty(request.status)}</span>
+                  <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${statusBadgeClass(request.status)}`}>{pretty(request.status)}</span>
                 </div>
                 {adminAccessQueue.length > 0 ? (
                   <div className="mt-4 flex flex-wrap gap-2">

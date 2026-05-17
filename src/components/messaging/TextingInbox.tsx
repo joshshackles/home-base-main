@@ -44,8 +44,19 @@ function threadContext(thread: Thread) {
   return label(thread.type);
 }
 
-export function TextingInbox({ currentUserId, threads, allowInternalNotes }: { currentUserId: string; threads: Thread[]; allowInternalNotes?: boolean }) {
-  const activeThread = threads[0] ?? null;
+export function TextingInbox({
+  currentUserId,
+  threads,
+  allowInternalNotes,
+  selectedThreadId
+}: {
+  currentUserId: string;
+  threads: Thread[];
+  allowInternalNotes?: boolean;
+  selectedThreadId?: string | null;
+}) {
+  const selectedThreadExists = selectedThreadId ? threads.some((thread) => thread.id === selectedThreadId) : false;
+  const activeThread = selectedThreadExists ? threads.find((thread) => thread.id === selectedThreadId) ?? null : threads[0] ?? null;
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -56,6 +67,12 @@ export function TextingInbox({ currentUserId, threads, allowInternalNotes }: { c
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm">{threads.length} threads</div>
       </div>
+
+      {selectedThreadId && !selectedThreadExists ? (
+        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
+          That conversation is no longer available or you do not have permission to view it. Showing your most recent accessible thread instead.
+        </div>
+      ) : null}
 
       <section className="grid overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:grid-cols-[340px_1fr]">
         <aside className="border-b border-slate-200 bg-slate-50 lg:border-b-0 lg:border-r">
@@ -78,18 +95,19 @@ export function TextingInbox({ currentUserId, threads, allowInternalNotes }: { c
           <div className="max-h-[660px] overflow-y-auto p-3">
             {threads.length === 0 ? (
               <div className="rounded-2xl bg-white p-5 text-sm text-slate-600 ring-1 ring-slate-200">No messages yet.</div>
-            ) : threads.map((thread, index) => {
+            ) : threads.map((thread) => {
               const latest = thread.messages.at(-1);
+              const isActive = activeThread?.id === thread.id;
               return (
-                <a key={thread.id} href={`#thread-${thread.id}`} className={`block rounded-2xl p-4 transition ${index === 0 ? "bg-slate-950 text-white" : "bg-white text-slate-800 hover:bg-brand-50"} mb-2 ring-1 ring-slate-200`}>
+                <a key={thread.id} href={`?thread=${encodeURIComponent(thread.id)}`} className={`block rounded-2xl p-4 transition ${isActive ? "bg-slate-950 text-white" : "bg-white text-slate-800 hover:bg-brand-50"} mb-2 ring-1 ring-slate-200`}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-black">{thread.subject}</p>
-                      <p className={`mt-1 text-xs font-bold uppercase ${index === 0 ? "text-slate-300" : "text-slate-500"}`}>{threadContext(thread)}</p>
+                      <p className={`mt-1 text-xs font-bold uppercase ${isActive ? "text-slate-300" : "text-slate-500"}`}>{threadContext(thread)}</p>
                     </div>
-                    <span className={`rounded-full px-2 py-1 text-xs font-black ${index === 0 ? "bg-white/10 text-white" : "bg-slate-100 text-slate-600"}`}>{thread.messages.length}</span>
+                    <span className={`rounded-full px-2 py-1 text-xs font-black ${isActive ? "bg-white/10 text-white" : "bg-slate-100 text-slate-600"}`}>{thread.messages.length}</span>
                   </div>
-                  <p className={`mt-3 line-clamp-2 text-sm leading-6 ${index === 0 ? "text-slate-300" : "text-slate-600"}`}>{latest ? latest.body : "No messages in this thread yet."}</p>
+                  <p className={`mt-3 line-clamp-2 text-sm leading-6 ${isActive ? "text-slate-300" : "text-slate-600"}`}>{latest ? latest.body : "No messages in this thread yet."}</p>
                 </a>
               );
             })}
