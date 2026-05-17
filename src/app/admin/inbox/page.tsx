@@ -6,7 +6,7 @@ import { sendWorkflowMessage } from "@/app/workflow-actions";
 function label(value: string) { return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()); }
 
 export default async function AdminInboxPage() {
-  const user = await requireRole(["ADMIN"], ""/admin/inbox"");
+  const user = await requireRole(["ADMIN"], "/admin/inbox");
   const where = {};
   const threads = await prisma.messageThread.findMany({
     where,

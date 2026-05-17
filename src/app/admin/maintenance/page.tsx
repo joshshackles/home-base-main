@@ -6,7 +6,7 @@ import { sendWorkflowMessage, updateMaintenanceRequestStatus } from "@/app/workf
 function label(value: string) { return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()); }
 
 export default async function AdminMaintenancePage() {
-  const user = await requireRole(["ADMIN"], ""/admin/maintenance"");
+  const user = await requireRole(["ADMIN"], "/admin/maintenance");
   const where = user.role === UserRole.ADMIN ? {} : { unit: { property: { ownerId: user.userId } } };
   const [requests, staff] = await Promise.all([
     prisma.maintenanceRequest.findMany({

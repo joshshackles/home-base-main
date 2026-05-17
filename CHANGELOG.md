@@ -1,3 +1,7 @@
+# v1.7.8 - Admin Route String Hotfix
+
+- Fixed malformed admin maintenance and admin inbox route strings that caused Vercel webpack syntax errors.
+
 # v1.7.7 - Available Rentals Upgrade
 
 - Rebuilt the available rentals page into a full discovery experience with a stronger search header, inventory stats, sticky filters, sort controls, city shortcuts, and featured rental highlight.
