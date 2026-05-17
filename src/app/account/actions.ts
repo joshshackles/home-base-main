@@ -10,18 +10,26 @@ import { accountAccessRequestSchema, accountAccessReviewSchema, formDataToObject
 import { writeAuditLog } from "@/lib/audit";
 import { writeSecurityEvent } from "@/lib/security-events";
 
-function errorRedirect(message: string): never {
-  redirect(`/account/password?error=${encodeURIComponent(message)}`);
+function passwordRedirectParams(message: string, formData?: FormData) {
+  const params = new URLSearchParams();
+  if (formData?.get("required") === "1") params.set("reason", "required");
+  params.set("error", message);
+  params.set("retry", Date.now().toString());
+  return params.toString();
+}
+
+function errorRedirect(message: string, formData?: FormData): never {
+  redirect(`/account/password?${passwordRedirectParams(message, formData)}`);
 }
 
 export async function changePasswordAction(formData: FormData) {
   const actor = await requireUser("/account/password");
   const parsed = passwordChangeSchema.safeParse(formDataToObject(formData));
-  if (!parsed.success) errorRedirect(validationMessage(parsed.error));
+  if (!parsed.success) errorRedirect(validationMessage(parsed.error), formData);
 
   const user = await prisma.user.findUnique({ where: { id: actor.userId }, select: { id: true, email: true, passwordHash: true } });
   if (!user || !verifyPassword(parsed.data.currentPassword, user.passwordHash)) {
-    errorRedirect("Current password is incorrect.");
+    errorRedirect("Current password is incorrect.", formData);
   }
 
   await prisma.user.update({

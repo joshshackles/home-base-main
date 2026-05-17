@@ -3,13 +3,14 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createDatabaseSession, setSessionCookie, clearSessionCookie, getVerifiedCurrentUser, getRequestClientMetadata, revokeCurrentSession } from "@/lib/auth";
-import { verifyPassword } from "@/lib/password";
+import { hashPassword, verifyPassword } from "@/lib/password";
 import { clearLoginRateLimit, checkLoginRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/public-form-security";
 import { formDataToObject, loginSchema, validationMessage } from "@/lib/validation";
 import { writeAuditLog } from "@/lib/audit";
 import { writeSecurityEvent } from "@/lib/security-events";
-import { AuditAction, SecurityEventType } from "@prisma/client";
+import { DEMO_PASSWORD, getDemoAccount } from "@/lib/demo-accounts";
+import { AuditAction, SecurityEventType, UserRole } from "@prisma/client";
 
 const DATABASE_LOCK_THRESHOLD = 8;
 const DATABASE_LOCK_MINUTES = 15;
@@ -33,6 +34,51 @@ function destinationForRole(next: string, role: string, forcePasswordReset?: boo
   if (next.startsWith("/landlord") && role !== "LANDLORD") return dashboardForRole(role);
   if (next.startsWith("/applicant") && role !== "APPLICANT" && role !== "TENANT") return dashboardForRole(role);
   return next;
+}
+
+async function ensureDemoUser(email: string, password: string) {
+  const demoAccount = getDemoAccount(email);
+
+  if (!demoAccount || password !== DEMO_PASSWORD) return null;
+
+  const role = demoAccount.role as UserRole;
+  const passwordHash = hashPassword(DEMO_PASSWORD);
+
+  return prisma.user.upsert({
+    where: { email: demoAccount.email },
+    update: {
+      name: `Demo ${demoAccount.label}`,
+      role,
+      isActive: true,
+      passwordHash,
+      forcePasswordReset: false,
+      passwordChangedAt: new Date(),
+      failedLoginCount: 0,
+      lockedUntil: null
+    },
+    create: {
+      email: demoAccount.email,
+      name: `Demo ${demoAccount.label}`,
+      role,
+      isActive: true,
+      passwordHash,
+      forcePasswordReset: false,
+      passwordChangedAt: new Date(),
+      failedLoginCount: 0,
+      lockedUntil: null
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      isActive: true,
+      passwordHash: true,
+      forcePasswordReset: true,
+      failedLoginCount: true,
+      lockedUntil: true
+    }
+  });
 }
 
 async function recordFailedLogin(email: string, userId?: string | null, currentFailedCount = 0) {
@@ -80,7 +126,9 @@ export async function loginAction(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent("Too many login attempts. Please wait a few minutes and try again.")}&next=${encodeURIComponent(next)}`);
   }
 
-  const user = await prisma.user.findUnique({
+  const demoUser = await ensureDemoUser(email, password);
+
+  const user = demoUser ?? await prisma.user.findUnique({
     where: { email },
     select: {
       id: true,

@@ -1,3 +1,17 @@
+
+## 3.0.5 - Password retry and account flow hardening
+
+- Fixed reset-password validation redirects so the token is preserved after a failed first attempt.
+- Added retry cache-busting params so password forms remount cleanly after errors.
+- Preserved required-password-change context after current-password mistakes.
+- Added explicit submit button types on password forms to avoid stale submit behavior.
+
+# 3.0.3 - Demo login button reliability fix
+
+- Made demo login buttons self-healing: clicking a demo account now upserts the matching seeded user, activates it, resets lockout state, clears forced password reset, and applies the shared demo password before creating the session.
+- Added the Inspector demo account button so every seeded role has a one-click login path.
+- Kept manual login behavior unchanged for non-demo credentials.
+
 ## v3.0.2 - Demo Login and Signup Redirect Fix
 
 - Fixed applicant signup so successful `redirect()` calls are no longer caught and displayed as raw `NEXT_REDIRECT` errors.

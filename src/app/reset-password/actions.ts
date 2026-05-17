@@ -42,10 +42,19 @@ export async function requestPasswordResetAction(formData: FormData) {
   redirect("/forgot-password?sent=1");
 }
 
+function resetPasswordErrorRedirect(message: string, token?: string | null): never {
+  const params = new URLSearchParams();
+  if (token) params.set("token", token);
+  params.set("error", message);
+  params.set("retry", Date.now().toString());
+  redirect(`/reset-password?${params.toString()}`);
+}
+
 export async function resetPasswordAction(formData: FormData) {
+  const rawToken = String(formData.get("token") || "").trim();
   const parsed = passwordResetSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) {
-    redirect(`/reset-password?error=${encodeURIComponent(validationMessage(parsed.error))}`);
+    resetPasswordErrorRedirect(validationMessage(parsed.error), rawToken);
   }
 
   const tokenHash = hashToken(parsed.data.token);
@@ -59,7 +68,7 @@ export async function resetPasswordAction(formData: FormData) {
   });
 
   if (!user) {
-    redirect(`/reset-password?error=${encodeURIComponent("This reset link is invalid or expired.")}`);
+    resetPasswordErrorRedirect("This reset link is invalid or expired.", rawToken);
   }
 
   await prisma.user.update({
