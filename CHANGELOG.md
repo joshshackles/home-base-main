@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.6.9 - Vercel Audit Metadata Build Fix
+
+- Fixed Vercel TypeScript build errors in audit and security-event metadata writes by using Prisma JSON input typing.
+- Keeps prior Vercel fixes for Next config, Prisma generation, schema relations, enum typing, server-action form typing, document route narrowing, and AppHeader typing.
+
+
 ## v2.6.7 - Vercel document route type fix
 
 - Fixed strict TypeScript narrowing in the protected document download API route.

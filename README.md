@@ -220,3 +220,8 @@ v2.6.7 fixes a strict TypeScript issue in the protected document download route 
 ### Vercel note for v2.6.8
 
 This package includes an AppHeader TypeScript build fix for Vercel. Replace your repository files with this package, commit, push, and redeploy the newest commit without build cache.
+
+
+### Vercel hotfix v2.6.9
+
+This package includes the Vercel build fixes from v2.6.1 through v2.6.9, including Prisma generation before build, the `next.config.mjs` config file, schema relation fixes, and stricter TypeScript fixes for server actions, routes, components, and Prisma JSON metadata.

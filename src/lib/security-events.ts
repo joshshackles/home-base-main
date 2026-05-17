@@ -1,4 +1,4 @@
-import type { SecurityEventType } from "@prisma/client";
+import type { Prisma, SecurityEventType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 type SecurityEventInput = {
@@ -6,7 +6,7 @@ type SecurityEventInput = {
   userId?: string | null;
   email?: string | null;
   message: string;
-  metadata?: Record<string, unknown> | null;
+  metadata?: Prisma.InputJsonValue | null;
 };
 
 export async function writeSecurityEvent(input: SecurityEventInput) {

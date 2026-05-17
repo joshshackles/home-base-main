@@ -1,4 +1,4 @@
-import type { AuditAction, UserRole } from "@prisma/client";
+import type { AuditAction, Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type AuditActor = {
@@ -13,7 +13,7 @@ type AuditInput = {
   entityType: string;
   entityId?: string | null;
   message: string;
-  metadata?: Record<string, unknown> | null;
+  metadata?: Prisma.InputJsonValue | null;
 };
 
 export async function writeAuditLog(input: AuditInput) {
