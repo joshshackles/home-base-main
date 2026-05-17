@@ -12,7 +12,8 @@ function leadErrorRedirect(unitId: string, message: string): never {
 }
 
 export async function createLead(formData: FormData) {
-  const rawUnitId = typeof formData.get("unitId") === "string" ? formData.get("unitId") : "";
+  const unitIdEntry = formData.get("unitId");
+  const rawUnitId = typeof unitIdEntry === "string" ? unitIdEntry : "";
   const clientIp = getClientIp();
   const userAgent = getUserAgent();
 
@@ -42,7 +43,8 @@ export async function createLead(formData: FormData) {
     leadErrorRedirect(payload.unitId, "Too many inquiries were submitted recently. Please try again later.");
   }
 
-  const turnstileToken = typeof formData.get("cf-turnstile-response") === "string" ? formData.get("cf-turnstile-response") : null;
+  const turnstileEntry = formData.get("cf-turnstile-response");
+  const turnstileToken = typeof turnstileEntry === "string" ? turnstileEntry : null;
   const captchaOk = await verifyTurnstileToken(turnstileToken, clientIp);
 
   if (!captchaOk) {
