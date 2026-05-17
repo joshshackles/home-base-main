@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.6.3 - Vercel TypeScript Verify-Seed Fix
+
+- Fixed a TypeScript inference issue in `scripts/verify-seed.ts` that caused Vercel builds to fail while checking valid lease packet statuses.
+- Preserved the previous Vercel-compatible Next.js config and Prisma relation fixes.
+
 ## v2.6.0
 
 - Added storage verification script for protected document storage.

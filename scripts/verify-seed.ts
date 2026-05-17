@@ -46,7 +46,13 @@ async function main() {
 
   const leasePacket = await prisma.leasePacket.findUnique({ where: { id: "seed-lease-packet-jane-doe" }, include: { signatureRequests: true } });
   assertCheck(Boolean(leasePacket), "seed lease packet exists");
-  assertCheck([LeasePacketStatus.READY_FOR_REVIEW, LeasePacketStatus.SENT_FOR_SIGNATURE, LeasePacketStatus.COMPLETED, LeasePacketStatus.APPROVED].includes(leasePacket?.status as LeasePacketStatus), "seed lease packet is in a valid review/signature status");
+  const validLeaseStatuses: LeasePacketStatus[] = [
+    LeasePacketStatus.READY_FOR_REVIEW,
+    LeasePacketStatus.SENT_FOR_SIGNATURE,
+    LeasePacketStatus.COMPLETED,
+    LeasePacketStatus.APPROVED,
+  ];
+  assertCheck(Boolean(leasePacket?.status && validLeaseStatuses.includes(leasePacket.status)), "seed lease packet is in a valid review/signature status");
   assertCheck((leasePacket?.signatureRequests.length ?? 0) >= 2, "seed lease packet has tenant and landlord signature requests");
   assertCheck((leasePacket?.signatureRequests ?? []).some((request) => request.status === SignatureStatus.PENDING), "seed lease packet has pending signature work");
 
