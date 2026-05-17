@@ -1,3 +1,10 @@
+
+
+## v2.6.4 - Vercel Account Action TypeScript Fix
+
+- Fixed a strict TypeScript narrowing issue in `src/app/account/actions.ts` by marking the password error redirect helper as `never` returning.
+- Keeps the Vercel config, Prisma generate, Prisma relation, and seed verification fixes from the prior Vercel patches.
+
 # Changelog
 
 ## 2.6.3 - Vercel TypeScript Verify-Seed Fix

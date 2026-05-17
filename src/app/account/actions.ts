@@ -9,7 +9,7 @@ import { formDataToObject, passwordChangeSchema, validationMessage } from "@/lib
 import { writeAuditLog } from "@/lib/audit";
 import { writeSecurityEvent } from "@/lib/security-events";
 
-function errorRedirect(message: string) {
+function errorRedirect(message: string): never {
   redirect(`/account/password?error=${encodeURIComponent(message)}`);
 }
 

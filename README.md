@@ -1,3 +1,10 @@
+
+
+## v2.6.4 - Vercel Account Action TypeScript Fix
+
+- Fixed a strict TypeScript narrowing issue in `src/app/account/actions.ts` by marking the password error redirect helper as `never` returning.
+- Keeps the Vercel config, Prisma generate, Prisma relation, and seed verification fixes from the prior Vercel patches.
+
 # HomeBase MLS v2.6.0
 
 HomeBase MLS is a Next.js, TypeScript, PostgreSQL, and Prisma web application for rental marketplace listings and housing workflow management.
