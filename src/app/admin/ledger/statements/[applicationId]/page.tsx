@@ -23,7 +23,7 @@ export default async function PrintableStatementPage({ params }: { params: { app
   const oldestCharge = application.ledgerEntries.filter((entry) => entry.type === "CHARGE" || entry.type === "ADJUSTMENT").sort((a, b) => (a.dueDate?.getTime() ?? a.postedAt.getTime()) - (b.dueDate?.getTime() ?? b.postedAt.getTime()))[0];
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 print:max-w-none print:px-0 print:py-0 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-5xl px-4 py-10 print:max-w-none print:px-0 print:py-0 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-wrap gap-3 print:hidden">
         <Link className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" href="/admin/ledger/statements">All Statements</Link>
         <Link className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" href={`/admin/ledger/statements/${application.id}/export`}>Download CSV</Link>

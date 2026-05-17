@@ -1,5 +1,6 @@
 import type { AuditAction, Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 export type AuditActor = {
   userId?: string | null;
@@ -31,6 +32,6 @@ export async function writeAuditLog(input: AuditInput) {
       }
     });
   } catch (error) {
-    console.error("Audit log write failed", error);
+    logger.error("Audit log write failed", error, { action: input.action, entityType: input.entityType, entityId: input.entityId });
   }
 }

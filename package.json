@@ -19,20 +19,34 @@
     "db:reset": "prisma migrate reset",
     "routes:check": "tsx scripts/check-routes.ts",
     "email:send-queued": "tsx scripts/send-queued-email.ts",
-    "verify": "npm run preflight && npm run routes:check && npm run storage:verify && npm run seed:verify && npm run workflow:verify && npm run security:verify && npm run typecheck",
+    "verify": "npm run preflight && npm run routes:check && npm run storage:verify && npm run seed:verify && npm run workflow:verify && npm run security:verify && npm run pdf:verify && npm run esignature:verify && npm run session:verify && npm run email:verify && npm run observability:verify && npm run update12:verify && npm run vercel:preflight && npm run test && npm run typecheck",
     "migrations:check": "tsx scripts/check-migrations.ts",
     "storage:verify": "tsx scripts/verify-storage.ts",
     "seed:verify": "tsx scripts/verify-seed.ts",
     "workflow:verify": "tsx scripts/verify-workflows.ts",
     "security:verify": "tsx scripts/verify-security.ts",
-    "qa:smoke": "npm run routes:check && npm run storage:verify && npm run seed:verify && npm run workflow:verify && npm run security:verify",
-    "postinstall": "prisma generate"
+    "qa:smoke": "npm run routes:check && npm run storage:verify && npm run seed:verify && npm run workflow:verify && npm run security:verify && npm run pdf:verify && npm run esignature:verify && npm run session:verify && npm run email:verify && npm run observability:verify",
+    "postinstall": "prisma generate",
+    "rate-limits:prune": "tsx scripts/prune-rate-limits.ts",
+    "storage:migrate-to-object": "tsx scripts/migrate-documents-to-object-storage.ts",
+    "pdf:verify": "tsx scripts/verify-pdf.ts",
+    "esignature:verify": "tsx scripts/verify-esignature.ts",
+    "session:verify": "tsx scripts/verify-session-correctness.ts",
+    "email:verify": "tsx scripts/verify-email-queue.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "observability:verify": "tsx scripts/verify-observability.ts",
+    "update12:verify": "tsx scripts/verify-update12.ts",
+    "vercel-build": "npm run vercel:preflight && prisma generate && prisma migrate deploy && next build",
+    "vercel:preflight": "tsx scripts/verify-vercel.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.716.0",
     "@prisma/client": "5.22.0",
     "clsx": "2.1.1",
     "lucide-react": "0.468.0",
     "next": "14.2.23",
+    "pdf-lib": "1.17.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "tailwind-merge": "2.5.5",
@@ -49,6 +63,7 @@
     "prisma": "5.22.0",
     "tailwindcss": "3.4.17",
     "tsx": "4.19.2",
-    "typescript": "5.7.2"
+    "typescript": "5.7.2",
+    "vitest": "2.1.8"
   }
 }

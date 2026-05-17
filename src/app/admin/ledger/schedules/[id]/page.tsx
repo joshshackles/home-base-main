@@ -13,7 +13,7 @@ export default async function RecurringChargeScheduleDetailPage({ params }: { pa
   const oldestOpenCharge = relevantEntries.filter((entry) => entry.status !== "VOIDED" && entry.type === "CHARGE").sort((a, b) => (a.dueDate?.getTime() ?? a.postedAt.getTime()) - (b.dueDate?.getTime() ?? b.postedAt.getTime()))[0];
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader title={schedule.name} description="Review schedule details, balance aging, and pause or resume monthly charge generation." />
       <section className="grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

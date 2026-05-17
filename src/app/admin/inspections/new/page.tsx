@@ -11,7 +11,7 @@ export default async function NewInspectionPage() {
   ]);
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader title="Schedule Inspection" description="Create an inspection connected to a unit and, when helpful, to an active application." />
       <form action={createInspection} className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <Field label="Unit">

@@ -67,29 +67,41 @@ export function getCurrentUser() {
   return readSessionToken(token);
 }
 
-export async function requireUser(nextPath = "/admin") {
+export async function getVerifiedCurrentUser() {
   const sessionUser = getCurrentUser();
-  if (!sessionUser) redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+  if (!sessionUser) return null;
 
   const dbUser = await prisma.user.findUnique({
     where: { id: sessionUser.userId },
     select: { id: true, email: true, name: true, role: true, isActive: true, forcePasswordReset: true }
   });
 
-  if (!dbUser || !dbUser.isActive) {
-    redirect(`/login?error=${encodeURIComponent("Your session is no longer valid. Please sign in again.")}&next=${encodeURIComponent(nextPath)}`);
-  }
-
-  if (dbUser.forcePasswordReset && nextPath !== "/account/password") {
-    redirect("/account/password?reason=required");
-  }
+  if (!dbUser || !dbUser.isActive) return null;
 
   return {
     userId: dbUser.id,
     email: dbUser.email,
     name: dbUser.name,
     role: dbUser.role,
-    expiresAt: sessionUser.expiresAt
+    expiresAt: sessionUser.expiresAt,
+    forcePasswordReset: dbUser.forcePasswordReset
+  };
+}
+
+export async function requireUser(nextPath = "/admin") {
+  const user = await getVerifiedCurrentUser();
+  if (!user) redirect(`/login?error=${encodeURIComponent("Your session is no longer valid. Please sign in again.")}&next=${encodeURIComponent(nextPath)}`);
+
+  if (user.forcePasswordReset && nextPath !== "/account/password") {
+    redirect("/account/password?reason=required");
+  }
+
+  return {
+    userId: user.userId,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    expiresAt: user.expiresAt
   } satisfies SessionPayload;
 }
 

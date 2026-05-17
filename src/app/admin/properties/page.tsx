@@ -10,7 +10,7 @@ export default async function PropertiesAdminPage() {
   });
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader
         title="Properties"
         description="Create and manage buildings, complexes, and landlord-owned locations. Each property can contain many units."

@@ -223,6 +223,17 @@ model User {
 }
 
 
+model RateLimitBucket {
+  key       String   @id
+  count     Int      @default(0)
+  resetAt   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([resetAt])
+}
+
+
 model Property {
   id          String   @id @default(cuid())
   name        String
@@ -413,6 +424,7 @@ model Document {
   mimeType      String
   sizeBytes     Int
   storagePath   String
+  sha256Hash    String?
   notes         String?
   applicationId String?
   propertyId    String?
@@ -438,6 +450,7 @@ model Document {
   @@index([status])
   @@index([category])
   @@index([createdAt])
+  @@index([sha256Hash])
 }
 
 model StoredDocument {
@@ -558,6 +571,12 @@ model SignatureRequest {
   declinedAt    DateTime?
   ipAddress     String?
   userAgent     String?
+  electronicConsentAccepted Boolean @default(false)
+  electronicConsentText     String?
+  electronicConsentAcceptedAt DateTime?
+  documentTextHash          String?
+  signatureEvidenceHash     String?
+  finalPdfHash              String?
   expiresAt     DateTime?
   reminderCount Int             @default(0)
   lastReminderAt DateTime?
@@ -575,6 +594,8 @@ model SignatureRequest {
   @@index([signerRole])
   @@index([status])
   @@index([expiresAt])
+  @@index([documentTextHash])
+  @@index([signatureEvidenceHash])
 }
 
 model SignatureNotification {
@@ -589,7 +610,9 @@ model SignatureNotification {
   sentAt             DateTime?
   failedAt           DateTime?
   failureReason      String?
+  attemptCount       Int                         @default(0)
   lastAttemptAt      DateTime?
+  nextAttemptAt      DateTime?
   provider           String?
   providerMessageId  String?
   createdById        String?
@@ -604,6 +627,7 @@ model SignatureNotification {
   @@index([type])
   @@index([status])
   @@index([createdAt])
+  @@index([status, nextAttemptAt])
 }
 
 model LeaseNote {

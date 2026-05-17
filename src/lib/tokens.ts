@@ -9,5 +9,21 @@ export function hashToken(token: string) {
 }
 
 export function appUrl() {
-  return (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
+  const configured = process.env.APP_URL;
+
+  if (!configured) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("APP_URL must be set in production before generating public links.");
+    }
+
+    return "http://localhost:3000";
+  }
+
+  const url = configured.replace(/\/$/, "");
+
+  if (process.env.NODE_ENV === "production" && /^http:\/\//i.test(url)) {
+    throw new Error("APP_URL must use HTTPS in production.");
+  }
+
+  return url;
 }

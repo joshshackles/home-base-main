@@ -16,7 +16,7 @@ export default async function EditUnitPage({ params }: { params: { id: string } 
   if (!unit) notFound();
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader
         title="Edit Unit"
         description="Update pricing, status, voucher-friendly settings, and public-facing unit details."

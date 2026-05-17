@@ -41,7 +41,7 @@ export default async function LeadsAdminPage({ searchParams }: { searchParams?: 
   ]);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader title="Leads" description="Review public marketplace inquiries, track follow-up, and convert qualified leads into application records." />
       <AdminListControls searchPlaceholder="Search leads by name, email, phone, unit, property, or message..." defaultQuery={query}>
         <FilterSelect name="status" label="Status" defaultValue={status ?? ""} options={[{ value: "", label: "All statuses" }, ...Object.values(LeadStatus).map((value) => ({ value, label: label(value) }))]} />

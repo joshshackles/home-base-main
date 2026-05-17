@@ -10,7 +10,7 @@ export default async function LedgerEntryDetailPage({ params }: { params: { id: 
   if (!entry) notFound();
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader title="Ledger Entry" description="Review a ledger entry and void it if it was entered in error." />
       <section className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

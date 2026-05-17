@@ -2,6 +2,7 @@ import { CheckCircle2, ServerCog, TriangleAlert } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { prisma } from "@/lib/prisma";
 import { getEnvironmentWarnings } from "@/lib/env";
+import { APP_RELEASE_LABEL, APP_VERSION } from "@/lib/app-version";
 
 export default async function SystemStatusPage() {
   const warnings = getEnvironmentWarnings();
@@ -18,14 +19,14 @@ export default async function SystemStatusPage() {
   const checks = [
     { label: "Database", ok: databaseOk, detail: databaseMessage },
     { label: "Environment", ok: warnings.length === 0, detail: warnings.length === 0 ? "Required environment settings are present." : warnings.join(" ") },
-    { label: "Upload storage", ok: Boolean(process.env.DOCUMENT_UPLOAD_DIR), detail: process.env.DOCUMENT_UPLOAD_DIR ? process.env.DOCUMENT_UPLOAD_DIR : "Using local storage/documents fallback." },
-    { label: "App version", ok: true, detail: "HomeBase MLS v2.6.0" },
+    { label: "Document storage", ok: warnings.every((warning) => !warning.includes("DOCUMENT_STORAGE_PROVIDER") && !warning.includes("DOCUMENT_S3_")), detail: `Provider: ${process.env.DOCUMENT_STORAGE_PROVIDER || (process.env.NODE_ENV === "production" ? "database" : "local")}${process.env.DOCUMENT_S3_BUCKET ? ` / Bucket: ${process.env.DOCUMENT_S3_BUCKET}` : ""}` },
+    { label: "App version", ok: true, detail: APP_RELEASE_LABEL },
     { label: "Email provider", ok: true, detail: process.env.EMAIL_PROVIDER || "console" },
-    { label: "Migration baseline", ok: true, detail: "Baseline through v2.4.0 migrations are included. v2.5.0 and v2.6.0 do not require schema changes." }
+    { label: "Migration baseline", ok: true, detail: "Baseline and hardening migrations through the current package version are included. Run npm run migrations:check before deployment." }
   ];
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader
         eyebrow="System"
         title="System Status"
@@ -61,6 +62,7 @@ npm run storage:verify
 npm run seed:verify
 npm run workflow:verify
 npm run security:verify
+npm run update12:verify
 npm run typecheck
 npm run build`}</code></pre>
       </div>

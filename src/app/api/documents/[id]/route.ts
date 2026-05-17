@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getVerifiedCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { AuditAction } from "@prisma/client";
@@ -8,7 +8,7 @@ import { readStoredDocument } from "@/lib/storage";
 export const runtime = "nodejs";
 
 async function canAccessDocument(documentId: string) {
-  const user = getCurrentUser();
+  const user = await getVerifiedCurrentUser();
   if (!user) return { allowed: false, status: 401 as const };
 
   const document = await prisma.document.findUnique({

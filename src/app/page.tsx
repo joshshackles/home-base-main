@@ -3,7 +3,7 @@ import { ArrowRight, Building2, ClipboardCheck, FileSignature, Search } from "lu
 
 export default function HomePage() {
   return (
-    <main>
+    <main id="main-content">
       <section className="bg-white">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:py-24">
           <div className="flex flex-col justify-center">
@@ -14,7 +14,7 @@ export default function HomePage() {
               Manage properties, units, applications, inspections, and leases in one clean system.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-              This v2.0.0 build adds a rent and payment ledger foundation with charge/payment history, balances, and scoped visibility for admins, landlords, and applicants.
+              Browse rental units and manage leads, applications, inspections, documents, lease packets, e-signature evidence, and ledger records with production-focused security hardening.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/marketplace" className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white shadow-sm hover:bg-brand-700">

@@ -16,7 +16,7 @@ export default async function ApplicantProfilePage() {
   });
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div>
         <p className="text-sm font-bold uppercase tracking-wide text-brand-700">Applicant portal</p>
         <h1 className="mt-2 text-4xl font-black text-slate-950">My profile</h1>

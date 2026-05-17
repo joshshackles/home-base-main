@@ -43,7 +43,7 @@ export default async function AgingReportPage() {
     .sort((a, b) => b.balance - a.balance);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader title="Balance Aging Report" description="Review open balances by aging bucket so staff can identify current, delinquent, and high-risk accounts." />
       <div className="mb-6 flex flex-wrap gap-3">
         <Link className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" href="/admin/ledger">Ledger</Link>

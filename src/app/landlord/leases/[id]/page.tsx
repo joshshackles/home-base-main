@@ -31,7 +31,7 @@ export default async function LandlordLeaseDetailPage({ params }: { params: { id
   const isExpired = Boolean(request?.expiresAt && request.expiresAt < new Date() && request.status === SignatureStatus.PENDING);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-6 rounded-3xl bg-slate-950 p-8 text-white shadow-sm">
         <p className="text-sm font-bold uppercase tracking-[0.25em] text-brand-200">Landlord Lease Review</p>
         <h1 className="mt-3 text-4xl font-black tracking-tight">{packet.application.unit.property.name} #{packet.application.unit.unitNumber}</h1>

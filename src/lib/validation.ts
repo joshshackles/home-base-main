@@ -1,5 +1,6 @@
 import { ApplicationStatus, DocumentCategory, DocumentRequestStatus, DocumentStatus, DocumentVisibility, HouseholdRelationship, InspectionChecklistStatus, InspectionStatus, IncomeFrequency, LedgerEntryType, PaymentMethod, PaymentPlanInstallmentStatus, PaymentPlanStatus, RecurringChargeFrequency, LeadStatus, LeasePacketStatus, SignatureNotificationType, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
 import { z } from "zod";
+import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from "@/lib/password";
 
 const optionalText = z
   .string()
@@ -89,8 +90,13 @@ export const createUserSchema = z.object({
   name: requiredText("Name", 120),
   email: z.string().trim().email("A valid email address is required.").max(180).transform((value) => value.toLowerCase()),
   role: z.nativeEnum(UserRole),
-  password: z.string().min(8, "Temporary password must be at least 8 characters."),
+  password: z.string().min(MIN_PASSWORD_LENGTH, `Temporary password must be at least ${MIN_PASSWORD_LENGTH} characters.`),
   isActive: z.coerce.boolean().default(true)
+}).superRefine((value, ctx) => {
+  const result = validatePasswordStrength(value.password, { email: value.email, name: value.name });
+  for (const message of result.errors) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message });
+  }
 });
 
 export const updateUserSchema = z.object({
@@ -101,8 +107,11 @@ export const updateUserSchema = z.object({
   password: z.string().trim().optional().transform((value) => (value && value.length > 0 ? value : null)),
   isActive: z.coerce.boolean().default(false)
 }).superRefine((value, ctx) => {
-  if (value.password && value.password.length < 8) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message: "New password must be at least 8 characters." });
+  if (value.password) {
+    const result = validatePasswordStrength(value.password, { email: value.email, name: value.name });
+    for (const message of result.errors) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message });
+    }
   }
 });
 
@@ -196,7 +205,8 @@ export const leaseSignaturePrepareSchema = z.object({
 
 export const leaseSignatureSchema = z.object({
   requestId: requiredText("Signature request ID"),
-  signatureText: requiredText("Typed signature", 160)
+  signatureText: requiredText("Typed signature", 160),
+  electronicConsentAccepted: z.coerce.boolean().refine((value) => value === true, "You must consent to electronic signatures before signing.")
 });
 
 export const leaseSignatureStatusSchema = z.object({
@@ -288,11 +298,15 @@ export function validationMessage(error: unknown) {
 
 export const passwordChangeSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required."),
-  newPassword: z.string().min(10, "New password must be at least 10 characters."),
+  newPassword: z.string().min(MIN_PASSWORD_LENGTH, `New password must be at least ${MIN_PASSWORD_LENGTH} characters.`),
   confirmPassword: z.string().min(1, "Please confirm the new password.")
 }).superRefine((value, ctx) => {
   if (value.newPassword !== value.confirmPassword) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["confirmPassword"], message: "New passwords do not match." });
+  }
+  const result = validatePasswordStrength(value.newPassword);
+  for (const message of result.errors) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["newPassword"], message });
   }
 });
 
@@ -302,11 +316,15 @@ export const passwordResetRequestSchema = z.object({
 
 export const passwordResetSchema = z.object({
   token: requiredText("Reset token", 300),
-  password: z.string().min(10, "New password must be at least 10 characters."),
+  password: z.string().min(MIN_PASSWORD_LENGTH, `New password must be at least ${MIN_PASSWORD_LENGTH} characters.`),
   confirmPassword: z.string().min(1, "Please confirm the new password.")
 }).superRefine((value, ctx) => {
   if (value.password !== value.confirmPassword) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["confirmPassword"], message: "New passwords do not match." });
+  }
+  const result = validatePasswordStrength(value.password);
+  for (const message of result.errors) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["password"], message });
   }
 });
 

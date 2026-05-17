@@ -2,9 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { createSessionToken, setSessionCookie, clearSessionCookie, getCurrentUser } from "@/lib/auth";
+import { createSessionToken, setSessionCookie, clearSessionCookie, getVerifiedCurrentUser } from "@/lib/auth";
 import { verifyPassword } from "@/lib/password";
-import { clearLoginRateLimit, isLoginRateLimited } from "@/lib/rate-limit";
+import { clearLoginRateLimit, checkLoginRateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/public-form-security";
 import { formDataToObject, loginSchema, validationMessage } from "@/lib/validation";
 import { writeAuditLog } from "@/lib/audit";
 import { writeSecurityEvent } from "@/lib/security-events";
@@ -66,8 +67,15 @@ export async function loginAction(formData: FormData) {
   const { email, password } = parsed.data;
   const next = safeNextPath(parsed.data.next || "/admin");
 
-  if (isLoginRateLimited(email)) {
-    await writeSecurityEvent({ type: SecurityEventType.LOGIN_FAILURE, email, message: "In-memory login rate limit reached." });
+  const clientIp = getClientIp();
+  const rateLimit = await checkLoginRateLimit(email, clientIp);
+
+  if (rateLimit.limited) {
+    await writeSecurityEvent({
+      type: SecurityEventType.LOGIN_FAILURE,
+      email,
+      message: `Durable login rate limit reached. Reset at ${rateLimit.resetAt.toISOString()}.`
+    });
     redirect(`/login?error=${encodeURIComponent("Too many login attempts. Please wait a few minutes and try again.")}&next=${encodeURIComponent(next)}`);
   }
 
@@ -96,7 +104,7 @@ export async function loginAction(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent("Invalid email or password.")}&next=${encodeURIComponent(next)}`);
   }
 
-  clearLoginRateLimit(email);
+  await clearLoginRateLimit(email, clientIp);
 
   const token = createSessionToken({
     userId: user.id,
@@ -113,7 +121,7 @@ export async function loginAction(formData: FormData) {
 }
 
 export async function logoutAction() {
-  const user = getCurrentUser();
+  const user = await getVerifiedCurrentUser();
   clearSessionCookie();
   if (user) {
     await writeAuditLog({ actor: user, action: AuditAction.LOGOUT, entityType: "Session", entityId: user.userId, message: "User signed out." });

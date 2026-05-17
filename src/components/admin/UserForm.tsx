@@ -1,5 +1,6 @@
 import { UserRole } from "@prisma/client";
 import { createUser, updateUser } from "@/app/admin/actions";
+import { passwordPolicyMessage, MIN_PASSWORD_LENGTH } from "@/lib/password";
 import { Field, inputClass, SecondaryLink, selectClass, SubmitButton } from "@/components/admin/FormFields";
 
 type UserFormProps = {
@@ -44,8 +45,8 @@ export function UserForm({ user }: UserFormProps) {
           </select>
         </Field>
 
-        <Field label={user ? "New password" : "Temporary password"} help={user ? "Leave blank to keep the current password." : "Use at least 8 characters. The user should change it later."}>
-          <input name="password" type="password" required={!user} minLength={user ? undefined : 8} className={inputClass} placeholder={user ? "Optional" : "At least 8 characters"} />
+        <Field label={user ? "New password" : "Temporary password"} help={user ? `Leave blank to keep the current password. ${passwordPolicyMessage()}` : `${passwordPolicyMessage()} The user will be forced to change it later.`}>
+          <input name="password" type="password" required={!user} minLength={user ? undefined : MIN_PASSWORD_LENGTH} className={inputClass} placeholder={user ? "Optional" : `At least ${MIN_PASSWORD_LENGTH} characters`} />
         </Field>
 
         <div className="md:col-span-2 rounded-2xl bg-slate-50 p-4">

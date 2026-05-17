@@ -17,7 +17,7 @@ export default async function LandlordUnitsPage() {
   });
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <LandlordPageHeader title="My Units" description="Update public listing details for assigned units. Archiving, deleting, and ownership changes remain admin-only." />
       <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full min-w-[1100px] border-collapse text-left text-sm">

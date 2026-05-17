@@ -1,3 +1,40 @@
+## v2.6.12 Update 12 — Production polish and compliance readiness
+
+- Centralized app version display through `src/lib/app-version.ts`.
+- Replaced hardcoded version strings in admin/system UI.
+- Added Privacy, Terms, Fair Housing, and Accessibility starter pages.
+- Added footer legal/compliance navigation.
+- Added skip-to-content accessibility link.
+- Added root Open Graph metadata, robots, and sitemap routes.
+- Expanded upload support to HEIC/HEIF, CSV, and XLSX.
+- Rewrote README to remove old version contradictions.
+- Added Update 12 verification script and npm command.
+
+## v2.6.12-update7
+
+- Replaced the hand-built PDF string writer with pdf-lib for generated lease PDFs.
+- Added font-width-based text wrapping, safe long-word splitting, PDF metadata, and deterministic output.
+- Updated lease packet and final signed lease generation to await the PDF renderer.
+- Added `npm run pdf:verify` and included it in verification/smoke scripts.
+- Documented the remaining Unicode-font limitation and future embedded-font path.
+
+
+## v2.6.12-update6
+
+- Added S3-compatible object storage provider for uploaded and generated documents.
+- Added Cloudflare R2/AWS S3/MinIO environment configuration.
+- Added object-storage write/read/delete smoke verification.
+- Added migration helper to move existing local/database documents to object storage.
+- Updated environment validation and system status messaging for production object storage.
+
+
+## v2.6.12 Update 5 — Security Headers
+
+- Added a centralized browser security header policy in `next.config.mjs`.
+- Added CSP, HSTS, frame denial, MIME sniffing protection, referrer policy, permissions policy, and cross-origin isolation headers.
+- Disabled the `X-Powered-By` header and kept compression enabled.
+- Expanded `npm run security:verify` coverage for the new header policy.
+
 # Changelog
 
 ## 2.6.9 - Vercel Audit Metadata Build Fix
@@ -358,3 +395,48 @@ Initial app shell.
 
 - Fixed Vercel TypeScript build error by making `AppHeader` a synchronous server component.
 - Keeps prior Vercel fixes for Next config, Prisma generation, schema relations, enum typing, server-action form typing, and document route narrowing.
+
+## v2.6.12 Update 4 — Password/security policy hardening
+
+- Added a centralized password policy helper with a 14-character minimum and complexity checks.
+- Blocked old demo/default passwords such as `admin12345`, `landlord12345`, and `applicant12345`.
+- Applied the stronger policy to admin-created users, admin password updates, self-service password changes, and password resets.
+- Replaced static seed passwords with generated temporary passwords or optional `SEED_*_PASSWORD` environment variables.
+- Marked seeded users for forced password change.
+- Updated login, account, reset, README, and `.env.example` copy to remove unsafe demo-password guidance.
+- Expanded static security verification to check the new password-hardening controls.
+
+## v2.6.12 Update 8 - E-signature evidence hardening
+
+- Added explicit electronic-signature consent capture to tenant lease signing.
+- Stored the exact consent text accepted by the signer.
+- Added lease text SHA-256 hashing at signature time.
+- Added signature evidence SHA-256 hashing.
+- Added final signed PDF SHA-256 hashing.
+- Stored final PDF hash on generated lease documents and signed signature requests.
+- Added administrator visibility into signature evidence hashes.
+- Added `npm run esignature:verify`.
+
+
+## Update 10 — Email Queue + Production Environment Hardening
+
+- Added durable retry metadata for queued signature notifications.
+- Added protected `/api/cron/send-queued-email` endpoint.
+- Added exponential retry backoff and max-attempt handling.
+- Made production `APP_URL` fail closed when missing or non-HTTPS.
+- Added email queue verification script and docs.
+
+## v2.6.12 Update 11 — Automated Tests and Observability
+
+- Added Vitest-based unit test scaffolding.
+- Added tests for password policy, environment validation, email configuration, and structured logger behavior.
+- Added structured JSON logger with sensitive field redaction.
+- Replaced key `console.error` paths in audit/security/rate-limit/email flows with structured logging.
+- Added `observability:verify` and included tests/observability in the main `verify` script.
+
+## v2.6.12 Vercel compliance patch
+
+- Added `vercel.json` with Next.js framework config, Vercel build command, region, and queued-email cron schedule.
+- Added `npm run vercel-build` so Vercel runs preflight, Prisma generation, migrations, and Next build in order.
+- Added `npm run vercel:preflight` and `scripts/verify-vercel.ts` for Vercel-specific environment, storage, cron, Prisma, and security-header checks.
+- Added `docs/VERCEL_DEPLOYMENT.md` and updated `.env.example` to prefer S3-compatible storage for production Vercel deployments.

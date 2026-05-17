@@ -33,7 +33,7 @@ export default async function PaymentPlanDetailPage({ params }: { params: { id: 
   const nextDue = openInstallments[0];
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader title={plan.name} description="Review the payment plan, update installment outcomes, and track remaining plan balance." />
       <section className="grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

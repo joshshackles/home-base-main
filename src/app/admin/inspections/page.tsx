@@ -29,7 +29,7 @@ export default async function AdminInspectionsPage({ searchParams }: { searchPar
   ]);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader title="Inspections" description="Schedule inspections, track pass/fail results, and keep inspection history connected to units and applications." actionHref="/admin/inspections/new" actionLabel="Schedule Inspection" />
       <AdminListControls searchPlaceholder="Search inspections by property, unit, applicant, inspector, or notes..." defaultQuery={query}>
         <FilterSelect name="status" label="Status" defaultValue={status ?? ""} options={[{ value: "", label: "All statuses" }, ...Object.values(InspectionStatus).map((value) => ({ value, label: statusLabels[value] }))]} />

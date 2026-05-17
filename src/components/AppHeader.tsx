@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Building2, FileText, Home, KeyRound, LayoutDashboard, LogIn, LogOut, Search } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
+import { getVerifiedCurrentUser } from "@/lib/auth";
 import { logoutAction } from "@/app/login/actions";
 
-export function AppHeader() {
-  const user = getCurrentUser();
+export async function AppHeader() {
+  const user = await getVerifiedCurrentUser();
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">

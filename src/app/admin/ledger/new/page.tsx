@@ -15,7 +15,7 @@ export default async function NewLedgerEntryPage() {
   ]);
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader title="Add Ledger Entry" description="Record a charge, payment, credit, or adjustment. This records history only and does not process online payments." />
       <form action={createLedgerEntry} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="grid gap-5 md:grid-cols-2">

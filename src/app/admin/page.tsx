@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Activity, Building2, ClipboardList, BellRing, ClipboardCheck, DollarSign, FileSignature, FileText, Home, Inbox, Plus, ServerCog, ShieldCheck, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { ledgerTotals } from "@/lib/ledger-queries";
+import { APP_VERSION } from "@/lib/app-version";
 
 export default async function AdminPage() {
   const [propertyCount, unitCount, availableCount, userCount, leadCount, applicationCount, documentCount, leaseCount, notificationCount, auditCount, securityEventCount, inspectionCount, ledgerBalance] = await Promise.all([
@@ -33,12 +34,12 @@ export default async function AdminPage() {
     { label: "Notices", value: notificationCount, icon: BellRing, href: "/admin/notifications" },
     { label: "Users", value: userCount, icon: Users, href: "/admin/users" },
     { label: "Audit", value: auditCount, icon: Activity, href: "/admin/audit" },
-    { label: "System", value: "2.6.12", icon: ServerCog, href: "/admin/system" },
+    { label: "System", value: APP_VERSION, icon: ServerCog, href: "/admin/system" },
     { label: "Security", value: securityEventCount, icon: ShieldCheck, href: "/admin/security/events" }
   ];
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="font-bold uppercase tracking-[0.25em] text-brand-700">Admin</p>
@@ -71,9 +72,9 @@ export default async function AdminPage() {
       </section>
 
       <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-2xl font-black text-slate-950">v2.6.12 build focus</h2>
+        <h2 className="text-2xl font-black text-slate-950">Current build focus</h2>
         <p className="mt-3 max-w-3xl leading-7 text-slate-600">
-          This release adds the rent and payment ledger foundation with charges, payments, credits, balances, admin controls, and scoped landlord/applicant visibility.
+          This release combines production hardening, object storage, PDF/e-signature evidence, automated verification, accessibility, SEO, and legal-page readiness with the existing housing workflow foundation.
         </p>
       </section>
     </main>

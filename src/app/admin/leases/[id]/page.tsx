@@ -40,7 +40,7 @@ export default async function LeasePacketDetailPage({ params }: { params: { id: 
   const finalDocument = packet.finalDocumentId ? packet.documents.find((document) => document.id === packet.finalDocumentId) : null;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader
         title={`Lease packet: ${packet.application.applicantName}`}
         description="Review lease terms, generate downloadable PDF versions, update packet status, and keep lease documents connected to the application."
@@ -101,6 +101,14 @@ export default async function LeasePacketDetailPage({ params }: { params: { id: 
                       <p className="mt-1 text-xs font-bold uppercase text-slate-500">Status: {label(request.status)}{request.signedAt ? ` · Signed ${request.signedAt.toLocaleString()}` : ""}</p>
                       <p className="mt-1 text-xs text-slate-500">Expires: {request.expiresAt ? request.expiresAt.toLocaleDateString() : "Not set"} · Reminders: {request.reminderCount} · Last notice: {request.lastNotificationAt ? request.lastNotificationAt.toLocaleString() : "None"}</p>
                       {request.signatureText ? <p className="mt-3 rounded-xl bg-white px-3 py-2 font-serif text-lg text-slate-950">{request.signatureText}</p> : null}
+                      {request.status === SignatureStatus.SIGNED ? (
+                        <div className="mt-3 rounded-xl bg-white px-3 py-2 text-xs leading-5 text-slate-600">
+                          <p><span className="font-black text-slate-800">Consent:</span> {request.electronicConsentAccepted ? "Accepted" : "Not captured"}{request.electronicConsentAcceptedAt ? ` · ${request.electronicConsentAcceptedAt.toLocaleString()}` : ""}</p>
+                          <p className="break-all"><span className="font-black text-slate-800">Lease text hash:</span> {request.documentTextHash ?? "Not captured"}</p>
+                          <p className="break-all"><span className="font-black text-slate-800">Evidence hash:</span> {request.signatureEvidenceHash ?? "Not captured"}</p>
+                          <p className="break-all"><span className="font-black text-slate-800">Final PDF hash:</span> {request.finalPdfHash ?? "Pending final PDF"}</p>
+                        </div>
+                      ) : null}
                       {request.notifications.length > 0 ? (
                         <div className="mt-3 space-y-2">
                           {request.notifications.map((notification) => (

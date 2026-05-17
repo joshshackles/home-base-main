@@ -41,7 +41,7 @@ export default async function ApplicationsAdminPage({ searchParams }: { searchPa
   ]);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader title="Applications" description="Track application records from marketplace leads, applicant portals, document requests, and lease workflows." />
       <AdminListControls searchPlaceholder="Search applications by applicant, email, property, unit, or summary..." defaultQuery={query}>
         <FilterSelect name="status" label="Status" defaultValue={status ?? ""} options={[{ value: "", label: "All statuses" }, ...Object.values(ApplicationStatus).map((value) => ({ value, label: label(value) }))]} />

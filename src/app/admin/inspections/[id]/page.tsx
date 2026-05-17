@@ -26,7 +26,7 @@ export default async function InspectionDetailPage({ params }: { params: { id: s
   if (!inspection) notFound();
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader title="Inspection Detail" description={`${inspection.unit.property.name} - Unit ${inspection.unit.unitNumber}`} />
 
       <section className="grid gap-6 lg:grid-cols-[1fr_360px]">

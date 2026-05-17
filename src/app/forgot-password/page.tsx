@@ -3,7 +3,7 @@ import { requestPasswordResetAction } from "@/app/reset-password/actions";
 
 export default function ForgotPasswordPage({ searchParams }: { searchParams?: { error?: string; sent?: string } }) {
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-65px)] max-w-md items-center px-4 py-10">
+    <main id="main-content" className="mx-auto flex min-h-[calc(100vh-65px)] max-w-md items-center px-4 py-10">
       <div className="w-full rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
         <p className="font-bold uppercase tracking-[0.25em] text-brand-700">Account Recovery</p>
         <h1 className="mt-2 text-3xl font-black text-slate-950">Reset your password</h1>

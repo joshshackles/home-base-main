@@ -67,7 +67,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams?:
   const activeFilterCount = [city, maxRent, bedrooms, bathrooms, voucherFriendly, pets, accessibility].filter(Boolean).length;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <section className="mb-8 rounded-[2rem] bg-slate-950 p-8 text-white shadow-lg">
         <p className="text-sm font-bold uppercase tracking-[0.3em] text-blue-200">Marketplace</p>
         <h1 className="mt-3 text-4xl font-black">Available Rental Units</h1>

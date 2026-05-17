@@ -5,7 +5,7 @@ export default function LoginPage({ searchParams }: { searchParams?: { error?: s
   const error = searchParams?.error;
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-65px)] max-w-md items-center px-4 py-10">
+    <main id="main-content" className="mx-auto flex min-h-[calc(100vh-65px)] max-w-md items-center px-4 py-10">
       <div className="w-full rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
         <p className="font-bold uppercase tracking-[0.25em] text-brand-700">Login</p>
         <h1 className="mt-2 text-3xl font-black text-slate-950">Sign in to HomeBase MLS</h1>
@@ -43,7 +43,7 @@ export default function LoginPage({ searchParams }: { searchParams?: { error?: s
               className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
               name="password"
               type="password"
-              placeholder="admin12345"
+              placeholder="Use the temporary seed password"
               autoComplete="current-password"
               required
             />
@@ -56,7 +56,7 @@ export default function LoginPage({ searchParams }: { searchParams?: { error?: s
         <a href="/forgot-password" className="mt-4 inline-block text-sm font-bold text-brand-700 hover:text-brand-900">Forgot password?</a>
 
         <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-          <strong className="text-slate-900">Seed logins:</strong> admin@homebase.local / admin12345, landlord@homebase.local / landlord12345, or applicant@homebase.local / applicant12345. Change this immediately before using the app outside local development.
+          <strong className="text-slate-900">Seed logins:</strong> admin@homebase.local, landlord@homebase.local, and applicant@homebase.local are created with generated temporary passwords. Check the seed command output or set SEED_ADMIN_PASSWORD, SEED_LANDLORD_PASSWORD, and SEED_APPLICANT_PASSWORD before running the seed.
         </div>
       </div>
     </main>

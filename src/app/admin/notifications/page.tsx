@@ -36,7 +36,7 @@ export default async function AdminNotificationsPage() {
   const provider = emailProvider();
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader
         title="Signature notifications"
         description={`Track and send signature notices, reminders, expiration warnings, and overdue signature requests. Current email provider: ${provider}.`}
@@ -95,6 +95,7 @@ export default async function AdminNotificationsPage() {
                   <p className="mt-1 text-sm text-slate-600">To {notification.recipientName ?? notification.recipientEmail} · {notification.recipientEmail}</p>
                   <p className="mt-1 text-xs font-bold uppercase text-slate-500">{label(notification.type)} · {label(notification.status)} · {notification.createdAt.toLocaleString()}</p>
                   <p className="mt-1 text-xs text-slate-500">Provider: {notification.provider ?? "not attempted"}{notification.providerMessageId ? ` · Message ID: ${notification.providerMessageId}` : ""}{notification.failureReason ? ` · Error: ${notification.failureReason}` : ""}</p>
+                  <p className="mt-1 text-xs text-slate-500">Attempts: {notification.attemptCount}{notification.nextAttemptAt ? ` · Next retry: ${notification.nextAttemptAt.toLocaleString()}` : ""}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {notification.status !== SignatureNotificationStatus.SENT ? (

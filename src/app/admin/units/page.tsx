@@ -11,7 +11,7 @@ export default async function UnitsAdminPage() {
   });
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader
         title="Units"
         description="Manage individual rentable units, pricing, voucher-friendly status, availability, utility notes, pets, and accessibility details."

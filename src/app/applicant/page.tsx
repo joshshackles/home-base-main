@@ -27,7 +27,7 @@ export default async function ApplicantDashboardPage() {
   const missingDocuments = applications.reduce((total, application) => total + application.documentRequests.filter((request) => ["REQUESTED", "REJECTED"].includes(request.status)).length, 0);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="rounded-3xl bg-slate-950 p-8 text-white shadow-sm">
         <p className="text-sm font-bold uppercase tracking-wide text-brand-200">Applicant portal</p>
         <h1 className="mt-3 text-4xl font-black tracking-tight">Welcome, {user.name || "Applicant"}</h1>

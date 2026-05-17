@@ -42,7 +42,7 @@ export default async function ApplicantApplicationDetailPage({ params }: { param
   const canSubmit = application.status === "STARTED" && profile && profile.householdMembers.length > 0 && profile.incomeSources.length > 0 && unresolvedRequests.length === 0;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-bold uppercase tracking-wide text-brand-700">Application</p>

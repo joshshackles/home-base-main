@@ -30,7 +30,7 @@ const reports = [
 
 export default function LedgerReportsPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader title="Ledger Reports & Exports" description="Download reconciliation-ready CSV reports and open printable account statements." />
       <div className="mb-6 flex flex-wrap gap-3">
         <Link className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" href="/admin/ledger">Ledger</Link>

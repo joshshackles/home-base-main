@@ -1,29 +1,57 @@
+import crypto from "crypto";
 import { ApplicationStatus, DocumentCategory, DocumentRequestStatus, DocumentVisibility, InspectionChecklistStatus, InspectionStatus, LedgerEntryType, PaymentMethod, PaymentPlanInstallmentStatus, PaymentPlanStatus, RecurringChargeFrequency, LeadStatus, LeasePacketStatus, PrismaClient, SignatureNotificationType, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
-import { hashPassword } from "../src/lib/password";
+import { hashPassword, validatePasswordStrength } from "../src/lib/password";
 import { DEFAULT_LEASE_TEMPLATE_BODY } from "../src/lib/lease-render";
 
 const prisma = new PrismaClient();
 
+function generatedSeedPassword(label: string) {
+  return `${label}-${crypto.randomUUID()}-Aa1!`;
+}
+
+function seedPassword(envName: string, fallbackLabel: string) {
+  const password = process.env[envName] ?? generatedSeedPassword(fallbackLabel);
+  const result = validatePasswordStrength(password);
+
+  if (!result.ok) {
+    throw new Error(`${envName} does not meet the production password policy: ${result.errors.join(" ")}`);
+  }
+
+  return password;
+}
+
+const seedPasswords = {
+  admin: seedPassword("SEED_ADMIN_PASSWORD", "AdminSeed"),
+  landlord: seedPassword("SEED_LANDLORD_PASSWORD", "LandlordSeed"),
+  applicant: seedPassword("SEED_APPLICANT_PASSWORD", "ApplicantSeed")
+};
+
 async function main() {
+  console.log("Seed user temporary passwords. Save these values immediately or set SEED_*_PASSWORD env vars before seeding.");
+  console.table({
+    "admin@homebase.local": seedPasswords.admin,
+    "landlord@homebase.local": seedPasswords.landlord,
+    "applicant@homebase.local": seedPasswords.applicant
+  });
   const admin = await prisma.user.upsert({
     where: { email: "admin@homebase.local" },
     update: {
-      passwordHash: hashPassword("admin12345"),
+      passwordHash: hashPassword(seedPasswords.admin),
       role: UserRole.ADMIN,
       isActive: true,
-      forcePasswordReset: false,
-      passwordChangedAt: new Date(),
+      forcePasswordReset: true,
+      passwordChangedAt: null,
       failedLoginCount: 0,
       lockedUntil: null
     },
     create: {
       email: "admin@homebase.local",
       name: "HomeBase MLS Admin",
-      passwordHash: hashPassword("admin12345"),
+      passwordHash: hashPassword(seedPasswords.admin),
       role: UserRole.ADMIN,
       isActive: true,
-      forcePasswordReset: false,
-      passwordChangedAt: new Date(),
+      forcePasswordReset: true,
+      passwordChangedAt: null,
       failedLoginCount: 0,
       lockedUntil: null
     }
@@ -32,22 +60,22 @@ async function main() {
   const landlord = await prisma.user.upsert({
     where: { email: "landlord@homebase.local" },
     update: {
-      passwordHash: hashPassword("landlord12345"),
+      passwordHash: hashPassword(seedPasswords.landlord),
       role: UserRole.LANDLORD,
       isActive: true,
-      forcePasswordReset: false,
-      passwordChangedAt: new Date(),
+      forcePasswordReset: true,
+      passwordChangedAt: null,
       failedLoginCount: 0,
       lockedUntil: null
     },
     create: {
       email: "landlord@homebase.local",
       name: "Sample Landlord",
-      passwordHash: hashPassword("landlord12345"),
+      passwordHash: hashPassword(seedPasswords.landlord),
       role: UserRole.LANDLORD,
       isActive: true,
-      forcePasswordReset: false,
-      passwordChangedAt: new Date(),
+      forcePasswordReset: true,
+      passwordChangedAt: null,
       failedLoginCount: 0,
       lockedUntil: null
     }
@@ -56,22 +84,22 @@ async function main() {
   const applicant = await prisma.user.upsert({
     where: { email: "applicant@homebase.local" },
     update: {
-      passwordHash: hashPassword("applicant12345"),
+      passwordHash: hashPassword(seedPasswords.applicant),
       role: UserRole.APPLICANT,
       isActive: true,
-      forcePasswordReset: false,
-      passwordChangedAt: new Date(),
+      forcePasswordReset: true,
+      passwordChangedAt: null,
       failedLoginCount: 0,
       lockedUntil: null
     },
     create: {
       email: "applicant@homebase.local",
       name: "Jane Doe",
-      passwordHash: hashPassword("applicant12345"),
+      passwordHash: hashPassword(seedPasswords.applicant),
       role: UserRole.APPLICANT,
       isActive: true,
-      forcePasswordReset: false,
-      passwordChangedAt: new Date(),
+      forcePasswordReset: true,
+      passwordChangedAt: null,
       failedLoginCount: 0,
       lockedUntil: null
     }

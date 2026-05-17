@@ -28,7 +28,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams?: Se
   ]);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader eyebrow="System" title="Audit Log" description="Review administrative and security-sensitive activity with search and pagination for larger audit histories." />
       <AdminListControls searchPlaceholder="Search audit logs by actor, entity, ID, or message..." defaultQuery={query}>
         <FilterSelect name="action" label="Action" defaultValue={action ?? ""} options={[{ value: "", label: "All actions" }, ...Object.values(AuditAction).map((value) => ({ value, label: value.replaceAll("_", " ") }))]} />

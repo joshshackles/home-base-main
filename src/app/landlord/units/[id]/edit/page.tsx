@@ -14,7 +14,7 @@ export default async function EditLandlordUnitPage({ params }: { params: { id: s
   if (!unit) notFound();
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
       <LandlordPageHeader title={`Edit ${unit.property.name} #${unit.unitNumber}`} description="Update listing details that applicants see in the marketplace." actionHref="/landlord/units" actionLabel="Back to units" />
       <LandlordUnitForm unit={unit} />
     </main>

@@ -8,7 +8,7 @@ export default async function LeaseTemplatesPage() {
   const templates = await prisma.leaseTemplate.findMany({ orderBy: [{ isActive: "desc" }, { name: "asc" }] });
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader
         title="Lease templates"
         description="Create reusable lease text with tokens such as {{tenant_name}}, {{property_address}}, {{monthly_rent}}, and {{lease_terms}}."

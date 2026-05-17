@@ -26,7 +26,7 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
   const errorMessage = searchParams?.error;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <Link href="/marketplace" className="mb-5 inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold text-slate-700 hover:bg-slate-50">
         <ArrowLeft size={17} /> Back to marketplace
       </Link>
@@ -110,6 +110,16 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
 
           <form action={createLead} className="mt-5 grid gap-4">
             <input type="hidden" name="unitId" value={unit.id} />
+            <label className="hidden" aria-hidden="true">
+              Company website
+              <input name="companyWebsite" tabIndex={-1} autoComplete="off" />
+            </label>
+            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
+              <div
+                className="cf-turnstile"
+                data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+              />
+            ) : null}
             <label className="grid gap-1 text-sm font-bold text-slate-700">
               Name
               <input name="name" required className={inputClass} placeholder="Jane Doe" />

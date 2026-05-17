@@ -5,6 +5,7 @@ import { createTextPdfBuffer } from "@/lib/pdf";
 import { saveGeneratedDocument } from "@/lib/storage";
 import { writeAuditLog, type AuditActor } from "@/lib/audit";
 import { writeSecurityEvent } from "@/lib/security-events";
+import { sha256Hex } from "@/lib/e-signature";
 
 function safeSlug(value: string) {
   return value.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "lease";
@@ -41,6 +42,12 @@ export async function renderSignedLeaseText(leasePacketId: string) {
       `Signed At: ${formatSignatureDate(request.signedAt)}`,
       `IP Address: ${request.ipAddress ?? "Not captured"}`,
       `User Agent: ${request.userAgent ?? "Not captured"}`,
+      `Electronic Consent Accepted: ${request.electronicConsentAccepted ? "Yes" : "No"}`,
+      `Electronic Consent Accepted At: ${formatSignatureDate(request.electronicConsentAcceptedAt)}`,
+      `Consent Text: ${request.electronicConsentText ?? "Not captured"}`,
+      `Lease Text SHA-256: ${request.documentTextHash ?? "Not captured"}`,
+      `Signature Evidence SHA-256: ${request.signatureEvidenceHash ?? "Not captured"}`,
+      `Final PDF SHA-256: ${request.finalPdfHash ?? "Pending finalization"}`,
       `Signature Request ID: ${request.id}`
     ];
     return lines.join("\n");
@@ -68,7 +75,13 @@ export async function generateFinalSignedLeaseDocument({ leasePacketId, actor }:
   const text = await renderSignedLeaseText(leasePacketId);
   const safeApplicant = safeSlug(packet.application.applicantName);
   const originalName = `signed-lease-${safeApplicant}-${new Date().toISOString().slice(0, 10)}.pdf`;
-  const pdf = createTextPdfBuffer({ title: `Final Signed Lease - ${packet.application.applicantName}`, body: text });
+  const pdf = await createTextPdfBuffer({
+    title: `Final Signed Lease - ${packet.application.applicantName}`,
+    body: text,
+    subject: "Final signed lease",
+    keywords: ["lease", "signed", packet.applicationId, packet.id]
+  });
+  const finalPdfHash = sha256Hex(pdf);
   const stored = await saveGeneratedDocument(pdf, originalName, "application/pdf");
 
   const document = await prisma.document.create({
@@ -82,19 +95,26 @@ export async function generateFinalSignedLeaseDocument({ leasePacketId, actor }:
       unitId: packet.application.unitId,
       leasePacketId: packet.id,
       uploadedById: actor?.userId ?? null,
-      notes: "Final signed lease PDF generated after all required signature requests were completed. Treat this version as the completed lease record unless the packet is voided and reissued.",
+      sha256Hash: finalPdfHash,
+      notes: `Final signed lease PDF generated after all required signature requests were completed. SHA-256: ${finalPdfHash}. Treat this version as the completed lease record unless the packet is voided and reissued.`,
       ...stored
     }
   });
 
-  await prisma.leasePacket.update({
-    where: { id: packet.id },
-    data: {
-      finalDocumentId: document.id,
-      finalPdfGeneratedAt: new Date(),
-      lockedAt: packet.lockedAt ?? new Date()
-    }
-  });
+  await prisma.$transaction([
+    prisma.leasePacket.update({
+      where: { id: packet.id },
+      data: {
+        finalDocumentId: document.id,
+        finalPdfGeneratedAt: new Date(),
+        lockedAt: packet.lockedAt ?? new Date()
+      }
+    }),
+    prisma.signatureRequest.updateMany({
+      where: { leasePacketId: packet.id, status: SignatureStatus.SIGNED },
+      data: { finalPdfHash }
+    })
+  ]);
 
   await prisma.leaseNote.create({
     data: {
@@ -109,7 +129,7 @@ export async function generateFinalSignedLeaseDocument({ leasePacketId, actor }:
     entityType: "FinalSignedLeasePdf",
     entityId: document.id,
     message: `Generated final signed lease PDF for ${packet.application.applicantName}.`,
-    metadata: { leasePacketId: packet.id, applicationId: packet.applicationId, documentId: document.id }
+    metadata: { leasePacketId: packet.id, applicationId: packet.applicationId, documentId: document.id, finalPdfHash }
   });
 
   await writeSecurityEvent({
@@ -117,7 +137,7 @@ export async function generateFinalSignedLeaseDocument({ leasePacketId, actor }:
     userId: actor?.userId ?? null,
     email: actor?.email ?? null,
     message: "Final signed lease PDF generated.",
-    metadata: { leasePacketId: packet.id, documentId: document.id }
+    metadata: { leasePacketId: packet.id, documentId: document.id, finalPdfHash }
   });
 
   return document;

@@ -16,7 +16,7 @@ export default async function RecurringChargeSchedulesPage() {
   const monthlyTotal = schedules.filter((schedule) => schedule.isActive).reduce((sum, schedule) => sum + schedule.amount, 0);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader title="Recurring Charge Schedules" description="Generate monthly rent charges with due dates, balance aging, and optional tenant/subsidy split notes." actionHref="/admin/ledger/schedules/new" actionLabel="New Schedule" />
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><p className="text-sm font-bold uppercase tracking-wide text-slate-500">Active Schedules</p><p className="mt-2 text-4xl font-black text-slate-950">{activeCount}</p></div>

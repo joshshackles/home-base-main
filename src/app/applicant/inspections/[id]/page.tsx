@@ -15,7 +15,7 @@ export default async function ApplicantInspectionDetailPage({ params }: { params
   if (!inspection) notFound();
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-8 rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <p className="font-bold uppercase tracking-[0.25em] text-brand-700">Inspection</p>
         <h1 className="mt-2 text-4xl font-black text-slate-950">{inspection.unit.property.name} - Unit {inspection.unit.unitNumber}</h1>

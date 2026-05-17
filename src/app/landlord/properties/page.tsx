@@ -12,7 +12,7 @@ export default async function LandlordPropertiesPage() {
   });
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <LandlordPageHeader title="My Properties" description="These are the active properties assigned to your landlord account." />
       <div className="grid gap-5 md:grid-cols-2">
         {properties.length === 0 ? (

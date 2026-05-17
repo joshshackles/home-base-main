@@ -827,9 +827,11 @@ export async function generateLeasePacketPdf(formData: FormData) {
   const renderedLease = renderLeaseTemplate(packet);
   const safeApplicantName = packet.application.applicantName.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "applicant";
   const originalName = `lease-packet-${safeApplicantName}-${new Date().toISOString().slice(0, 10)}.pdf`;
-  const pdf = createTextPdfBuffer({
+  const pdf = await createTextPdfBuffer({
     title: `Lease Packet - ${packet.application.applicantName}`,
-    body: renderedLease
+    body: renderedLease,
+    subject: "Generated lease packet",
+    keywords: ["lease", "packet", packet.applicationId]
   });
   const stored = await saveGeneratedDocument(pdf, originalName, "application/pdf");
 

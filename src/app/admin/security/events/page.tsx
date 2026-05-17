@@ -5,7 +5,7 @@ export default async function SecurityEventsPage() {
   const events = await prisma.securityEvent.findMany({ orderBy: { createdAt: "desc" }, take: 100 });
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader
         eyebrow="Security"
         title="Security Events"

@@ -47,7 +47,7 @@ export default async function ApplicationDetailPage({ params }: { params: { id: 
   const leaseTemplates = await prisma.leaseTemplate.findMany({ where: { isActive: true }, orderBy: { name: "asc" } });
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader
         title={application.applicantName}
         description="Track application status, required documents, applicant uploads, and internal review notes."

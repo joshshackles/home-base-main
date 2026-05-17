@@ -34,7 +34,7 @@ export default async function LandlordLedgerPage({ searchParams }: { searchParam
   const payments = totals.payments;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <LandlordPageHeader title="Ledger" description="Review charges, payments, credits, and balances connected to your assigned units." />
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><p className="text-sm font-bold uppercase tracking-wide text-slate-500">Charges</p><p className="mt-2 text-4xl font-black text-slate-950">{formatCurrency(charges)}</p></div>

@@ -1,5 +1,6 @@
 import type { Prisma, SecurityEventType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 type SecurityEventInput = {
   type: SecurityEventType;
@@ -21,6 +22,6 @@ export async function writeSecurityEvent(input: SecurityEventInput) {
       }
     });
   } catch (error) {
-    console.error("Security event write failed", error);
+    logger.error("Security event write failed", error, { type: input.type, userId: input.userId, email: input.email });
   }
 }

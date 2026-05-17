@@ -21,7 +21,7 @@ export default async function LandlordApplicationDetailPage({ params }: { params
   if (!application) notFound();
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
       <LandlordPageHeader title={application.applicantName} description="View this application and add landlord notes. Application status decisions remain admin-only." actionHref="/landlord/applications" actionLabel="Back to applications" />
       <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">

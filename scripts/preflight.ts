@@ -94,14 +94,28 @@ for (const requiredSchemaText of ["generatedFromScheduleId", "generatedForPeriod
 }
 
 const storageProvider = (process.env.DOCUMENT_STORAGE_PROVIDER || (process.env.NODE_ENV === "production" ? "database" : "local")).toLowerCase();
-if (!["database", "local"].includes(storageProvider)) {
-  console.error("DOCUMENT_STORAGE_PROVIDER must be database or local.");
+if (!["database", "local", "s3"].includes(storageProvider)) {
+  console.error("DOCUMENT_STORAGE_PROVIDER must be database, local, or s3.");
   failed = true;
 }
 
 if (process.env.NODE_ENV === "production" && storageProvider === "local") {
-  console.error("DOCUMENT_STORAGE_PROVIDER=local is not durable on Vercel/serverless deployments. Use database for production.");
+  console.error("DOCUMENT_STORAGE_PROVIDER=local is not durable on Vercel/serverless deployments. Use s3 for production.");
   failed = true;
+}
+
+if (process.env.NODE_ENV === "production" && storageProvider === "database") {
+  console.error("DOCUMENT_STORAGE_PROVIDER=database stores document bytes in Postgres. Use s3 for production scale.");
+  failed = true;
+}
+
+if (storageProvider === "s3") {
+  for (const key of ["DOCUMENT_S3_BUCKET", "DOCUMENT_S3_REGION", "DOCUMENT_S3_ACCESS_KEY_ID", "DOCUMENT_S3_SECRET_ACCESS_KEY"]) {
+    if (!process.env[key]) {
+      console.error(`${key} is required when DOCUMENT_STORAGE_PROVIDER=s3.`);
+      failed = true;
+    }
+  }
 }
 
 if (storageProvider === "local") {

@@ -57,7 +57,7 @@ export default async function AdminDocumentsPage({ searchParams }: { searchParam
   ]);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader title="Documents" description="Upload, categorize, review, and manage files connected to applications, properties, and units." />
       <AdminListControls searchPlaceholder="Search documents by title, filename, applicant, property, unit, or notes..." defaultQuery={query}>
         <FilterSelect name="status" label="Status" defaultValue={status ?? ""} options={[{ value: "", label: "All statuses" }, ...Object.values(DocumentStatus).map((value) => ({ value, label: label(value) }))]} />

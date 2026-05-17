@@ -19,7 +19,7 @@ export default async function ApplicantStatementPage() {
   const seed = entries[0];
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 print:max-w-none print:px-0 print:py-0 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-5xl px-4 py-10 print:max-w-none print:px-0 print:py-0 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-wrap gap-3 print:hidden">
         <Link className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" href="/applicant/ledger">Back to Ledger</Link>
         <Link className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" href="/applicant/ledger/statement/export">Download CSV</Link>

@@ -21,6 +21,7 @@ import {
 import { saveUploadedDocument } from "@/lib/storage";
 import { writeAuditLog } from "@/lib/audit";
 import { completeLeaseIfReadyAndFinalize } from "@/lib/signed-lease";
+import { ELECTRONIC_SIGNATURE_CONSENT_TEXT, buildSignatureEvidenceHash, leaseTextHash } from "@/lib/e-signature";
 
 async function requireApplicantAction() {
   return await requireRole(["APPLICANT", "TENANT"], "/applicant");
@@ -233,7 +234,14 @@ export async function signApplicantLease(formData: FormData) {
       leasePacket: { status: LeasePacketStatus.SENT_FOR_SIGNATURE },
       OR: [{ signerUserId: user.userId }, { signerEmail: user.email }]
     },
-    include: { leasePacket: { select: { id: true, applicationId: true } } }
+    include: {
+      leasePacket: {
+        include: {
+          template: true,
+          application: { include: { applicantUser: true, unit: { include: { property: { include: { owner: true } } } } } }
+        }
+      }
+    }
   });
 
   if (!request) throw new Error("This signature request is not available for your account.");
@@ -243,20 +251,42 @@ export async function signApplicantLease(formData: FormData) {
   }
 
   const h = headers();
+  const signedAt = new Date();
+  const ipAddress = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const userAgent = h.get("user-agent") ?? null;
+  const documentTextHash = leaseTextHash(request.leasePacket);
+  const signatureEvidenceHash = buildSignatureEvidenceHash({
+    leasePacketId: request.leasePacketId,
+    signatureRequestId: request.id,
+    signerEmail: request.signerEmail,
+    signerRole: request.signerRole,
+    signatureText: parsed.data.signatureText,
+    signedAt,
+    documentTextHash,
+    consentText: ELECTRONIC_SIGNATURE_CONSENT_TEXT,
+    ipAddress,
+    userAgent
+  });
+
   await prisma.signatureRequest.update({
     where: { id: request.id },
     data: {
       signerUserId: user.userId,
       signatureText: parsed.data.signatureText,
       status: SignatureStatus.SIGNED,
-      signedAt: new Date(),
-      ipAddress: h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
-      userAgent: h.get("user-agent") ?? null
+      signedAt,
+      ipAddress,
+      userAgent,
+      electronicConsentAccepted: true,
+      electronicConsentText: ELECTRONIC_SIGNATURE_CONSENT_TEXT,
+      electronicConsentAcceptedAt: signedAt,
+      documentTextHash,
+      signatureEvidenceHash
     }
   });
 
   await prisma.leaseNote.create({ data: { leasePacketId: request.leasePacketId, note: `[Tenant] ${user.email} signed the lease packet.` } });
-  await writeAuditLog({ actor: user, action: AuditAction.SIGN, entityType: "SignatureRequest", entityId: request.id, message: `Tenant signature completed by ${user.email}.`, metadata: { leasePacketId: request.leasePacketId } });
+  await writeAuditLog({ actor: user, action: AuditAction.SIGN, entityType: "SignatureRequest", entityId: request.id, message: `Tenant signature completed by ${user.email}.`, metadata: { leasePacketId: request.leasePacketId, documentTextHash, signatureEvidenceHash, electronicConsentAccepted: true } });
   await completeLeaseIfReadyAndFinalize({ leasePacketId: request.leasePacketId, actor: user });
 
   revalidateApplicant();
