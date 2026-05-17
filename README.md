@@ -1,6 +1,11 @@
 
 
-# HomeBase MLS v2.6.10
+# HomeBase MLS v2.6.11
+
+## v2.6.11 - Vercel Build-Time Database Guard
+
+- Forces the app route tree to render dynamically so Vercel does not attempt build-time Prisma queries while collecting pages.
+- Vercel still needs these environment variables in Project Settings: `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `DOCUMENT_STORAGE_PROVIDER`, `APP_URL`, and email provider values.
 
 ## v2.6.10 - Vercel/Neon Production Hardening
 

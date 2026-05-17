@@ -33,7 +33,7 @@ export default async function AdminPage() {
     { label: "Notices", value: notificationCount, icon: BellRing, href: "/admin/notifications" },
     { label: "Users", value: userCount, icon: Users, href: "/admin/users" },
     { label: "Audit", value: auditCount, icon: Activity, href: "/admin/audit" },
-    { label: "System", value: "2.6.10", icon: ServerCog, href: "/admin/system" },
+    { label: "System", value: "2.6.11", icon: ServerCog, href: "/admin/system" },
     { label: "Security", value: securityEventCount, icon: ShieldCheck, href: "/admin/security/events" }
   ];
 
@@ -71,7 +71,7 @@ export default async function AdminPage() {
       </section>
 
       <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-2xl font-black text-slate-950">v2.6.10 build focus</h2>
+        <h2 className="text-2xl font-black text-slate-950">v2.6.11 build focus</h2>
         <p className="mt-3 max-w-3xl leading-7 text-slate-600">
           This release adds the rent and payment ledger foundation with charges, payments, credits, balances, admin controls, and scoped landlord/applicant visibility.
         </p>
