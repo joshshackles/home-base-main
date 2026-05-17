@@ -1,3 +1,20 @@
+## v3.1.1 - Public homepage polish and marketplace readiness
+
+- Refined the homepage to more closely match the generated public-facing mockup with a polished hero, floating dashboard preview, audience cards, marketplace preview, workflow rows, trust section, testimonial, and final CTA band.
+- Connected homepage section navigation, landlord/applicant CTAs, sign-in links, marketplace search form, and live listing cards to real application routes.
+- Added live marketplace preview data from available units with a safe fallback preview when no listings exist yet.
+- Kept the homepage dynamic and Vercel-ready so public listings can render from the deployed database.
+- Bumped package version to 3.1.1.
+
+
+## v3.1.0 - Public homepage conversion upgrade
+
+- Rebuilt the homepage into a public-facing sales and signup page for landlords, applicants, and tenants.
+- Added working in-page section navigation for landlords, tenants, marketplace, workflow, and trust sections.
+- Added a prominent marketplace preview with searchable form controls that submit to `/marketplace`.
+- Added landlord and tenant audience panels, workflow timelines, trust signals, feature grids, and final conversion CTAs.
+- Bumped package version to 3.1.0.
+
 
 ## 3.0.9 - Unit Media and Listing Detail Upgrade
 
