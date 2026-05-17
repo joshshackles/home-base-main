@@ -14,7 +14,14 @@ export default async function LandlordUnitsPage() {
   const user = await requireRole(["LANDLORD"], "/landlord");
   const units = await prisma.unit.findMany({
     where: { property: { ownerId: user.userId, isArchived: false }, NOT: { status: "ARCHIVED" } },
-    include: { property: true, tenantUser: true, currentApplication: true, leads: true, applications: true },
+    include: {
+      property: true,
+      tenantUser: true,
+      currentApplication: true,
+      leads: true,
+      applications: true,
+      photos: { orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }], take: 1 }
+    },
     orderBy: [{ property: { name: "asc" } }, { unitNumber: "asc" }]
   });
 
@@ -33,6 +40,42 @@ export default async function LandlordUnitsPage() {
           <p className="mt-1 text-sm leading-6 text-slate-700">Best for apartment buildings, complexes, duplexes, or properties with multiple rentable units.</p>
         </Link>
       </div>
+      {units.length > 0 ? (
+        <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {units.map((unit) => {
+            const featuredPhoto = unit.photos[0];
+            return (
+              <Link key={unit.id} href={`/landlord/units/${unit.id}`} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-xl">
+                <div className="relative h-44 bg-slate-950">
+                  {featuredPhoto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={`/api/unit-photos/${featuredPhoto.id}`} alt={`${unit.property.name} ${unit.unitNumber}`} className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-950 via-slate-800 to-brand-700 text-sm font-black uppercase tracking-[0.25em] text-white/80">No photo yet</div>
+                  )}
+                  <span className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-black uppercase text-slate-800">{label(unit.status)}</span>
+                </div>
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-black text-slate-950">{unit.property.name} #{unit.unitNumber}</h2>
+                      <p className="mt-1 text-sm text-slate-600">{unit.property.addressLine}, {unit.property.city}</p>
+                    </div>
+                    <p className="text-right text-lg font-black text-slate-950">{formatCurrency(unit.rentAmount)}</p>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-bold text-slate-700">
+                    <span className="rounded-2xl bg-slate-50 px-2 py-2">{unit.bedrooms} bed</span>
+                    <span className="rounded-2xl bg-slate-50 px-2 py-2">{unit.bathrooms} bath</span>
+                    <span className="rounded-2xl bg-slate-50 px-2 py-2">{unit.leads.length} leads</span>
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-slate-600">{unit.tenantUser ? `Tenant: ${unit.tenantUser.name || unit.tenantUser.email}` : unit.currentApplication?.applicantName ? `Linked to ${unit.currentApplication.applicantName}` : "No tenant assigned"}</p>
+                  <p className="mt-3 text-sm font-black text-brand-700">Open unit workspace</p>
+                </div>
+              </Link>
+            );
+          })}
+        </section>
+      ) : null}
       <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">

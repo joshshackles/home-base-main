@@ -56,6 +56,24 @@ export function SingleFamilyHomeForm() {
         <Field label="Square feet">
           <input name="squareFeet" type="number" min="0" step="1" className={inputClass} />
         </Field>
+        <Field label="School district">
+          <input name="schoolDistrict" className={inputClass} placeholder="Joplin Schools" />
+        </Field>
+        <Field label="Neighborhood / area">
+          <input name="neighborhood" className={inputClass} placeholder="Near downtown, hospital district, quiet cul-de-sac..." />
+        </Field>
+        <Field label="Year built">
+          <input name="yearBuilt" type="number" min="1800" step="1" className={inputClass} />
+        </Field>
+        <Field label="Roof age">
+          <input name="roofAgeYears" type="number" min="0" step="1" className={inputClass} placeholder="Years" />
+        </Field>
+        <Field label="Average utility bill">
+          <input name="averageUtilityBill" type="number" min="0" step="1" className={inputClass} />
+        </Field>
+        <Field label="Rent due day">
+          <input name="rentDueDay" type="number" min="1" max="31" step="1" className={inputClass} placeholder="1" />
+        </Field>
         <div className="rounded-2xl bg-brand-50 p-4">
           <label className="flex items-start gap-3 text-sm font-semibold text-brand-900">
             <input type="checkbox" name="voucherFriendly" className="mt-1 h-4 w-4 rounded border-slate-300" />
@@ -70,6 +88,36 @@ export function SingleFamilyHomeForm() {
         </Field>
         <Field label="Accessibility notes">
           <textarea name="accessibility" className={textareaClass} placeholder="Example: One-step entry, main-floor bedroom, driveway parking." />
+        </Field>
+        <Field label="Nearby features">
+          <textarea name="nearbyFeatures" className={textareaClass} placeholder="Bus stop, schools, parks, grocery, employers, medical offices..." />
+        </Field>
+        <Field label="Parking">
+          <textarea name="parkingInfo" className={textareaClass} placeholder="Garage, driveway, assigned space, street parking..." />
+        </Field>
+        <Field label="Laundry">
+          <textarea name="laundryInfo" className={textareaClass} placeholder="In-unit, hookups, shared laundry, laundromat nearby..." />
+        </Field>
+        <Field label="Appliances included">
+          <textarea name="appliancesIncluded" className={textareaClass} placeholder="Fridge, stove, dishwasher, microwave, washer/dryer..." />
+        </Field>
+        <Field label="Flooring / finishes">
+          <textarea name="flooringInfo" className={textareaClass} placeholder="Hardwood, vinyl plank, carpeted bedrooms, fresh paint..." />
+        </Field>
+        <Field label="Yard / outdoor space">
+          <textarea name="yardInfo" className={textareaClass} placeholder="Fenced yard, porch, lawn care, shed, patio..." />
+        </Field>
+        <Field label="Smoking policy">
+          <textarea name="smokingPolicy" className={textareaClass} />
+        </Field>
+        <Field label="Lease terms">
+          <textarea name="leaseTermsNote" className={textareaClass} placeholder="12-month lease, month-to-month option, renewal expectations..." />
+        </Field>
+        <Field label="Move-in fees">
+          <textarea name="moveInFeesNote" className={textareaClass} placeholder="Pet deposit, key fee, utility transfer expectations..." />
+        </Field>
+        <Field label="Late fee policy">
+          <textarea name="lateFeePolicy" className={textareaClass} placeholder="Grace period, flat fee, payment arrangement notes..." />
         </Field>
         <Field label="Listing description">
           <textarea name="description" className={textareaClass} placeholder="Describe the home, neighborhood, yard, parking, appliances, and application expectations." />

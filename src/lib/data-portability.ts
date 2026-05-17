@@ -12,6 +12,7 @@ export const DATA_PORTABILITY_MODELS: PortableModel[] = [
   { key: "accountAccessRequests", delegate: "accountAccessRequest" },
   { key: "properties", delegate: "property" },
   { key: "units", delegate: "unit" },
+  { key: "unitPhotos", delegate: "unitPhoto" },
   { key: "leads", delegate: "lead" },
   { key: "leadNotes", delegate: "leadNote" },
   { key: "applications", delegate: "application" },

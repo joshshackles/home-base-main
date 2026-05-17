@@ -41,6 +41,23 @@ type LandlordUnitFormProps = {
     utilitiesNote: string | null;
     accessibility: string | null;
     petPolicy: string | null;
+    schoolDistrict: string | null;
+    neighborhood: string | null;
+    nearbyFeatures: string | null;
+    yearBuilt: number | null;
+    roofAgeYears: number | null;
+    averageUtilityBill: number | null;
+    parkingInfo: string | null;
+    laundryInfo: string | null;
+    appliancesIncluded: string | null;
+    flooringInfo: string | null;
+    yardInfo: string | null;
+    smokingPolicy: string | null;
+    leaseTermsNote: string | null;
+    moveInFeesNote: string | null;
+    rentDueDay: number | null;
+    lateFeePolicy: string | null;
+    previousTenantNotes: string | null;
     status: UnitStatus;
     description: string | null;
     clientNotes: string | null;
@@ -101,6 +118,24 @@ export function LandlordUnitForm({ properties, tenants = [], applications = [], 
         <Field label="Square feet">
           <input name="squareFeet" type="number" min="0" step="1" defaultValue={unit?.squareFeet ?? ""} className={inputClass} />
         </Field>
+        <Field label="School district">
+          <input name="schoolDistrict" defaultValue={unit?.schoolDistrict ?? ""} className={inputClass} placeholder="Joplin Schools" />
+        </Field>
+        <Field label="Neighborhood / area">
+          <input name="neighborhood" defaultValue={unit?.neighborhood ?? ""} className={inputClass} placeholder="Eastmoreland, downtown, near hospital..." />
+        </Field>
+        <Field label="Year built">
+          <input name="yearBuilt" type="number" min="1800" step="1" defaultValue={unit?.yearBuilt ?? ""} className={inputClass} />
+        </Field>
+        <Field label="Roof age">
+          <input name="roofAgeYears" type="number" min="0" step="1" defaultValue={unit?.roofAgeYears ?? ""} className={inputClass} placeholder="Years" />
+        </Field>
+        <Field label="Average utility bill">
+          <input name="averageUtilityBill" type="number" min="0" step="1" defaultValue={unit?.averageUtilityBill ?? ""} className={inputClass} />
+        </Field>
+        <Field label="Rent due day">
+          <input name="rentDueDay" type="number" min="1" max="31" step="1" defaultValue={unit?.rentDueDay ?? ""} className={inputClass} placeholder="1" />
+        </Field>
         <div className="rounded-2xl bg-brand-50 p-4 md:col-span-2">
           <label className="flex items-start gap-3 text-sm font-semibold text-brand-900">
             <input type="checkbox" name="voucherFriendly" defaultChecked={unit?.voucherFriendly ?? false} className="mt-1 h-4 w-4 rounded border-slate-300" />
@@ -118,6 +153,36 @@ export function LandlordUnitForm({ properties, tenants = [], applications = [], 
         </Field>
         <Field label="Accessibility notes">
           <textarea name="accessibility" defaultValue={unit?.accessibility ?? ""} className={textareaClass} />
+        </Field>
+        <Field label="Nearby features">
+          <textarea name="nearbyFeatures" defaultValue={unit?.nearbyFeatures ?? ""} className={textareaClass} placeholder="Bus routes, parks, grocery, medical, schools, employers..." />
+        </Field>
+        <Field label="Parking">
+          <textarea name="parkingInfo" defaultValue={unit?.parkingInfo ?? ""} className={textareaClass} placeholder="Garage, driveway, street parking, assigned spaces..." />
+        </Field>
+        <Field label="Laundry">
+          <textarea name="laundryInfo" defaultValue={unit?.laundryInfo ?? ""} className={textareaClass} placeholder="In-unit, hookups, shared laundry, laundromat nearby..." />
+        </Field>
+        <Field label="Appliances included">
+          <textarea name="appliancesIncluded" defaultValue={unit?.appliancesIncluded ?? ""} className={textareaClass} placeholder="Fridge, stove, dishwasher, microwave, washer/dryer..." />
+        </Field>
+        <Field label="Flooring / finishes">
+          <textarea name="flooringInfo" defaultValue={unit?.flooringInfo ?? ""} className={textareaClass} placeholder="Hardwood, vinyl plank, carpeted bedrooms, fresh paint..." />
+        </Field>
+        <Field label="Yard / outdoor space">
+          <textarea name="yardInfo" defaultValue={unit?.yardInfo ?? ""} className={textareaClass} placeholder="Fenced yard, porch, patio, lawn care expectations..." />
+        </Field>
+        <Field label="Smoking policy">
+          <textarea name="smokingPolicy" defaultValue={unit?.smokingPolicy ?? ""} className={textareaClass} />
+        </Field>
+        <Field label="Lease terms">
+          <textarea name="leaseTermsNote" defaultValue={unit?.leaseTermsNote ?? ""} className={textareaClass} placeholder="12-month lease, month-to-month option, renewal expectations..." />
+        </Field>
+        <Field label="Move-in fees">
+          <textarea name="moveInFeesNote" defaultValue={unit?.moveInFeesNote ?? ""} className={textareaClass} placeholder="Application fee, pet deposit, key fee, utility transfer expectations..." />
+        </Field>
+        <Field label="Late fee policy">
+          <textarea name="lateFeePolicy" defaultValue={unit?.lateFeePolicy ?? ""} className={textareaClass} placeholder="Grace period, flat fee, daily fee, payment arrangement notes..." />
         </Field>
         <Field label="Unit description">
           <textarea name="description" defaultValue={unit?.description ?? ""} className={textareaClass} />
@@ -143,6 +208,9 @@ export function LandlordUnitForm({ properties, tenants = [], applications = [], 
         </Field>
         <Field label="Client notes">
           <textarea name="clientNotes" defaultValue={unit?.clientNotes ?? ""} className={textareaClass} placeholder="Private landlord notes about tenant preferences, communication history, or support details." />
+        </Field>
+        <Field label="Previous tenant notes">
+          <textarea name="previousTenantNotes" defaultValue={unit?.previousTenantNotes ?? ""} className={textareaClass} placeholder="Turnover history, deposit outcomes, renewal notes, lessons learned for this unit." />
         </Field>
       </div>
 

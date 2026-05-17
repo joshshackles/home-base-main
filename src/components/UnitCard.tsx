@@ -17,8 +17,12 @@ type UnitCardProps = {
     utilitiesNote: string | null;
     petPolicy: string | null;
     accessibility: string | null;
+    schoolDistrict?: string | null;
+    neighborhood?: string | null;
+    averageUtilityBill?: number | null;
     status: string;
     description: string | null;
+    photos?: Array<{ id: string; isFeatured: boolean }>;
     property: {
       name: string;
       addressLine: string;
@@ -35,6 +39,8 @@ type UnitCardProps = {
 function featureText(unit: UnitCardProps["unit"]) {
   const features = [];
   if (unit.voucherFriendly) features.push("Voucher-friendly");
+  if (unit.schoolDistrict) features.push(unit.schoolDistrict);
+  if (unit.neighborhood) features.push(unit.neighborhood);
   if (unit.petPolicy) features.push("Pet notes");
   if (unit.accessibility) features.push("Accessibility notes");
   if (unit.utilitiesNote) features.push("Utility details");
@@ -43,10 +49,16 @@ function featureText(unit: UnitCardProps["unit"]) {
 
 export function UnitCard({ unit, isFavorite = false, matchScore = null, compact = false }: UnitCardProps) {
   const features = featureText(unit);
+  const featuredPhoto = unit.photos?.[0];
 
   return (
     <article className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-xl">
-      <div className="relative min-h-52 bg-[radial-gradient(circle_at_top_left,#38bdf8_0,#0f172a_34%,#172554_72%,#14532d_100%)] p-5 text-white">
+      <div className="relative min-h-52 overflow-hidden bg-[radial-gradient(circle_at_top_left,#38bdf8_0,#0f172a_34%,#172554_72%,#14532d_100%)] p-5 text-white">
+        {featuredPhoto ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={`/api/unit-photos/${featuredPhoto.id}`} alt={`${unit.property.name} ${unit.unitNumber}`} className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" />
+        ) : null}
+        {featuredPhoto ? <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-slate-950/25" /> : null}
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950/55 to-transparent" />
         <div className="relative flex items-start justify-between gap-3">
           <div className="rounded-2xl bg-white/10 p-3 ring-1 ring-white/15 backdrop-blur">
@@ -81,7 +93,7 @@ export function UnitCard({ unit, isFavorite = false, matchScore = null, compact 
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-3xl font-black text-slate-950">{formatCurrency(unit.rentAmount)}</p>
-            <p className="text-sm text-slate-500">monthly rent{unit.deposit ? ` · ${formatCurrency(unit.deposit)} deposit` : ""}</p>
+            <p className="text-sm text-slate-500">monthly rent{unit.deposit ? ` - ${formatCurrency(unit.deposit)} deposit` : ""}</p>
           </div>
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-emerald-700">
             Available
@@ -102,6 +114,9 @@ export function UnitCard({ unit, isFavorite = false, matchScore = null, compact 
           {features.length === 0 ? <Feature icon={<Sparkles size={14} />} label="Fresh listing" /> : null}
           {unit.voucherFriendly ? <Feature icon={<ShieldCheck size={14} />} label="Voucher-friendly" tone="brand" /> : null}
           {unit.utilitiesNote ? <Feature icon={<WalletCards size={14} />} label="Utility details" /> : null}
+          {unit.averageUtilityBill ? <Feature icon={<WalletCards size={14} />} label={`Avg. utilities ${formatCurrency(unit.averageUtilityBill)}`} /> : null}
+          {unit.schoolDistrict ? <Feature icon={<CheckCircle2 size={14} />} label={unit.schoolDistrict} /> : null}
+          {unit.neighborhood ? <Feature icon={<MapPin size={14} />} label={unit.neighborhood} /> : null}
           {unit.petPolicy ? <Feature icon={<CheckCircle2 size={14} />} label="Pet notes" /> : null}
           {unit.accessibility ? <Feature icon={<CheckCircle2 size={14} />} label="Accessible notes" /> : null}
         </div>

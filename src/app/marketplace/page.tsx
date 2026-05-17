@@ -57,7 +57,7 @@ function getSort(sort?: string): Prisma.UnitOrderByWithRelationInput[] {
 async function getUnits(where: Prisma.UnitWhereInput, take: number, skip: number, sort?: string) {
   return prisma.unit.findMany({
     where,
-    include: { property: true },
+    include: { property: true, photos: { orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }], take: 1 } },
     orderBy: getSort(sort),
     take,
     skip
@@ -112,6 +112,9 @@ export default async function MarketplacePage({ searchParams }: { searchParams?:
         { utilitiesNote: { contains: q, mode: "insensitive" } },
         { petPolicy: { contains: q, mode: "insensitive" } },
         { accessibility: { contains: q, mode: "insensitive" } },
+        { schoolDistrict: { contains: q, mode: "insensitive" } },
+        { neighborhood: { contains: q, mode: "insensitive" } },
+        { nearbyFeatures: { contains: q, mode: "insensitive" } },
         { property: { name: { contains: q, mode: "insensitive" } } },
         { property: { addressLine: { contains: q, mode: "insensitive" } } },
         { property: { city: { contains: q, mode: "insensitive" } } }
@@ -263,7 +266,13 @@ export default async function MarketplacePage({ searchParams }: { searchParams?:
             {featured ? (
               <section className="mb-6 overflow-hidden rounded-3xl border border-brand-100 bg-white shadow-sm">
                 <div className="grid gap-0 lg:grid-cols-[0.9fr_1.1fr]">
-                  <div className="bg-[radial-gradient(circle_at_top_left,#0ea5e9,#0f172a_48%,#14532d)] p-8 text-white">
+                  <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,#0ea5e9,#0f172a_48%,#14532d)] p-8 text-white">
+                    {featured.photos[0] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={`/api/unit-photos/${featured.photos[0].id}`} alt={`${featured.property.name} featured rental`} className="absolute inset-0 h-full w-full object-cover" />
+                    ) : null}
+                    {featured.photos[0] ? <div className="absolute inset-0 bg-slate-950/55" /> : null}
+                    <div className="relative">
                     <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-bold ring-1 ring-white/15">
                       <Sparkles size={15} /> Featured match
                     </div>
@@ -273,6 +282,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams?:
                       <Mini icon={<BedDouble size={17} />} value={`${featured.bedrooms} bed`} />
                       <Mini icon={<Bath size={17} />} value={`${featured.bathrooms} bath`} />
                       <Mini icon={<WalletCards size={17} />} value={formatCurrency(featured.rentAmount)} />
+                    </div>
                     </div>
                   </div>
                   <div className="p-6">

@@ -20,7 +20,7 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
       status: "AVAILABLE",
       property: { isArchived: false }
     },
-    include: { property: true }
+    include: { property: true, photos: { orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }] } }
   });
 
   if (!unit) notFound();
@@ -41,8 +41,13 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
 
       <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-          <div className="flex min-h-72 items-center justify-center bg-gradient-to-br from-slate-950 via-slate-800 to-brand-700 p-10 text-white">
-            <div className="text-center">
+          <div className="relative flex min-h-72 items-center justify-center overflow-hidden bg-gradient-to-br from-slate-950 via-slate-800 to-brand-700 p-10 text-white">
+            {unit.photos[0] ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={`/api/unit-photos/${unit.photos[0].id}`} alt={`${unit.property.name} ${unit.unitNumber}`} className="absolute inset-0 h-full w-full object-cover" />
+            ) : null}
+            {unit.photos[0] ? <div className="absolute inset-0 bg-slate-950/55" /> : null}
+            <div className="relative text-center">
               <Home className="mx-auto mb-4" size={48} />
               <p className="text-sm font-bold uppercase tracking-[0.3em] text-blue-100">Unit {unit.unitNumber}</p>
               <h1 className="mt-3 text-4xl font-black">{unit.property.name}</h1>
@@ -56,7 +61,7 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
               <div>
                 <p className="text-4xl font-black text-slate-950">{formatCurrency(unit.rentAmount)}</p>
-                <p className="mt-1 text-slate-500">monthly rent{unit.deposit ? ` • ${formatCurrency(unit.deposit)} deposit` : ""}</p>
+                <p className="mt-1 text-slate-500">monthly rent{unit.deposit ? ` - ${formatCurrency(unit.deposit)} deposit` : ""}</p>
               </div>
               <span className="w-fit rounded-full bg-emerald-50 px-4 py-2 text-sm font-black uppercase tracking-wide text-emerald-700">Available</span>
             </div>
@@ -84,6 +89,18 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
               <p className="mt-3 leading-7 text-slate-600">{unit.description ?? "No unit description has been added yet."}</p>
             </div>
 
+            {unit.photos.length > 1 ? (
+              <div>
+                <h2 className="text-2xl font-black text-slate-950">Photos</h2>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {unit.photos.map((photo) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={photo.id} src={`/api/unit-photos/${photo.id}`} alt={`${unit.property.name} photo`} className="aspect-[4/3] w-full rounded-3xl object-cover" />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             <div className="grid gap-4 md:grid-cols-2">
               {unit.voucherFriendly ? (
                 <div className="rounded-3xl border border-brand-100 bg-brand-50 p-5 text-brand-900">
@@ -94,6 +111,17 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
               <InfoBlock title="Utilities" value={unit.utilitiesNote} fallback="No utilities note has been added." />
               <InfoBlock title="Pet policy" value={unit.petPolicy} fallback="No pet policy has been added." />
               <InfoBlock title="Accessibility" value={unit.accessibility} fallback="No accessibility notes have been added." />
+              <InfoBlock title="School district" value={unit.schoolDistrict} fallback="School district has not been added." />
+              <InfoBlock title="Neighborhood" value={unit.neighborhood} fallback="Neighborhood details have not been added." />
+              <InfoBlock title="Nearby features" value={unit.nearbyFeatures} fallback="Nearby features have not been added." />
+              <InfoBlock title="Average utilities" value={unit.averageUtilityBill ? `${formatCurrency(unit.averageUtilityBill)} estimated monthly average` : null} fallback="Average utility estimate has not been added." />
+              <InfoBlock title="Parking" value={unit.parkingInfo} fallback="Parking details have not been added." />
+              <InfoBlock title="Laundry" value={unit.laundryInfo} fallback="Laundry details have not been added." />
+              <InfoBlock title="Appliances" value={unit.appliancesIncluded} fallback="Appliance details have not been added." />
+              <InfoBlock title="Outdoor space" value={unit.yardInfo} fallback="Outdoor space details have not been added." />
+              <InfoBlock title="Lease terms" value={unit.leaseTermsNote} fallback="Lease terms have not been added." />
+              <InfoBlock title="Move-in fees" value={unit.moveInFeesNote} fallback="Move-in fee details have not been added." />
+              <InfoBlock title="Home age" value={unit.yearBuilt ? `Built in ${unit.yearBuilt}${unit.roofAgeYears !== null ? `; roof about ${unit.roofAgeYears} years old` : ""}` : null} fallback="Home age details have not been added." />
             </div>
           </div>
         </div>
@@ -113,7 +141,7 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
             </div>
           ) : null}
 
-          <h2 className="text-2xl font-black text-slate-950">I’m interested</h2>
+          <h2 className="text-2xl font-black text-slate-950">I'm interested</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">Send a basic inquiry tied to this unit. This is the first step toward a full application workflow.</p>
 
           {isApplicant ? (

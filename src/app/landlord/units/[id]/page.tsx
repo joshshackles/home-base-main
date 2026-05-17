@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { MaintenancePriority, MessageThreadType } from "@prisma/client";
-import { createLandlordMaintenanceRequest } from "@/app/landlord/actions";
+import { createLandlordMaintenanceRequest, deleteLandlordUnitPhoto, setFeaturedLandlordUnitPhoto, uploadLandlordUnitPhotos } from "@/app/landlord/actions";
 import { sendWorkflowMessage } from "@/app/workflow-actions";
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";
 import { formatCurrency } from "@/lib/format";
@@ -20,7 +20,7 @@ function dateLabel(value: Date | null | undefined) {
   return value ? value.toLocaleDateString() : "Not set";
 }
 
-export default async function LandlordUnitDetailPage({ params, searchParams }: { params: { id: string }; searchParams?: { repair?: string } }) {
+export default async function LandlordUnitDetailPage({ params, searchParams }: { params: { id: string }; searchParams?: { repair?: string; photos?: string } }) {
   const user = await requireRole(["LANDLORD"], "/landlord");
   const unit = await prisma.unit.findFirst({
     where: { id: params.id, property: { ownerId: user.userId, isArchived: false }, NOT: { status: "ARCHIVED" } },
@@ -28,7 +28,8 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
       property: true,
       tenantUser: true,
       currentApplication: { include: { applicantUser: true } },
-      applications: { orderBy: { updatedAt: "desc" }, include: { applicantUser: true } }
+      applications: { orderBy: { updatedAt: "desc" }, include: { applicantUser: true } },
+      photos: { orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }] }
     }
   });
 
@@ -81,6 +82,9 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
   const balance = ledgerBalance(ledgerEntries);
   const payments = ledgerEntries.filter((entry) => entry.type === "PAYMENT" || entry.type === "CREDIT");
   const repairCreated = searchParams?.repair === "created";
+  const photoStatus = searchParams?.photos;
+  const moveInTotal = unit.rentAmount + (unit.deposit ?? 0);
+  const tenantHistory = unit.applications.filter((application) => application.id !== primaryApplication?.id);
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -95,6 +99,40 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="space-y-6">
+          <Panel title="Photos">
+            {photoStatus ? <p className="mb-4 rounded-2xl bg-emerald-50 p-4 font-bold text-emerald-900">Photo library updated.</p> : null}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {unit.photos.map((photo) => (
+                <div key={photo.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/api/unit-photos/${photo.id}`} alt={`${unit.property.name} photo`} className="aspect-[4/3] w-full object-cover" />
+                  <div className="space-y-2 p-3">
+                    {photo.isFeatured ? <p className="rounded-full bg-brand-50 px-3 py-1 text-xs font-black uppercase text-brand-700">Featured photo</p> : null}
+                    <div className="flex gap-2">
+                      <form action={setFeaturedLandlordUnitPhoto} className="flex-1">
+                        <input type="hidden" name="id" value={unit.id} />
+                        <input type="hidden" name="photoId" value={photo.id} />
+                        <button className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-white" type="submit">Feature</button>
+                      </form>
+                      <form action={deleteLandlordUnitPhoto}>
+                        <input type="hidden" name="id" value={unit.id} />
+                        <input type="hidden" name="photoId" value={photo.id} />
+                        <button className="rounded-xl border border-rose-200 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50" type="submit">Delete</button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {unit.photos.length === 0 ? <p className="rounded-3xl border border-dashed border-slate-300 p-6 text-slate-600">No listing photos yet. Add clear exterior, kitchen, bath, bedroom, living area, parking, yard, and neighborhood photos.</p> : null}
+            </div>
+            <form action={uploadLandlordUnitPhotos} className="mt-5 rounded-2xl bg-slate-50 p-4">
+              <input type="hidden" name="id" value={unit.id} />
+              <label className="block text-sm font-black text-slate-950">Upload photos ({unit.photos.length}/12)</label>
+              <input name="photos" type="file" multiple accept="image/*" className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm" />
+              <button type="submit" className="mt-3 rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700">Upload Photos</button>
+            </form>
+          </Panel>
+
           <Panel title="Tenant">
             <div className="grid gap-4 md:grid-cols-2">
               <Info label="Name" value={tenantName} />
@@ -107,6 +145,56 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
               <Link href={`/landlord/units/${unit.id}/edit`} className="rounded-2xl border border-slate-300 px-4 py-2 font-bold text-slate-900 hover:bg-slate-50">Edit Assignment</Link>
               {unit.status === "AVAILABLE" ? <Link href={`/marketplace/${unit.id}`} className="rounded-2xl border border-slate-300 px-4 py-2 font-bold text-slate-900 hover:bg-slate-50">Public Listing</Link> : null}
             </div>
+          </Panel>
+
+          <Panel title="Rent, Deposit, and Move-In Terms">
+            <div className="grid gap-4 md:grid-cols-3">
+              <Info label="Monthly rent" value={formatCurrency(unit.rentAmount)} />
+              <Info label="Deposit" value={unit.deposit ? formatCurrency(unit.deposit) : "Not set"} />
+              <Info label="Estimated move-in" value={formatCurrency(moveInTotal)} />
+              <Info label="Rent due day" value={unit.rentDueDay ? `Day ${unit.rentDueDay}` : "Not set"} />
+              <Info label="Average utilities" value={unit.averageUtilityBill ? formatCurrency(unit.averageUtilityBill) : "Not set"} />
+              <Info label="Late fee policy" value={unit.lateFeePolicy ?? "Not set"} />
+            </div>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <Info label="Lease terms" value={unit.leaseTermsNote ?? "Not set"} />
+              <Info label="Move-in fees" value={unit.moveInFeesNote ?? "Not set"} />
+            </div>
+          </Panel>
+
+          <Panel title="Listing and Location Details">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Info label="School district" value={unit.schoolDistrict ?? "Not set"} />
+              <Info label="Neighborhood" value={unit.neighborhood ?? "Not set"} />
+              <Info label="Year built" value={unit.yearBuilt ? String(unit.yearBuilt) : "Not set"} />
+              <Info label="Roof age" value={unit.roofAgeYears !== null ? `${unit.roofAgeYears} years` : "Not set"} />
+              <Info label="Parking" value={unit.parkingInfo ?? "Not set"} />
+              <Info label="Laundry" value={unit.laundryInfo ?? "Not set"} />
+              <Info label="Appliances" value={unit.appliancesIncluded ?? "Not set"} />
+              <Info label="Flooring / finishes" value={unit.flooringInfo ?? "Not set"} />
+              <Info label="Yard / outdoor" value={unit.yardInfo ?? "Not set"} />
+              <Info label="Smoking policy" value={unit.smokingPolicy ?? "Not set"} />
+            </div>
+            <Info label="Nearby features" value={unit.nearbyFeatures ?? "Not set"} />
+          </Panel>
+
+          <Panel title="Tenant History">
+            {tenantHistory.length === 0 ? (
+              <p className="text-slate-600">No previous tenant/application history is connected to this unit yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {tenantHistory.map((application) => (
+                  <div key={application.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 p-4">
+                    <div>
+                      <p className="font-black text-slate-950">{application.applicantName}</p>
+                      <p className="text-sm text-slate-600">{application.applicantEmail} - {label(application.status)} - updated {dateLabel(application.updatedAt)}</p>
+                    </div>
+                    <Link href={`/landlord/applications/${application.id}`} className="rounded-xl border border-slate-300 px-3 py-2 font-bold text-slate-700 hover:bg-slate-50">Open</Link>
+                  </div>
+                ))}
+              </div>
+            )}
+            {unit.previousTenantNotes ? <p className="mt-4 whitespace-pre-wrap rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">{unit.previousTenantNotes}</p> : null}
           </Panel>
 
           <Panel title="Lease">

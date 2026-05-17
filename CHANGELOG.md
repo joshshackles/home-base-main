@@ -1,4 +1,14 @@
 
+## 3.0.9 - Unit Media and Listing Detail Upgrade
+
+- Added durable `UnitPhoto` records, a migration, and a public/owner-safe photo delivery route for rental listing images.
+- Added landlord upload, delete, and featured-photo controls with a 12-photo cap per unit.
+- Expanded unit details with school district, neighborhood, nearby features, home and roof age, average utilities, parking, laundry, appliances, flooring, yard, smoking, lease terms, move-in fees, rent due day, late fees, and previous tenant notes.
+- Upgraded landlord unit listing cards so each unit is easy to click into as a workspace.
+- Added richer landlord unit panels for photos, rent/deposit terms, listing/location details, and tenant history.
+- Updated marketplace cards and detail pages to show real listing photos and richer location facts.
+- Added unit photo data portability and a focused verification gate.
+
 ## 3.0.8 - Admin Data Portability
 
 - Added admin JSON export for users, access requests, properties, units, leads, applications, profiles, documents, inspections, maintenance, messages, leases, ledger records, audit logs, and security events.

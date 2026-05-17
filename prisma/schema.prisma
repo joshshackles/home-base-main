@@ -424,6 +424,23 @@ model Unit {
   utilitiesNote   String?
   accessibility   String?
   petPolicy       String?
+  schoolDistrict  String?
+  neighborhood    String?
+  nearbyFeatures  String?
+  yearBuilt       Int?
+  roofAgeYears    Int?
+  averageUtilityBill Int?
+  parkingInfo     String?
+  laundryInfo     String?
+  appliancesIncluded String?
+  flooringInfo    String?
+  yardInfo        String?
+  smokingPolicy   String?
+  leaseTermsNote  String?
+  moveInFeesNote  String?
+  rentDueDay      Int?
+  lateFeePolicy   String?
+  previousTenantNotes String?
   status          UnitStatus @default(AVAILABLE)
   description     String?
   clientNotes     String?
@@ -442,6 +459,7 @@ model Unit {
   inspections  Inspection[]
   maintenanceRequests MaintenanceRequest[]
   documents    Document[]
+  photos       UnitPhoto[]
   ledgerEntries LedgerEntry[]
   recurringChargeSchedules RecurringChargeSchedule[]
   paymentPlans PaymentPlan[]
@@ -451,6 +469,26 @@ model Unit {
   @@index([currentApplicationId])
   @@index([status])
   @@unique([propertyId, unitNumber])
+}
+
+model UnitPhoto {
+  id           String   @id @default(cuid())
+  unitId       String
+  title        String?
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  storagePath  String
+  sortOrder    Int      @default(0)
+  isFeatured   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@index([unitId])
+  @@index([unitId, isFeatured])
+  @@index([unitId, sortOrder])
 }
 
 

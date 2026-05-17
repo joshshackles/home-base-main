@@ -80,7 +80,8 @@ const requiredRoutes = [
   "/landlord/leads/[id]",
   "/landlord/applications/[id]",
   "/applicant/applications/[id]",
-  "/api/documents/[id]"
+  "/api/documents/[id]",
+  "/api/unit-photos/[id]"
 ];
 
 function routeToCandidatePaths(route: string) {

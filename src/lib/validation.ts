@@ -50,6 +50,32 @@ export const unitSchema = z.object({
   utilitiesNote: optionalText,
   accessibility: optionalText,
   petPolicy: optionalText,
+  schoolDistrict: optionalText,
+  neighborhood: optionalText,
+  nearbyFeatures: optionalText,
+  yearBuilt: z.preprocess(
+    (value) => (value === "" || value === null || typeof value === "undefined" ? null : value),
+    z.coerce.number().int().min(1800).max(new Date().getFullYear() + 1).nullable()
+  ),
+  roofAgeYears: z.preprocess(
+    (value) => (value === "" || value === null || typeof value === "undefined" ? null : value),
+    z.coerce.number().int().min(0).max(150).nullable()
+  ),
+  averageUtilityBill: optionalInteger,
+  parkingInfo: optionalText,
+  laundryInfo: optionalText,
+  appliancesIncluded: optionalText,
+  flooringInfo: optionalText,
+  yardInfo: optionalText,
+  smokingPolicy: optionalText,
+  leaseTermsNote: optionalText,
+  moveInFeesNote: optionalText,
+  rentDueDay: z.preprocess(
+    (value) => (value === "" || value === null || typeof value === "undefined" ? null : value),
+    z.coerce.number().int().min(1).max(31).nullable()
+  ),
+  lateFeePolicy: optionalText,
+  previousTenantNotes: optionalText,
   status: z.nativeEnum(UnitStatus),
   description: optionalText,
   clientNotes: optionalText,

@@ -10,6 +10,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { completeLeaseIfReadyAndFinalize } from "@/lib/signed-lease";
 import { formDataToObject, leadNoteSchema, applicationNoteSchema, leaseSignatureSchema, propertySchema, unitSchema, validationMessage } from "@/lib/validation";
 import { baseSignatureRequestWhere, completeSignatureRequest } from "@/lib/signature-workflow";
+import { removeStoredDocument, saveUploadedDocument } from "@/lib/storage";
 
 async function requireLandlordAction() {
   return await requireRole(["LANDLORD"], "/landlord");
@@ -40,8 +41,31 @@ const singleFamilyHomeSchema = z.object({
   utilitiesNote: z.string().trim().max(2000).optional(),
   petPolicy: z.string().trim().max(2000).optional(),
   accessibility: z.string().trim().max(2000).optional(),
+  schoolDistrict: z.string().trim().max(160).optional(),
+  neighborhood: z.string().trim().max(160).optional(),
+  nearbyFeatures: z.string().trim().max(2000).optional(),
+  yearBuilt: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(1800).max(new Date().getFullYear() + 1).nullable()),
+  roofAgeYears: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(0).max(150).nullable()),
+  averageUtilityBill: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(0).nullable()),
+  parkingInfo: z.string().trim().max(2000).optional(),
+  laundryInfo: z.string().trim().max(2000).optional(),
+  appliancesIncluded: z.string().trim().max(2000).optional(),
+  flooringInfo: z.string().trim().max(2000).optional(),
+  yardInfo: z.string().trim().max(2000).optional(),
+  smokingPolicy: z.string().trim().max(1000).optional(),
+  leaseTermsNote: z.string().trim().max(2000).optional(),
+  moveInFeesNote: z.string().trim().max(2000).optional(),
+  rentDueDay: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(1).max(31).nullable()),
+  lateFeePolicy: z.string().trim().max(2000).optional(),
+  previousTenantNotes: z.string().trim().max(4000).optional(),
   description: z.string().trim().max(4000).optional()
 });
+
+const MAX_UNIT_PHOTOS = 12;
+
+function cleanOptionalText(value: string | null | undefined) {
+  return value && value.trim().length > 0 ? value.trim() : null;
+}
 
 function getRequiredId(formData: FormData, label: string) {
   const value = formData.get("id");
@@ -214,6 +238,23 @@ export async function createLandlordSingleFamilyHome(formData: FormData) {
         utilitiesNote: parsed.data.utilitiesNote || null,
         petPolicy: parsed.data.petPolicy || null,
         accessibility: parsed.data.accessibility || null,
+        schoolDistrict: cleanOptionalText(parsed.data.schoolDistrict),
+        neighborhood: cleanOptionalText(parsed.data.neighborhood),
+        nearbyFeatures: cleanOptionalText(parsed.data.nearbyFeatures),
+        yearBuilt: parsed.data.yearBuilt,
+        roofAgeYears: parsed.data.roofAgeYears,
+        averageUtilityBill: parsed.data.averageUtilityBill,
+        parkingInfo: cleanOptionalText(parsed.data.parkingInfo),
+        laundryInfo: cleanOptionalText(parsed.data.laundryInfo),
+        appliancesIncluded: cleanOptionalText(parsed.data.appliancesIncluded),
+        flooringInfo: cleanOptionalText(parsed.data.flooringInfo),
+        yardInfo: cleanOptionalText(parsed.data.yardInfo),
+        smokingPolicy: cleanOptionalText(parsed.data.smokingPolicy),
+        leaseTermsNote: cleanOptionalText(parsed.data.leaseTermsNote),
+        moveInFeesNote: cleanOptionalText(parsed.data.moveInFeesNote),
+        rentDueDay: parsed.data.rentDueDay,
+        lateFeePolicy: cleanOptionalText(parsed.data.lateFeePolicy),
+        previousTenantNotes: cleanOptionalText(parsed.data.previousTenantNotes),
         description: parsed.data.description || null,
         status: parsed.data.status
       }
@@ -245,6 +286,90 @@ export async function updateLandlordUnit(formData: FormData) {
   revalidateLandlord();
   revalidatePath(`/landlord/units/${id}`);
   redirect(`/landlord/units/${id}`);
+}
+
+export async function uploadLandlordUnitPhotos(formData: FormData) {
+  const user = await requireLandlordAction();
+  const unitId = getRequiredId(formData, "Unit ID");
+  await assertOwnsUnit(unitId, user.userId);
+
+  const files = formData.getAll("photos").filter((value): value is File => value instanceof File && value.size > 0);
+  if (files.length === 0) throw new Error("Choose at least one image to upload.");
+
+  const existing = await prisma.unitPhoto.count({ where: { unitId } });
+  if (existing + files.length > MAX_UNIT_PHOTOS) {
+    throw new Error(`Each unit can have up to ${MAX_UNIT_PHOTOS} photos. Remove a photo before uploading more.`);
+  }
+
+  const hasFeatured = await prisma.unitPhoto.findFirst({ where: { unitId, isFeatured: true }, select: { id: true } });
+  const createdIds: string[] = [];
+
+  for (const [index, file] of files.entries()) {
+    if (!file.type.startsWith("image/")) throw new Error("Unit photos must be image files.");
+    const stored = await saveUploadedDocument(file);
+    const created = await prisma.unitPhoto.create({
+      data: {
+        unitId,
+        originalName: stored.originalName,
+        mimeType: stored.mimeType,
+        sizeBytes: stored.sizeBytes,
+        storagePath: stored.storagePath,
+        sortOrder: existing + index,
+        isFeatured: !hasFeatured && index === 0
+      }
+    });
+    createdIds.push(created.id);
+  }
+
+  await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: unitId, message: `Landlord uploaded ${createdIds.length} unit photo(s).` });
+  revalidateLandlord();
+  revalidatePath(`/landlord/units/${unitId}`);
+  redirect(`/landlord/units/${unitId}?photos=uploaded`);
+}
+
+export async function setFeaturedLandlordUnitPhoto(formData: FormData) {
+  const user = await requireLandlordAction();
+  const unitId = getRequiredId(formData, "Unit ID");
+  const photoId = typeof formData.get("photoId") === "string" ? String(formData.get("photoId")).trim() : "";
+  if (!photoId) throw new Error("Photo ID is required.");
+  await assertOwnsUnit(unitId, user.userId);
+
+  const photo = await prisma.unitPhoto.findFirst({ where: { id: photoId, unitId }, select: { id: true } });
+  if (!photo) throw new Error("Photo was not found for this unit.");
+
+  await prisma.$transaction([
+    prisma.unitPhoto.updateMany({ where: { unitId }, data: { isFeatured: false } }),
+    prisma.unitPhoto.update({ where: { id: photo.id }, data: { isFeatured: true } })
+  ]);
+
+  await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: unitId, message: "Landlord changed the featured unit photo." });
+  revalidateLandlord();
+  revalidatePath(`/landlord/units/${unitId}`);
+  redirect(`/landlord/units/${unitId}?photos=featured`);
+}
+
+export async function deleteLandlordUnitPhoto(formData: FormData) {
+  const user = await requireLandlordAction();
+  const unitId = getRequiredId(formData, "Unit ID");
+  const photoId = typeof formData.get("photoId") === "string" ? String(formData.get("photoId")).trim() : "";
+  if (!photoId) throw new Error("Photo ID is required.");
+  await assertOwnsUnit(unitId, user.userId);
+
+  const photo = await prisma.unitPhoto.findFirst({ where: { id: photoId, unitId } });
+  if (!photo) throw new Error("Photo was not found for this unit.");
+
+  await prisma.unitPhoto.delete({ where: { id: photo.id } });
+  await removeStoredDocument(photo.storagePath);
+
+  if (photo.isFeatured) {
+    const nextPhoto = await prisma.unitPhoto.findFirst({ where: { unitId }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] });
+    if (nextPhoto) await prisma.unitPhoto.update({ where: { id: nextPhoto.id }, data: { isFeatured: true } });
+  }
+
+  await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: unitId, message: "Landlord deleted a unit photo." });
+  revalidateLandlord();
+  revalidatePath(`/landlord/units/${unitId}`);
+  redirect(`/landlord/units/${unitId}?photos=deleted`);
 }
 
 export async function createLandlordMaintenanceRequest(formData: FormData) {
