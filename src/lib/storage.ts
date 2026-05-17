@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile, unlink, stat } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import type { ServerSideEncryption } from "@aws-sdk/client-s3";
 import { prisma } from "@/lib/prisma";
 import { getDocumentStorageProvider } from "@/lib/env";
 
@@ -49,6 +50,17 @@ function getObjectStorageBucket() {
 
 function getObjectStoragePrefix() {
   return (process.env.DOCUMENT_S3_PREFIX || "documents").replace(/^\/+|\/+$/g, "");
+}
+
+function getServerSideEncryption(): ServerSideEncryption | undefined {
+  const value = process.env.DOCUMENT_S3_SERVER_SIDE_ENCRYPTION;
+  if (!value) return undefined;
+
+  if (value === "AES256" || value === "aws:kms" || value === "aws:kms:dsse") {
+    return value;
+  }
+
+  throw new Error("DOCUMENT_S3_SERVER_SIDE_ENCRYPTION must be AES256, aws:kms, or aws:kms:dsse.");
 }
 
 function getObjectStorageClient() {
@@ -122,7 +134,7 @@ async function saveBytes(bytes: Buffer, originalName: string, mimeType: string) 
       Metadata: {
         originalName
       },
-      ServerSideEncryption: process.env.DOCUMENT_S3_SERVER_SIDE_ENCRYPTION || undefined
+      ServerSideEncryption: getServerSideEncryption()
     }));
     return { fileName, storagePath: `${OBJECT_STORAGE_PREFIX}${key}` };
   }

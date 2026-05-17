@@ -1,11 +1,23 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import path from "path";
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import type { ServerSideEncryption } from "@aws-sdk/client-s3";
 
 const uploadDir = path.resolve(process.env.DOCUMENT_UPLOAD_DIR || path.join(process.cwd(), "storage", "documents"));
 const projectRoot = path.resolve(process.cwd());
 const tempFile = path.join(uploadDir, `.homebase-storage-smoke-${Date.now()}.txt`);
 const provider = (process.env.DOCUMENT_STORAGE_PROVIDER || (process.env.NODE_ENV === "production" ? "database" : "local")).toLowerCase();
+
+function getServerSideEncryption(): ServerSideEncryption | undefined {
+  const value = process.env.DOCUMENT_S3_SERVER_SIDE_ENCRYPTION;
+  if (!value) return undefined;
+
+  if (value === "AES256" || value === "aws:kms" || value === "aws:kms:dsse") {
+    return value;
+  }
+
+  throw new Error("DOCUMENT_S3_SERVER_SIDE_ENCRYPTION must be AES256, aws:kms, or aws:kms:dsse.");
+}
 
 async function verifyS3Storage() {
   const required = ["DOCUMENT_S3_BUCKET", "DOCUMENT_S3_REGION", "DOCUMENT_S3_ACCESS_KEY_ID", "DOCUMENT_S3_SECRET_ACCESS_KEY"];
@@ -33,7 +45,7 @@ async function verifyS3Storage() {
     Key: key,
     Body: body,
     ContentType: "text/plain",
-    ServerSideEncryption: process.env.DOCUMENT_S3_SERVER_SIDE_ENCRYPTION || undefined
+    ServerSideEncryption: getServerSideEncryption()
   }));
 
   const readback = await client.send(new GetObjectCommand({
