@@ -1,4 +1,10 @@
 
+## v2.6.5 - Vercel React Server Action Type Fix
+
+- Added a React type augmentation for server action form submissions so Vercel/TypeScript accepts `<form action={serverAction}>` in App Router server components.
+- Kept the prior Vercel fixes for Prisma generation, `next.config.mjs`, the inspection relation, seed verification typing, and account action redirects.
+
+
 
 ## v2.6.4 - Vercel Account Action TypeScript Fix
 

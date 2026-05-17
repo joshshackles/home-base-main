@@ -5,7 +5,7 @@
 - Fixed a strict TypeScript narrowing issue in `src/app/account/actions.ts` by marking the password error redirect helper as `never` returning.
 - Keeps the Vercel config, Prisma generate, Prisma relation, and seed verification fixes from the prior Vercel patches.
 
-# HomeBase MLS v2.6.0
+# HomeBase MLS v2.6.5
 
 HomeBase MLS is a Next.js, TypeScript, PostgreSQL, and Prisma web application for rental marketplace listings and housing workflow management.
 
@@ -103,7 +103,7 @@ This release is a **testing and workflow verification pass** on top of the exist
 
 ## Important note about payments
 
-HomeBase MLS v2.6.0 does **not** collect or transmit money. The ledger records charges, payments, credits, and adjustments that were entered by staff. Online payment provider integration should be a later update after the ledger is tested and permission rules are confirmed.
+HomeBase MLS v2.6.5 does **not** collect or transmit money. The ledger records charges, payments, credits, and adjustments that were entered by staff. Online payment provider integration should be a later update after the ledger is tested and permission rules are confirmed.
 
 ## Local setup
 
@@ -206,3 +206,8 @@ Payment plans are still recordkeeping tools only. Marking an installment paid cr
 - Updated the build script to run `prisma generate` before `next build`.
 - Added `postinstall` Prisma generation for Vercel installs.
 - Fixed the missing Prisma back-relation from `Unit` to `Inspection`.
+
+
+## v2.6.5 Vercel note
+
+This patch adds React server-action form typings so Vercel builds can accept server actions used directly in form `action` props.
