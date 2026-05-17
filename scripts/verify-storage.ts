@@ -4,6 +4,17 @@ import path from "path";
 const uploadDir = path.resolve(process.env.DOCUMENT_UPLOAD_DIR || path.join(process.cwd(), "storage", "documents"));
 const projectRoot = path.resolve(process.cwd());
 const tempFile = path.join(uploadDir, `.homebase-storage-smoke-${Date.now()}.txt`);
+const provider = (process.env.DOCUMENT_STORAGE_PROVIDER || (process.env.NODE_ENV === "production" ? "database" : "local")).toLowerCase();
+
+if (provider === "database") {
+  console.log("Storage verification passed: database provider selected for durable document storage.");
+  process.exit(0);
+}
+
+if (provider !== "local") {
+  console.error("Storage verification failed: DOCUMENT_STORAGE_PROVIDER must be database or local.");
+  process.exit(1);
+}
 
 if (uploadDir === projectRoot || uploadDir === path.parse(projectRoot).root) {
   console.error(`Refusing to use unsafe upload directory for smoke test: ${uploadDir}`);

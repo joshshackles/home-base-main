@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
@@ -436,6 +437,19 @@ model Document {
   @@index([unitId])
   @@index([status])
   @@index([category])
+  @@index([createdAt])
+}
+
+model StoredDocument {
+  key          String   @id @default(cuid())
+  fileName     String
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  bytes        Bytes
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   @@index([createdAt])
 }
 

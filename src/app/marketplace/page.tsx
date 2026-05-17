@@ -3,8 +3,12 @@ import { Prisma, UnitStatus } from "@prisma/client";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { UnitCard } from "@/components/UnitCard";
+import { Pagination } from "@/components/admin/Pagination";
+import { DEFAULT_PAGE_SIZE, SearchParams, getPagination, getParam } from "@/lib/pagination";
 
-type MarketplaceSearchParams = {
+export const dynamic = "force-dynamic";
+
+type MarketplaceSearchParams = SearchParams & {
   city?: string;
   maxRent?: string;
   bedrooms?: string;
@@ -26,13 +30,14 @@ function numberParam(value?: string) {
 }
 
 export default async function MarketplacePage({ searchParams }: { searchParams?: MarketplaceSearchParams }) {
-  const city = clean(searchParams?.city);
-  const maxRent = numberParam(searchParams?.maxRent);
-  const bedrooms = numberParam(searchParams?.bedrooms);
-  const bathrooms = numberParam(searchParams?.bathrooms);
-  const voucherFriendly = searchParams?.voucherFriendly === "on";
-  const pets = searchParams?.pets === "on";
-  const accessibility = searchParams?.accessibility === "on";
+  const city = clean(getParam(searchParams, "city"));
+  const maxRent = numberParam(getParam(searchParams, "maxRent"));
+  const bedrooms = numberParam(getParam(searchParams, "bedrooms"));
+  const bathrooms = numberParam(getParam(searchParams, "bathrooms"));
+  const voucherFriendly = getParam(searchParams, "voucherFriendly") === "on";
+  const pets = getParam(searchParams, "pets") === "on";
+  const accessibility = getParam(searchParams, "accessibility") === "on";
+  const { page, take, skip } = getPagination(searchParams);
 
   const where: Prisma.UnitWhereInput = {
     status: UnitStatus.AVAILABLE,
@@ -48,11 +53,16 @@ export default async function MarketplacePage({ searchParams }: { searchParams?:
     ...(accessibility ? { accessibility: { not: null } } : {})
   };
 
-  const units = await prisma.unit.findMany({
-    where,
-    include: { property: true },
-    orderBy: [{ rentAmount: "asc" }, { createdAt: "desc" }]
-  });
+  const [units, totalUnits] = await Promise.all([
+    prisma.unit.findMany({
+      where,
+      include: { property: true },
+      orderBy: [{ rentAmount: "asc" }, { createdAt: "desc" }],
+      take,
+      skip
+    }),
+    prisma.unit.count({ where })
+  ]);
 
   const activeFilterCount = [city, maxRent, bedrooms, bathrooms, voucherFriendly, pets, accessibility].filter(Boolean).length;
 
@@ -126,7 +136,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams?:
       </form>
 
       <div className="mb-5 flex items-center justify-between gap-3">
-        <p className="font-bold text-slate-700">{units.length} available {units.length === 1 ? "unit" : "units"} found</p>
+        <p className="font-bold text-slate-700">{totalUnits} available {totalUnits === 1 ? "unit" : "units"} found</p>
       </div>
 
       {units.length === 0 ? (
@@ -140,6 +150,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams?:
           {units.map((unit) => <UnitCard key={unit.id} unit={unit} />)}
         </div>
       )}
+      <Pagination pathname="/marketplace" searchParams={searchParams} page={page} pageSize={DEFAULT_PAGE_SIZE} total={totalUnits} />
     </main>
   );
 }

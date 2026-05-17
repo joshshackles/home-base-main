@@ -6,6 +6,7 @@ import { Pagination } from "@/components/admin/Pagination";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/format";
 import { agingBucket, ledgerBalance, ledgerSignedAmount, ledgerStatusLabel, ledgerTypeLabel } from "@/lib/ledger";
+import { ledgerTotals } from "@/lib/ledger-queries";
 import { DEFAULT_PAGE_SIZE, SearchParams, getFilter, getPagination, getSearchQuery } from "@/lib/pagination";
 
 function statusClass(status: LedgerEntryStatus) {
@@ -36,7 +37,7 @@ export default async function AdminLedgerPage({ searchParams }: { searchParams?:
       { unit: { property: { name: { contains: query, mode: "insensitive" } } } }
     ] } : {})
   };
-  const [entries, totalEntries, allEntries, applications, schedules] = await Promise.all([
+  const [entries, totalEntries, totals, applications, schedules] = await Promise.all([
     prisma.ledgerEntry.findMany({
       where,
       orderBy: [{ postedAt: "desc" }, { createdAt: "desc" }],
@@ -45,7 +46,7 @@ export default async function AdminLedgerPage({ searchParams }: { searchParams?:
       include: { unit: { include: { property: true } }, application: true, tenantUser: true, createdBy: true }
     }),
     prisma.ledgerEntry.count({ where }),
-    prisma.ledgerEntry.findMany({ include: { unit: true }, orderBy: [{ postedAt: "desc" }, { createdAt: "desc" }] }),
+    ledgerTotals(),
     prisma.application.findMany({
       orderBy: { updatedAt: "desc" },
       include: { unit: { include: { property: true } }, ledgerEntries: true }
@@ -53,10 +54,9 @@ export default async function AdminLedgerPage({ searchParams }: { searchParams?:
     prisma.recurringChargeSchedule.findMany({ where: { isActive: true }, orderBy: { nextRunDate: "asc" }, take: 6, include: { unit: { include: { property: true } }, application: true } })
   ]);
 
-  const postedEntries = allEntries.filter((entry) => entry.status !== "VOIDED");
-  const totalCharges = postedEntries.filter((entry) => entry.type === "CHARGE" || entry.type === "ADJUSTMENT").reduce((sum, entry) => sum + entry.amount, 0);
-  const totalPayments = postedEntries.filter((entry) => entry.type === "PAYMENT" || entry.type === "CREDIT").reduce((sum, entry) => sum + entry.amount, 0);
-  const totalBalance = ledgerBalance(allEntries);
+  const totalCharges = totals.charges;
+  const totalPayments = totals.payments;
+  const totalBalance = totals.balance;
 
   const applicationBalances = applications
     .map((application) => ({ application, balance: ledgerBalance(application.ledgerEntries), oldestCharge: application.ledgerEntries.filter((entry) => entry.status !== "VOIDED" && entry.type === "CHARGE").sort((a, b) => (a.dueDate?.getTime() ?? a.postedAt.getTime()) - (b.dueDate?.getTime() ?? b.postedAt.getTime()))[0] }))

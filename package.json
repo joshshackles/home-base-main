@@ -1,6 +1,6 @@
 {
   "name": "homebase-mls",
-  "version": "2.6.9",
+  "version": "2.6.10",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -11,9 +11,11 @@
     "preflight": "tsx scripts/preflight.ts && npm run migrations:check",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
     "db:setup": "npm run prisma:generate && npm run prisma:migrate && npm run seed",
+    "db:deploy": "npm run prisma:generate && npm run prisma:deploy",
     "db:reset": "prisma migrate reset",
     "routes:check": "tsx scripts/check-routes.ts",
     "email:send-queued": "tsx scripts/send-queued-email.ts",

@@ -1,5 +1,15 @@
 
 
+# HomeBase MLS v2.6.10
+
+## v2.6.10 - Vercel/Neon Production Hardening
+
+- Fails closed when `AUTH_SECRET` is missing or unsafe.
+- Adds Neon `DIRECT_URL` support and `npm run db:deploy` for production migrations.
+- Adds database-backed durable document storage for Vercel/serverless deployments.
+- Updates verification scripts for `next.config.mjs`.
+- Reduces full-table ledger reads on high-traffic pages.
+
 ## v2.6.4 - Vercel Account Action TypeScript Fix
 
 - Fixed a strict TypeScript narrowing issue in `src/app/account/actions.ts` by marking the password error redirect helper as `never` returning.
@@ -150,7 +160,9 @@ Copy `.env.example` to `.env` and update values for your local database, auth se
 
 ```bash
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/homebase_mls"
-AUTH_SECRET="change-this-before-production"
+DIRECT_URL="postgresql://postgres:postgres@localhost:5432/homebase_mls"
+AUTH_SECRET="replace-with-at-least-32-random-characters"
+DOCUMENT_STORAGE_PROVIDER="database"
 DOCUMENT_UPLOAD_DIR="./storage/documents"
 EMAIL_PROVIDER="console"
 EMAIL_FROM="HomeBase MLS <no-reply@example.com>"

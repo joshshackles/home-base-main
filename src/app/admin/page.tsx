@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Activity, Building2, ClipboardList, BellRing, ClipboardCheck, DollarSign, FileSignature, FileText, Home, Inbox, Plus, ServerCog, ShieldCheck, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { ledgerTotals } from "@/lib/ledger-queries";
 
 export default async function AdminPage() {
   const [propertyCount, unitCount, availableCount, userCount, leadCount, applicationCount, documentCount, leaseCount, notificationCount, auditCount, securityEventCount, inspectionCount, ledgerBalance] = await Promise.all([
@@ -16,7 +17,7 @@ export default async function AdminPage() {
     prisma.auditLog.count(),
     prisma.securityEvent.count(),
     prisma.inspection.count({ where: { status: { in: ["SCHEDULED", "IN_PROGRESS", "NEEDS_REINSPECTION"] } } }),
-    prisma.ledgerEntry.findMany({ where: { status: { not: "VOIDED" } }, select: { type: true, amount: true, status: true } }).then((entries) => entries.reduce((total, entry) => total + ((entry.type === "PAYMENT" || entry.type === "CREDIT") ? -entry.amount : entry.amount), 0))
+    ledgerTotals().then((totals) => totals.balance)
   ]);
 
   const cards = [
@@ -32,7 +33,7 @@ export default async function AdminPage() {
     { label: "Notices", value: notificationCount, icon: BellRing, href: "/admin/notifications" },
     { label: "Users", value: userCount, icon: Users, href: "/admin/users" },
     { label: "Audit", value: auditCount, icon: Activity, href: "/admin/audit" },
-    { label: "System", value: "2.0.0", icon: ServerCog, href: "/admin/system" },
+    { label: "System", value: "2.6.10", icon: ServerCog, href: "/admin/system" },
     { label: "Security", value: securityEventCount, icon: ShieldCheck, href: "/admin/security/events" }
   ];
 
@@ -70,7 +71,7 @@ export default async function AdminPage() {
       </section>
 
       <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-2xl font-black text-slate-950">v2.0.0 build focus</h2>
+        <h2 className="text-2xl font-black text-slate-950">v2.6.10 build focus</h2>
         <p className="mt-3 max-w-3xl leading-7 text-slate-600">
           This release adds the rent and payment ledger foundation with charges, payments, credits, balances, admin controls, and scoped landlord/applicant visibility.
         </p>

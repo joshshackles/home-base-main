@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/homebase_mls?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/homebase_mls?schema=public
+      AUTH_SECRET: ci-only-secret-value-that-is-longer-than-thirty-two-characters
+      DOCUMENT_STORAGE_PROVIDER: database
+      EMAIL_PROVIDER: disabled
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run prisma:generate
+      - run: npm run migrations:check
+      - run: npm run routes:check
+      - run: npm run security:verify
+      - run: npm run typecheck
+      - run: npm run build

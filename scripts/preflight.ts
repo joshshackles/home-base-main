@@ -1,9 +1,15 @@
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import path from "path";
 
+function existingConfigFile() {
+  for (const file of ["next.config.mjs", "next.config.ts", "next.config.js"]) {
+    if (existsSync(path.join(process.cwd(), file))) return file;
+  }
+  return null;
+}
+
 const requiredFiles = [
   "package.json",
-  "next.config.ts",
   "tsconfig.json",
   "prisma/schema.prisma",
   "prisma/seed.ts",
@@ -23,15 +29,21 @@ const requiredFiles = [
   "docs/WORKFLOW_VERIFICATION.md"
 ];
 
-const requiredEnv = ["DATABASE_URL", "AUTH_SECRET"];
-const unsafeSecrets = new Set(["", "dev-only-change-this-secret-before-deployment", "change-me", "changeme", "replace-with-a-long-random-secret"]);
+const requiredEnv = ["DATABASE_URL", "DIRECT_URL", "AUTH_SECRET"];
+const unsafeSecrets = new Set(["", "dev-only-change-this-secret-before-deployment", "change-me", "changeme", "replace-this-with-a-long-random-secret", "replace-with-a-long-random-secret", "replace-with-at-least-32-random-characters"]);
 let failed = false;
+const nextConfigFile = existingConfigFile();
 
 for (const file of requiredFiles) {
   if (!existsSync(path.join(process.cwd(), file))) {
     console.error(`Missing required file: ${file}`);
     failed = true;
   }
+}
+
+if (!nextConfigFile) {
+  console.error("Missing required Next config file: next.config.mjs, next.config.ts, or next.config.js");
+  failed = true;
 }
 
 const packageJson = JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "utf8"));
@@ -50,14 +62,15 @@ for (const key of requiredEnv) {
   }
 }
 
-if (unsafeSecrets.has(process.env.AUTH_SECRET || "")) {
+if (unsafeSecrets.has(process.env.AUTH_SECRET || "") || (process.env.AUTH_SECRET || "").length < 32) {
   console.warn("Environment warning: AUTH_SECRET appears to be a development placeholder.");
+  failed = true;
 }
 
 
-const nextConfig = readFileSync(path.join(process.cwd(), "next.config.ts"), "utf8");
+const nextConfig = nextConfigFile ? readFileSync(path.join(process.cwd(), nextConfigFile), "utf8") : "";
 if (!nextConfig.includes('bodySizeLimit: "12mb"')) {
-  console.error('next.config.ts should allow server action uploads up to 12mb so 10mb document uploads are not rejected early.');
+  console.error(`${nextConfigFile || "next.config"} should allow server action uploads up to 12mb so 10mb document uploads are not rejected early.`);
   failed = true;
 }
 
@@ -69,14 +82,27 @@ for (const requiredSchemaText of ["generatedFromScheduleId", "generatedForPeriod
   }
 }
 
-const uploadDir = process.env.DOCUMENT_UPLOAD_DIR || path.join(process.cwd(), "storage", "documents");
-try {
-  mkdirSync(uploadDir, { recursive: true });
-} catch (error) {
-  console.error(`Unable to create or access document upload directory: ${uploadDir}`);
-  console.error(error);
+const storageProvider = (process.env.DOCUMENT_STORAGE_PROVIDER || (process.env.NODE_ENV === "production" ? "database" : "local")).toLowerCase();
+if (!["database", "local"].includes(storageProvider)) {
+  console.error("DOCUMENT_STORAGE_PROVIDER must be database or local.");
   failed = true;
 }
 
+if (process.env.NODE_ENV === "production" && storageProvider === "local") {
+  console.error("DOCUMENT_STORAGE_PROVIDER=local is not durable on Vercel/serverless deployments. Use database for production.");
+  failed = true;
+}
+
+if (storageProvider === "local") {
+  const uploadDir = process.env.DOCUMENT_UPLOAD_DIR || path.join(process.cwd(), "storage", "documents");
+  try {
+    mkdirSync(uploadDir, { recursive: true });
+  } catch (error) {
+    console.error(`Unable to create or access document upload directory: ${uploadDir}`);
+    console.error(error);
+    failed = true;
+  }
+}
+
 if (failed) process.exit(1);
-console.log("HomeBase MLS preflight passed: required files, pinned packages, upload limits, recurring-charge safeguards, verification scripts, and local storage are ready.");
+console.log("HomeBase MLS preflight passed: required files, pinned packages, upload limits, recurring-charge safeguards, verification scripts, and document storage configuration are ready.");

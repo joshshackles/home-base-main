@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createHmac, timingSafeEqual } from "crypto";
 import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getRequiredAuthSecret } from "@/lib/env";
 
 const SESSION_COOKIE = "homebase_mls_session";
 const DEFAULT_SESSION_HOURS = 8;
@@ -16,7 +17,7 @@ type SessionPayload = {
 };
 
 function getAuthSecret() {
-  return process.env.AUTH_SECRET || "dev-only-change-this-secret-before-deployment";
+  return getRequiredAuthSecret();
 }
 
 function signPayload(payload: string) {

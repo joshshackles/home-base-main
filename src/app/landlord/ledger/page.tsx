@@ -1,26 +1,37 @@
+import { Prisma } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
-import { agingBucket, installmentStatusLabel, ledgerBalance, ledgerSignedAmount, ledgerStatusLabel, ledgerTypeLabel, paymentPlanStatusLabel } from "@/lib/ledger";
+import { agingBucket, installmentStatusLabel, ledgerSignedAmount, ledgerStatusLabel, ledgerTypeLabel, paymentPlanStatusLabel } from "@/lib/ledger";
 import { prisma } from "@/lib/prisma";
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";
+import { Pagination } from "@/components/admin/Pagination";
+import { DEFAULT_PAGE_SIZE, SearchParams, getPagination } from "@/lib/pagination";
+import { ledgerTotals } from "@/lib/ledger-queries";
 
-export default async function LandlordLedgerPage() {
+export default async function LandlordLedgerPage({ searchParams }: { searchParams?: SearchParams }) {
   const user = await requireRole(["LANDLORD"], "/landlord/ledger");
-  const [entries, plans] = await Promise.all([
+  const { page, take, skip } = getPagination(searchParams);
+  const ledgerWhere: Prisma.LedgerEntryWhereInput = { unit: { property: { ownerId: user.userId } } };
+  const [entries, totalEntries, totals, plans] = await Promise.all([
     prisma.ledgerEntry.findMany({
-      where: { unit: { property: { ownerId: user.userId } } },
+      where: ledgerWhere,
       orderBy: [{ postedAt: "desc" }, { createdAt: "desc" }],
+      take,
+      skip,
       include: { unit: { include: { property: true } }, application: true, tenantUser: true }
     }),
+    prisma.ledgerEntry.count({ where: ledgerWhere }),
+    ledgerTotals(ledgerWhere),
     prisma.paymentPlan.findMany({
       where: { unit: { property: { ownerId: user.userId } } },
       orderBy: { createdAt: "desc" },
+      take: 12,
       include: { unit: { include: { property: true } }, application: true, tenantUser: true, installments: { orderBy: { dueDate: "asc" } } }
     })
   ]);
-  const balance = ledgerBalance(entries);
-  const charges = entries.filter((entry) => entry.status !== "VOIDED" && (entry.type === "CHARGE" || entry.type === "ADJUSTMENT")).reduce((sum, entry) => sum + entry.amount, 0);
-  const payments = entries.filter((entry) => entry.status !== "VOIDED" && (entry.type === "PAYMENT" || entry.type === "CREDIT")).reduce((sum, entry) => sum + entry.amount, 0);
+  const balance = totals.balance;
+  const charges = totals.charges;
+  const payments = totals.payments;
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -62,6 +73,7 @@ export default async function LandlordLedgerPage() {
           </tbody>
         </table>
       </div>
+      <Pagination pathname="/landlord/ledger" searchParams={searchParams} page={page} pageSize={DEFAULT_PAGE_SIZE} total={totalEntries} />
     </main>
   );
 }

@@ -1,10 +1,11 @@
-import { readFile } from "fs/promises";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { AuditAction } from "@prisma/client";
-import { assertReadableStoredDocument } from "@/lib/storage";
+import { readStoredDocument } from "@/lib/storage";
+
+export const runtime = "nodejs";
 
 async function canAccessDocument(documentId: string) {
   const user = getCurrentUser();
@@ -49,16 +50,16 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     return NextResponse.json({ error: "Document is not available." }, { status: 404 });
   }
 
-  const filePath = await assertReadableStoredDocument(document.storagePath);
-  const body = await readFile(filePath);
+  const body = await readStoredDocument(document.storagePath);
 
   await writeAuditLog({ actor: result.user, action: AuditAction.DOWNLOAD, entityType: "Document", entityId: document.id, message: `Downloaded document ${document.title}.` });
 
   return new NextResponse(body, {
     headers: {
       "Content-Type": document.mimeType,
-      "Content-Length": String(document.sizeBytes),
-      "Content-Disposition": `attachment; filename="${document.originalName.replace(/"/g, "")}"`
+      "Content-Length": String(body.byteLength),
+      "Content-Disposition": `attachment; filename="${document.originalName.replace(/"/g, "")}"`,
+      "X-Content-Type-Options": "nosniff"
     }
   });
 }

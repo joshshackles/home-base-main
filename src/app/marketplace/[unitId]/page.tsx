@@ -5,6 +5,8 @@ import { createLead } from "@/app/marketplace/actions";
 import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 const inputClass = "rounded-2xl border border-slate-300 px-4 py-3 font-medium outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-50";
 const textareaClass = `${inputClass} min-h-32 resize-y`;
 
