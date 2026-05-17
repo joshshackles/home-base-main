@@ -1,3 +1,10 @@
+## v1.7.0 — Vercel Hobby compatibility
+
+- Adjusted Vercel cron configuration to comply with Hobby plan limits by running the queued-email processor once daily.
+- Prevented deployment failures caused by unsupported cron frequencies on Hobby.
+- Updated Vercel deployment documentation to explain Hobby daily-processing mode and the future Pro upgrade path.
+- Added Vercel preflight validation to catch accidental non-Hobby cron schedules before deployment.
+
 ## v2.6.12 Update 12 — Production polish and compliance readiness
 
 - Centralized app version display through `src/lib/app-version.ts`.

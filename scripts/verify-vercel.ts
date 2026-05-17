@@ -40,7 +40,19 @@ for (const dep of ["next", "react", "react-dom", "@prisma/client", "prisma", "ts
 const vercelJson = existsSync(vercelJsonPath) ? readFileSync(vercelJsonPath, "utf8") : "";
 if (!vercelJson.includes('"framework": "nextjs"')) fail("vercel.json should explicitly set the Next.js framework.");
 if (!vercelJson.includes('"buildCommand": "npm run vercel-build"')) fail("vercel.json should use npm run vercel-build.");
-if (!vercelJson.includes('"path": "/api/cron/send-queued-email"')) fail("vercel.json should register the queued-email cron route.");
+
+try {
+  const parsedVercel = JSON.parse(vercelJson || "{}");
+  const crons = Array.isArray(parsedVercel.crons) ? parsedVercel.crons : [];
+  const emailCron = crons.find((cron: { path?: string }) => cron.path === "/api/cron/send-queued-email");
+  if (!emailCron) {
+    fail("vercel.json should register the queued-email cron route.");
+  } else if (emailCron.schedule !== "0 3 * * *") {
+    fail('Vercel Hobby deployments require the queued-email cron schedule to be "0 3 * * *".');
+  }
+} catch {
+  fail("vercel.json must be valid JSON.");
+}
 
 const nextConfig = existsSync(nextConfigPath) ? readFileSync(nextConfigPath, "utf8") : "";
 for (const required of ["Content-Security-Policy", "Strict-Transport-Security", "X-Frame-Options", "X-Content-Type-Options", "Referrer-Policy", "Permissions-Policy", "poweredByHeader: false", "bodySizeLimit: \"12mb\""]) {

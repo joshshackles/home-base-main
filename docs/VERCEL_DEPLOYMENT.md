@@ -58,13 +58,26 @@ DOCUMENT_S3_SERVER_SIDE_ENCRYPTION=AES256
 
 ## Cron
 
-`vercel.json` registers this cron route every 10 minutes:
+This package is configured for **Vercel Hobby** until full production rollout. Hobby cron jobs may run no more frequently than once per day, so `vercel.json` registers the queued-email processor once daily:
 
 ```txt
-/api/cron/send-queued-email
+/api/cron/send-queued-email — 0 3 * * *
 ```
 
 Set `CRON_SECRET`. Vercel Cron will send it as a bearer token when the environment variable exists.
+
+### Production upgrade note
+
+When the project moves to Vercel Pro, the queued email cron can be increased to a more production-ready interval, for example:
+
+```json
+{
+  "path": "/api/cron/send-queued-email",
+  "schedule": "*/5 * * * *"
+}
+```
+
+Keep the daily schedule while the project remains on Hobby, or deployment can fail because of unsupported cron frequency.
 
 ## Verify locally before deploy
 
