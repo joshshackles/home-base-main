@@ -1,3 +1,14 @@
+## v3.1.3 - Landlord Unit Workflow Hardening
+
+- Added photo uploads directly to add-unit and add-home creation forms, reusing the 12-photo unit library and featured-photo behavior.
+- Added unit-level property manager, maintenance, and caseworker assignments with Prisma migration support.
+- Upgraded the landlord unit page with a photo-backed Unit Profile header showing nickname and address.
+- Added tenant assignment from the unit page; assigning a tenant marks the unit occupied, creates a tenant workflow application, and emails new tenants a secure join link.
+- Added editable rent/deposit/move-in terms from the unit page with payment history and ledger previews kept visible.
+- Added an Add Contact workflow and automatically surfaces assigned support contacts under Important Contacts.
+- Connected new landlord-created repair requests to the unit maintenance assignee by default.
+- Added landlord unit workflow verification coverage and bumped package version to 3.1.3.
+
 ## v3.1.2 - Dashboard preview and workspace visual alignment
 
 - Fixed the homepage dashboard preview so metrics and workflow panels stay contained instead of clipping inside the hero mockup.

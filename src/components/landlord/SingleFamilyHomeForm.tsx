@@ -122,6 +122,11 @@ export function SingleFamilyHomeForm() {
         <Field label="Listing description">
           <textarea name="description" className={textareaClass} placeholder="Describe the home, neighborhood, yard, parking, appliances, and application expectations." />
         </Field>
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 md:col-span-2">
+          <label className="block text-sm font-black text-slate-950">Home photos</label>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Upload up to 12 photos while creating the home. The first photo becomes the featured marketplace photo.</p>
+          <input name="photos" type="file" multiple accept="image/*" className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm" />
+        </div>
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">

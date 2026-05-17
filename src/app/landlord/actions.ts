@@ -1,6 +1,6 @@
 "use server";
 
-import { AuditAction, LeasePacketStatus, MaintenancePriority, MessageThreadStatus, MessageThreadType, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
+import { AccountAccessType, AuditAction, ApplicationStatus, LeasePacketStatus, MaintenancePriority, MessageThreadStatus, MessageThreadType, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -11,6 +11,8 @@ import { completeLeaseIfReadyAndFinalize } from "@/lib/signed-lease";
 import { formDataToObject, leadNoteSchema, applicationNoteSchema, leaseSignatureSchema, propertySchema, unitSchema, validationMessage } from "@/lib/validation";
 import { baseSignatureRequestWhere, completeSignatureRequest } from "@/lib/signature-workflow";
 import { removeStoredDocument, saveUploadedDocument } from "@/lib/storage";
+import { sendEmail } from "@/lib/email";
+import { appUrl, createSecureToken, hashToken } from "@/lib/tokens";
 
 async function requireLandlordAction() {
   return await requireRole(["LANDLORD"], "/landlord");
@@ -62,6 +64,41 @@ const singleFamilyHomeSchema = z.object({
 });
 
 const MAX_UNIT_PHOTOS = 12;
+
+const tenantAssignmentSchema = z.object({
+  unitId: z.string().trim().min(1),
+  tenantUserId: z.string().trim().optional(),
+  tenantName: z.string().trim().max(160).optional(),
+  tenantEmail: z.string().trim().email().optional(),
+  tenantPhone: z.string().trim().max(40).optional()
+});
+
+const staffAssignmentSchema = z.object({
+  unitId: z.string().trim().min(1),
+  propertyManagerUserId: z.string().trim().optional(),
+  maintenanceUserId: z.string().trim().optional(),
+  caseworkerUserId: z.string().trim().optional()
+});
+
+const unitContactSchema = z.object({
+  unitId: z.string().trim().min(1),
+  name: z.string().trim().min(1).max(120),
+  role: z.string().trim().max(120).optional(),
+  email: z.string().trim().email().optional(),
+  phone: z.string().trim().max(40).optional(),
+  note: z.string().trim().max(500).optional()
+});
+
+const unitTermsSchema = z.object({
+  unitId: z.string().trim().min(1),
+  rentAmount: z.coerce.number().int().min(0).max(100000),
+  deposit: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(0).nullable()),
+  averageUtilityBill: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(0).nullable()),
+  rentDueDay: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(1).max(31).nullable()),
+  leaseTermsNote: z.string().trim().max(2000).optional(),
+  moveInFeesNote: z.string().trim().max(2000).optional(),
+  lateFeePolicy: z.string().trim().max(2000).optional()
+});
 
 function cleanOptionalText(value: string | null | undefined) {
   return value && value.trim().length > 0 ? value.trim() : null;
@@ -127,6 +164,39 @@ function cleanOptionalId(value: string | null | undefined) {
   return value && value.trim().length > 0 ? value.trim() : null;
 }
 
+async function saveUnitPhotos(unitId: string, files: File[], existing = 0) {
+  if (files.length === 0) return [];
+  if (existing + files.length > MAX_UNIT_PHOTOS) {
+    throw new Error(`Each unit can have up to ${MAX_UNIT_PHOTOS} photos. Remove a photo before uploading more.`);
+  }
+
+  const hasFeatured = await prisma.unitPhoto.findFirst({ where: { unitId, isFeatured: true }, select: { id: true } });
+  const createdIds: string[] = [];
+
+  for (const [index, file] of files.entries()) {
+    if (!file.type.startsWith("image/")) throw new Error("Unit photos must be image files.");
+    const stored = await saveUploadedDocument(file);
+    const created = await prisma.unitPhoto.create({
+      data: {
+        unitId,
+        originalName: stored.originalName,
+        mimeType: stored.mimeType,
+        sizeBytes: stored.sizeBytes,
+        storagePath: stored.storagePath,
+        sortOrder: existing + index,
+        isFeatured: !hasFeatured && index === 0
+      }
+    });
+    createdIds.push(created.id);
+  }
+
+  return createdIds;
+}
+
+function photoFilesFromFormData(formData: FormData) {
+  return formData.getAll("photos").filter((value): value is File => value instanceof File && value.size > 0);
+}
+
 async function landlordUnitPayload(formData: FormData, landlordId: string, unitId?: string) {
   const parsed = unitSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) throw new Error(validationMessage(parsed.error));
@@ -168,9 +238,14 @@ async function landlordUnitPayload(formData: FormData, landlordId: string, unitI
 export async function createLandlordUnit(formData: FormData) {
   const user = await requireLandlordAction();
   const data = await landlordUnitPayload(formData, user.userId);
+  const photos = photoFilesFromFormData(formData);
 
   const created = await prisma.unit.create({ data });
+  const createdPhotos = await saveUnitPhotos(created.id, photos, 0);
   await writeAuditLog({ actor: user, action: AuditAction.CREATE, entityType: "Unit", entityId: created.id, message: `Landlord created unit ${created.unitNumber}.` });
+  if (createdPhotos.length > 0) {
+    await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: created.id, message: `Landlord uploaded ${createdPhotos.length} unit photo(s) while creating the unit.` });
+  }
 
   revalidateLandlord();
   redirect(`/landlord/units/${created.id}`);
@@ -263,6 +338,9 @@ export async function createLandlordSingleFamilyHome(formData: FormData) {
     return { property, unit };
   });
 
+  const photos = photoFilesFromFormData(formData);
+  const createdPhotos = await saveUnitPhotos(created.unit.id, photos, 0);
+
   await writeAuditLog({
     actor: user,
     action: AuditAction.CREATE,
@@ -270,6 +348,9 @@ export async function createLandlordSingleFamilyHome(formData: FormData) {
     entityId: created.unit.id,
     message: `Landlord created single-family home listing ${created.property.name}.`
   });
+  if (createdPhotos.length > 0) {
+    await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: created.unit.id, message: `Landlord uploaded ${createdPhotos.length} home photo(s) while creating the listing.` });
+  }
 
   revalidateLandlord();
   redirect(`/landlord/units/${created.unit.id}?home=created`);
@@ -297,29 +378,7 @@ export async function uploadLandlordUnitPhotos(formData: FormData) {
   if (files.length === 0) throw new Error("Choose at least one image to upload.");
 
   const existing = await prisma.unitPhoto.count({ where: { unitId } });
-  if (existing + files.length > MAX_UNIT_PHOTOS) {
-    throw new Error(`Each unit can have up to ${MAX_UNIT_PHOTOS} photos. Remove a photo before uploading more.`);
-  }
-
-  const hasFeatured = await prisma.unitPhoto.findFirst({ where: { unitId, isFeatured: true }, select: { id: true } });
-  const createdIds: string[] = [];
-
-  for (const [index, file] of files.entries()) {
-    if (!file.type.startsWith("image/")) throw new Error("Unit photos must be image files.");
-    const stored = await saveUploadedDocument(file);
-    const created = await prisma.unitPhoto.create({
-      data: {
-        unitId,
-        originalName: stored.originalName,
-        mimeType: stored.mimeType,
-        sizeBytes: stored.sizeBytes,
-        storagePath: stored.storagePath,
-        sortOrder: existing + index,
-        isFeatured: !hasFeatured && index === 0
-      }
-    });
-    createdIds.push(created.id);
-  }
+  const createdIds = await saveUnitPhotos(unitId, files, existing);
 
   await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: unitId, message: `Landlord uploaded ${createdIds.length} unit photo(s).` });
   revalidateLandlord();
@@ -372,12 +431,175 @@ export async function deleteLandlordUnitPhoto(formData: FormData) {
   redirect(`/landlord/units/${unitId}?photos=deleted`);
 }
 
+async function userHasAccess(userId: string, allowed: AccountAccessType[]) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      role: true,
+      accountAccessRequests: { where: { status: "APPROVED", type: { in: allowed } }, select: { id: true } }
+    }
+  });
+  return Boolean(user && (user.role === UserRole.ADMIN || user.role === UserRole.LANDLORD || (allowed.includes(AccountAccessType.MAINTENANCE) && user.role === UserRole.INSPECTOR) || user.accountAccessRequests.length > 0));
+}
+
+export async function assignLandlordUnitTenant(formData: FormData) {
+  const user = await requireLandlordAction();
+  const parsed = tenantAssignmentSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+  await assertOwnsUnit(parsed.data.unitId, user.userId);
+
+  let createdInviteToken: string | null = null;
+  let tenant = parsed.data.tenantUserId
+    ? await prisma.user.findUnique({ where: { id: parsed.data.tenantUserId }, select: { id: true, email: true, name: true } })
+    : null;
+
+  const email = parsed.data.tenantEmail?.toLowerCase();
+  if (!tenant && email) {
+    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true, email: true, name: true } });
+    if (existing) {
+      tenant = await prisma.user.update({
+        where: { id: existing.id },
+        data: { name: cleanOptionalText(parsed.data.tenantName) ?? existing.name ?? undefined, role: UserRole.TENANT, isActive: true },
+        select: { id: true, email: true, name: true }
+      });
+    } else {
+      createdInviteToken = createSecureToken();
+      tenant = await prisma.user.create({
+        data: {
+          email,
+          name: cleanOptionalText(parsed.data.tenantName) ?? email,
+          role: UserRole.TENANT,
+          isActive: true,
+          forcePasswordReset: true,
+          passwordResetTokenHash: hashToken(createdInviteToken),
+          passwordResetExpiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+        },
+        select: { id: true, email: true, name: true }
+      });
+    }
+  }
+
+  if (!tenant) throw new Error("Choose an existing tenant or enter a tenant email address.");
+
+  const application = await prisma.application.create({
+    data: {
+      unitId: parsed.data.unitId,
+      applicantUserId: tenant.id,
+      applicantName: cleanOptionalText(parsed.data.tenantName) ?? tenant.name ?? tenant.email,
+      applicantEmail: tenant.email,
+      applicantPhone: cleanOptionalText(parsed.data.tenantPhone),
+      status: ApplicationStatus.APPROVED,
+      summary: "Tenant assignment created from landlord unit workflow."
+    }
+  });
+
+  await prisma.unit.update({
+    where: { id: parsed.data.unitId },
+    data: {
+      tenantUserId: tenant.id,
+      currentApplicationId: application.id,
+      status: UnitStatus.OCCUPIED
+    }
+  });
+
+  if (createdInviteToken) {
+    const inviteUrl = `${appUrl()}/reset-password?token=${encodeURIComponent(createdInviteToken)}`;
+    await sendEmail({
+      to: tenant.email,
+      toName: tenant.name,
+      subject: "You've been added to HomeBase",
+      body: `You have been added as the tenant for a HomeBase unit. Use this secure link to set your password and join the workflow: ${inviteUrl}`
+    });
+  }
+
+  await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: parsed.data.unitId, message: `Assigned tenant ${tenant.email} and marked unit occupied.` });
+  revalidateLandlord();
+  revalidatePath(`/landlord/units/${parsed.data.unitId}`);
+  redirect(`/landlord/units/${parsed.data.unitId}?tenant=assigned`);
+}
+
+export async function assignLandlordUnitStaff(formData: FormData) {
+  const user = await requireLandlordAction();
+  const parsed = staffAssignmentSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+  await assertOwnsUnit(parsed.data.unitId, user.userId);
+
+  const propertyManagerUserId = cleanOptionalId(parsed.data.propertyManagerUserId);
+  const maintenanceUserId = cleanOptionalId(parsed.data.maintenanceUserId);
+  const caseworkerUserId = cleanOptionalId(parsed.data.caseworkerUserId);
+
+  if (propertyManagerUserId && !(await userHasAccess(propertyManagerUserId, [AccountAccessType.PROPERTY_MANAGER, AccountAccessType.LANDLORD]))) throw new Error("Selected property manager does not have approved property manager access.");
+  if (maintenanceUserId && !(await userHasAccess(maintenanceUserId, [AccountAccessType.MAINTENANCE, AccountAccessType.VENDOR]))) throw new Error("Selected maintenance contact does not have approved maintenance access.");
+  if (caseworkerUserId && !(await userHasAccess(caseworkerUserId, [AccountAccessType.CASEWORKER]))) throw new Error("Selected caseworker does not have approved caseworker access.");
+
+  await prisma.unit.update({
+    where: { id: parsed.data.unitId },
+    data: { propertyManagerUserId, maintenanceUserId, caseworkerUserId }
+  });
+
+  await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: parsed.data.unitId, message: "Updated unit staff assignments." });
+  revalidateLandlord();
+  revalidatePath(`/landlord/units/${parsed.data.unitId}`);
+  redirect(`/landlord/units/${parsed.data.unitId}?staff=assigned`);
+}
+
+export async function addLandlordUnitContact(formData: FormData) {
+  const user = await requireLandlordAction();
+  const parsed = unitContactSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+  const unit = await prisma.unit.findFirst({ where: { id: parsed.data.unitId, property: { ownerId: user.userId, isArchived: false } }, select: { id: true, importantContacts: true } });
+  if (!unit) throw new Error("This unit is not assigned to your landlord account.");
+
+  const parts = [
+    parsed.data.name,
+    parsed.data.role ? `(${parsed.data.role})` : null,
+    parsed.data.email || null,
+    parsed.data.phone || null,
+    parsed.data.note || null
+  ].filter(Boolean);
+  const nextContacts = [unit.importantContacts, parts.join(" - ")].filter(Boolean).join("\n");
+  await prisma.unit.update({ where: { id: unit.id }, data: { importantContacts: nextContacts } });
+  await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: unit.id, message: "Added an important unit contact." });
+  revalidatePath(`/landlord/units/${unit.id}`);
+  redirect(`/landlord/units/${unit.id}?contact=added`);
+}
+
+export async function updateLandlordUnitTerms(formData: FormData) {
+  const user = await requireLandlordAction();
+  const parsed = unitTermsSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+  await assertOwnsUnit(parsed.data.unitId, user.userId);
+
+  await prisma.unit.update({
+    where: { id: parsed.data.unitId },
+    data: {
+      rentAmount: parsed.data.rentAmount,
+      deposit: parsed.data.deposit,
+      averageUtilityBill: parsed.data.averageUtilityBill,
+      rentDueDay: parsed.data.rentDueDay,
+      leaseTermsNote: cleanOptionalText(parsed.data.leaseTermsNote),
+      moveInFeesNote: cleanOptionalText(parsed.data.moveInFeesNote),
+      lateFeePolicy: cleanOptionalText(parsed.data.lateFeePolicy)
+    }
+  });
+
+  await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: parsed.data.unitId, message: "Updated rent, deposit, and move-in terms." });
+  revalidateLandlord();
+  revalidatePath(`/landlord/units/${parsed.data.unitId}`);
+  redirect(`/landlord/units/${parsed.data.unitId}?terms=updated`);
+}
+
 export async function createLandlordMaintenanceRequest(formData: FormData) {
   const user = await requireLandlordAction();
   const parsed = landlordMaintenanceSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) throw new Error(validationMessage(parsed.error));
 
-  const unit = await assertOwnsUnit(parsed.data.unitId, user.userId);
+  const unit = await prisma.unit.findFirst({
+    where: { id: parsed.data.unitId, property: { ownerId: user.userId, isArchived: false } },
+    select: { id: true, maintenanceUserId: true }
+  });
+  if (!unit) throw new Error("This record is not assigned to your landlord account.");
   const applicationId = cleanOptionalId(parsed.data.applicationId);
 
   if (applicationId) {
@@ -391,6 +613,7 @@ export async function createLandlordMaintenanceRequest(formData: FormData) {
       unitId: unit.id,
       applicationId,
       requesterId: user.userId,
+      assignedToId: unit.maintenanceUserId,
       subject: parsed.data.subject,
       description: parsed.data.description,
       priority: parsed.data.priority,

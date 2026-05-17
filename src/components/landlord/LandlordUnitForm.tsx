@@ -187,6 +187,13 @@ export function LandlordUnitForm({ properties, tenants = [], applications = [], 
         <Field label="Unit description">
           <textarea name="description" defaultValue={unit?.description ?? ""} className={textareaClass} />
         </Field>
+        {!unit ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 md:col-span-2">
+            <label className="block text-sm font-black text-slate-950">Unit photos</label>
+            <p className="mt-1 text-sm leading-6 text-slate-600">Upload up to 12 photos while creating the unit. The first photo becomes the featured marketplace photo.</p>
+            <input name="photos" type="file" multiple accept="image/*" className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm" />
+          </div>
+        ) : null}
         <Field label="Assigned tenant" help="Link the unit to an active applicant or tenant account when someone is occupying it.">
           <select name="tenantUserId" defaultValue={unit?.tenantUserId ?? ""} className={selectClass}>
             <option value="">No tenant assigned</option>

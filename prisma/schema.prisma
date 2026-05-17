@@ -308,6 +308,9 @@ model User {
   reviewedAccountAccessRequests AccountAccessRequest[] @relation("ReviewedAccountAccessRequests")
   sessions UserSession[]
   createdClaimTokens ApplicationClaimToken[] @relation("CreatedApplicationClaimTokens")
+  managedUnits Unit[] @relation("UnitPropertyManagers")
+  maintainedUnits Unit[] @relation("UnitMaintenanceAssignees")
+  caseworkUnits Unit[] @relation("UnitCaseworkers")
 
   @@index([role, isActive])
   @@index([passwordResetTokenHash])
@@ -415,6 +418,9 @@ model Unit {
   unitNumber      String
   tenantUserId    String?
   currentApplicationId String?
+  propertyManagerUserId String?
+  maintenanceUserId String?
+  caseworkerUserId String?
   bedrooms        Int
   bathrooms       Float
   rentAmount      Int
@@ -451,6 +457,9 @@ model Unit {
   property     Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   tenantUser   User?         @relation("CurrentTenantUnits", fields: [tenantUserId], references: [id], onDelete: SetNull)
   currentApplication Application? @relation("CurrentTenantApplication", fields: [currentApplicationId], references: [id], onDelete: SetNull)
+  propertyManager User?      @relation("UnitPropertyManagers", fields: [propertyManagerUserId], references: [id], onDelete: SetNull)
+  maintenanceUser User?      @relation("UnitMaintenanceAssignees", fields: [maintenanceUserId], references: [id], onDelete: SetNull)
+  caseworker User?           @relation("UnitCaseworkers", fields: [caseworkerUserId], references: [id], onDelete: SetNull)
   leads        Lead[]
   applications Application[]
   favoriteRentals FavoriteRental[]
@@ -467,6 +476,9 @@ model Unit {
   @@index([propertyId])
   @@index([tenantUserId])
   @@index([currentApplicationId])
+  @@index([propertyManagerUserId])
+  @@index([maintenanceUserId])
+  @@index([caseworkerUserId])
   @@index([status])
   @@unique([propertyId, unitNumber])
 }
