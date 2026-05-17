@@ -347,3 +347,8 @@ Initial app shell.
 - Updated the build script to run `prisma generate` before `next build`.
 - Added `postinstall` Prisma generation for Vercel installs.
 - Fixed the missing Prisma back-relation from `Unit` to `Inspection`.
+
+## 2.6.8 - Vercel App Header Build Fix
+
+- Fixed Vercel TypeScript build error by making `AppHeader` a synchronous server component.
+- Keeps prior Vercel fixes for Next config, Prisma generation, schema relations, enum typing, server-action form typing, and document route narrowing.

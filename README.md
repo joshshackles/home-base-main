@@ -216,3 +216,7 @@ This patch adds React server-action form typings so Vercel builds can accept ser
 ## Vercel build note
 
 v2.6.7 fixes a strict TypeScript issue in the protected document download route where Vercel could not infer that a document exists after access is allowed.
+
+### Vercel note for v2.6.8
+
+This package includes an AppHeader TypeScript build fix for Vercel. Replace your repository files with this package, commit, push, and redeploy the newest commit without build cache.

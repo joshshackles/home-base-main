@@ -3,7 +3,7 @@ import { Building2, FileText, Home, KeyRound, LayoutDashboard, LogIn, LogOut, Se
 import { getCurrentUser } from "@/lib/auth";
 import { logoutAction } from "@/app/login/actions";
 
-export async function AppHeader() {
+export function AppHeader() {
   const user = getCurrentUser();
 
   return (
