@@ -20,6 +20,7 @@ export default async function LandlordDashboardPage() {
   ]);
 
   const tasks = [
+    propertyCount === 0 ? { title: "Create your first rental home", detail: "For a single-family rental, add the home and listing in one step.", href: "/landlord/homes/new", cta: "Add Home", tone: "urgent" as const } : null,
     availableCount === 0 ? { title: "List an available unit", detail: "Available units automatically appear in the public rental directory.", href: "/landlord/units/new", cta: "Create", tone: "urgent" as const } : null,
     leadCount > 0 ? { title: "Review rental leads", detail: `${leadCount} prospect lead${leadCount === 1 ? "" : "s"} are tied to your units.`, href: "/landlord/leads", cta: "Leads" } : null,
     applicationCount > 0 ? { title: "Move applications forward", detail: `${applicationCount} active application${applicationCount === 1 ? "" : "s"} need review or follow-up.`, href: "/landlord/applications", cta: "Applications" } : null,
@@ -40,7 +41,7 @@ export default async function LandlordDashboardPage() {
       ]}
       tasks={tasks}
       tools={[
-        { title: "Unit operations", detail: "Create listings, mark availability, assign tenants, and open tenant records.", href: "/landlord/units", icon: dashboardIcons.homes },
+        { title: "Home and unit operations", detail: "Add single-family homes, create multi-unit properties, mark availability, and open tenant records.", href: "/landlord/units", icon: dashboardIcons.homes },
         { title: "Leads and applications", detail: "Review prospects, notes, applications, documents, and next steps.", href: "/landlord/applications", icon: dashboardIcons.applications },
         { title: "Maintenance queue", detail: "Assign repairs, message tenants, and track completion.", href: "/landlord/maintenance", icon: dashboardIcons.maintenance },
         { title: "Messages", detail: "Keep application, lease, and repair conversations in one place.", href: "/landlord/inbox", icon: dashboardIcons.inbox }

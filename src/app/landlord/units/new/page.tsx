@@ -35,9 +35,12 @@ export default async function NewLandlordUnitPage() {
       <LandlordPageHeader title="Add Unit" description="Create a unit under one of your properties. Set the status to AVAILABLE when it should publish to the public marketplace." actionHref="/landlord/units" actionLabel="Back to units" />
       {properties.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center">
-          <h2 className="text-2xl font-black text-slate-950">No properties assigned</h2>
-          <p className="mt-2 text-slate-600">An admin needs to assign a property to your landlord account before you can add units.</p>
-          <Link href="/landlord/properties" className="mt-5 inline-flex rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700">View Properties</Link>
+          <h2 className="text-2xl font-black text-slate-950">Choose the right starting point</h2>
+          <p className="mt-2 text-slate-600">If this is a single-family rental, create a home listing in one step. If this is a building with multiple units, create the property first.</p>
+          <div className="mt-5 flex flex-wrap justify-center gap-3">
+            <Link href="/landlord/homes/new" className="inline-flex rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700">Add Home</Link>
+            <Link href="/landlord/properties/new" className="inline-flex rounded-2xl border border-slate-300 px-5 py-3 font-bold text-slate-900 hover:bg-slate-50">Add Multi-unit Property</Link>
+          </div>
         </div>
       ) : (
         <LandlordUnitForm properties={properties} tenants={tenants} />

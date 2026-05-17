@@ -79,7 +79,7 @@ export default async function AdminPage() {
         { title: "Application pipeline", detail: "Leads, documents, applications, lease packets, signatures, and notices.", href: "/admin/applications", icon: dashboardIcons.applications },
         { title: "Field operations", detail: `${inspectionCount} inspections, ${maintenanceCount} repairs, and ${inboxCount} open conversations.`, href: "/admin/maintenance", icon: dashboardIcons.maintenance },
         { title: "Ledger and documents", detail: `${formatCurrency(ledgerBalance)} ledger balance, ${documentCount} documents, ${leaseCount} lease packets.`, href: "/admin/ledger", icon: dashboardIcons.inbox },
-        { title: "System health", detail: `Version ${APP_VERSION}, ${auditCount} audit events, ${securityEventCount} security events.`, href: "/admin/system", icon: dashboardIcons.security }
+        { title: "System health and data", detail: `Version ${APP_VERSION}, import/export tools, ${auditCount} audit events, ${securityEventCount} security events.`, href: "/admin/system", icon: dashboardIcons.security }
       ]}
       accessRequests={[]}
       adminAccessQueue={accessRequests.map((request) => ({
@@ -87,6 +87,7 @@ export default async function AdminPage() {
         type: request.type,
         status: request.status,
         organization: request.organization,
+        reason: request.reason,
         createdAt: request.createdAt,
         requester: request.user.name || request.user.email
       }))}

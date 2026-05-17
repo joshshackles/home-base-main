@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 import { completeLeaseIfReadyAndFinalize } from "@/lib/signed-lease";
-import { formDataToObject, leadNoteSchema, applicationNoteSchema, leaseSignatureSchema, unitSchema, validationMessage } from "@/lib/validation";
+import { formDataToObject, leadNoteSchema, applicationNoteSchema, leaseSignatureSchema, propertySchema, unitSchema, validationMessage } from "@/lib/validation";
 import { baseSignatureRequestWhere, completeSignatureRequest } from "@/lib/signature-workflow";
 
 async function requireLandlordAction() {
@@ -22,6 +22,25 @@ const landlordMaintenanceSchema = z.object({
   description: z.string().trim().min(10).max(4000),
   priority: z.nativeEnum(MaintenancePriority).default(MaintenancePriority.NORMAL),
   accessNotes: z.string().trim().max(1000).optional()
+});
+
+const singleFamilyHomeSchema = z.object({
+  name: z.string().trim().max(160).optional(),
+  addressLine: z.string().trim().min(1).max(160),
+  city: z.string().trim().min(1).max(80),
+  state: z.string().trim().length(2).transform((value) => value.toUpperCase()),
+  zip: z.string().trim().min(5).max(10),
+  status: z.nativeEnum(UnitStatus).default(UnitStatus.AVAILABLE),
+  bedrooms: z.coerce.number().int().min(0).max(20),
+  bathrooms: z.coerce.number().min(0).max(20),
+  rentAmount: z.coerce.number().int().min(0).max(100000),
+  deposit: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(0).nullable()),
+  squareFeet: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(0).nullable()),
+  voucherFriendly: z.coerce.boolean().default(false),
+  utilitiesNote: z.string().trim().max(2000).optional(),
+  petPolicy: z.string().trim().max(2000).optional(),
+  accessibility: z.string().trim().max(2000).optional(),
+  description: z.string().trim().max(4000).optional()
 });
 
 function getRequiredId(formData: FormData, label: string) {
@@ -131,6 +150,88 @@ export async function createLandlordUnit(formData: FormData) {
 
   revalidateLandlord();
   redirect(`/landlord/units/${created.id}`);
+}
+
+export async function createLandlordProperty(formData: FormData) {
+  const user = await requireLandlordAction();
+  const raw = formDataToObject(formData);
+  raw.ownerId = user.userId;
+  raw.isArchived = false;
+  const parsed = propertySchema.safeParse(raw);
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+
+  const created = await prisma.property.create({
+    data: {
+      ...parsed.data,
+      ownerId: user.userId,
+      isArchived: false
+    }
+  });
+
+  await writeAuditLog({
+    actor: user,
+    action: AuditAction.CREATE,
+    entityType: "Property",
+    entityId: created.id,
+    message: `Landlord created property ${created.name}.`
+  });
+
+  revalidateLandlord();
+  redirect("/landlord/units/new?property=created");
+}
+
+export async function createLandlordSingleFamilyHome(formData: FormData) {
+  const user = await requireLandlordAction();
+  const parsed = singleFamilyHomeSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+  if (parsed.data.status === UnitStatus.ARCHIVED) throw new Error("Landlords cannot archive homes from the landlord portal.");
+
+  const propertyName = parsed.data.name?.trim() || parsed.data.addressLine;
+  const created = await prisma.$transaction(async (tx) => {
+    const property = await tx.property.create({
+      data: {
+        name: propertyName,
+        addressLine: parsed.data.addressLine,
+        city: parsed.data.city,
+        state: parsed.data.state,
+        zip: parsed.data.zip,
+        description: parsed.data.description || null,
+        ownerId: user.userId,
+        isArchived: false
+      }
+    });
+
+    const unit = await tx.unit.create({
+      data: {
+        propertyId: property.id,
+        unitNumber: "Home",
+        bedrooms: parsed.data.bedrooms,
+        bathrooms: parsed.data.bathrooms,
+        rentAmount: parsed.data.rentAmount,
+        deposit: parsed.data.deposit,
+        squareFeet: parsed.data.squareFeet,
+        voucherFriendly: parsed.data.voucherFriendly,
+        utilitiesNote: parsed.data.utilitiesNote || null,
+        petPolicy: parsed.data.petPolicy || null,
+        accessibility: parsed.data.accessibility || null,
+        description: parsed.data.description || null,
+        status: parsed.data.status
+      }
+    });
+
+    return { property, unit };
+  });
+
+  await writeAuditLog({
+    actor: user,
+    action: AuditAction.CREATE,
+    entityType: "Unit",
+    entityId: created.unit.id,
+    message: `Landlord created single-family home listing ${created.property.name}.`
+  });
+
+  revalidateLandlord();
+  redirect(`/landlord/units/${created.unit.id}?home=created`);
 }
 
 export async function updateLandlordUnit(formData: FormData) {
@@ -253,4 +354,3 @@ export async function signLandlordLease(formData: FormData) {
   revalidatePath(`/landlord/leases/${signature.leasePacketId}`);
   redirect(`/landlord/leases/${signature.leasePacketId}`);
 }
-

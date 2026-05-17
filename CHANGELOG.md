@@ -1,4 +1,26 @@
 
+## 3.0.8 - Admin Data Portability
+
+- Added admin JSON export for users, access requests, properties, units, leads, applications, profiles, documents, inspections, maintenance, messages, leases, ledger records, audit logs, and security events.
+- Added admin JSON import that creates or updates records by stable IDs without deleting records missing from the import file.
+- Added a downloadable sample import file with 6 users for each current user role and 10 home listings assigned to sample landlords.
+- Added data portability verification coverage and included it in the main verification chain.
+
+## 3.0.7 - Small Portfolio Property and Unit Workflow
+
+- Added an `Add Home` fast path for landlords whose address is the rentable home, creating the property shell and listing unit in one step.
+- Kept the existing multi-unit property workflow for apartment complexes, duplexes, and buildings with multiple rentable units.
+- Updated landlord dashboard, property, unit, and empty-state copy to clearly distinguish single-family homes from multi-unit properties.
+- Added property/unit workflow verification coverage and included it in the main verification chain.
+
+## 3.0.6 - Account and Landlord Activation Flow
+
+- Added optional landlord access intent to applicant signup so future landlords can create an account and request the landlord module in one pass.
+- Improved the dashboard access request panel with a clear landlord approval path and surfaced request reasons in the admin review queue.
+- Added landlord self-service property creation after approval, removing the dead end where a new landlord needed an admin-created property before adding units.
+- Updated the landlord empty states and dashboard queue to guide new landlords from property creation to unit publishing.
+- Added account-flow verification coverage and included it in the main verification chain.
+
 ## 3.0.5 - Password retry and account flow hardening
 
 - Fixed reset-password validation redirects so the token is preserved after a failed first attempt.

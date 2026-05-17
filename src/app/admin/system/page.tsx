@@ -1,12 +1,13 @@
 export const dynamic = "force-dynamic";
 
 import { CheckCircle2, ServerCog, TriangleAlert } from "lucide-react";
+import { importDataSnapshotAction } from "@/app/admin/actions";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { prisma } from "@/lib/prisma";
 import { getEnvironmentWarnings } from "@/lib/env";
 import { APP_RELEASE_LABEL, APP_VERSION } from "@/lib/app-version";
 
-export default async function SystemStatusPage() {
+export default async function SystemStatusPage({ searchParams }: { searchParams?: { imported?: string } }) {
   const warnings = getEnvironmentWarnings();
   let databaseOk = true;
   let databaseMessage = "Database connection is responding.";
@@ -48,6 +49,26 @@ export default async function SystemStatusPage() {
           </div>
         ))}
       </div>
+
+      <section className="mt-8 grid gap-6 lg:grid-cols-2">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-black text-slate-950">Export site data</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Download a JSON snapshot of users, access requests, properties, units, leads, applications, documents, inspections, maintenance, messages, leases, ledger records, audit logs, and security events.</p>
+          <a href="/admin/system/export" className="mt-5 inline-flex rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700">Export JSON</a>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-black text-slate-950">Import site data</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Upload a HomeBase JSON snapshot to create or update records by ID. Existing matching IDs are updated; new IDs are inserted.</p>
+          <a href="/admin/system/sample-data" className="mt-4 inline-flex rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-50">Download Sample Data</a>
+          {searchParams?.imported ? <p className="mt-4 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Imported {searchParams.imported} records.</p> : null}
+          <form action={importDataSnapshotAction} className="mt-5 space-y-4">
+            <input name="file" type="file" accept="application/json,.json" required className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900" />
+            <button type="submit" className="rounded-2xl bg-slate-950 px-5 py-3 font-bold text-white hover:bg-slate-800">Import JSON</button>
+          </form>
+          <p className="mt-3 text-xs leading-5 text-slate-500">Use this carefully on production. Import is additive/update-based and does not delete records that are missing from the file.</p>
+        </div>
+      </section>
 
       <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-sm">
         <div className="flex items-center gap-3">

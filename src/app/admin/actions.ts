@@ -60,6 +60,7 @@ import { generateFinalSignedLeaseDocument, syncLeaseCompletion } from "@/lib/sig
 import { defaultSignatureExpirationDate, queueSignatureNotification } from "@/lib/signature-notifications";
 import { sendEmail, sendQueuedSignatureNotificationEmails, sendSignatureNotificationEmail } from "@/lib/email";
 import { addMonthsSafe, advanceMonthlyRunDate, isScheduleDue, nextMonthlyRunDate, plannedInstallmentCount, recurringChargePeriodKey } from "@/lib/ledger";
+import { importDataSnapshot, type DataSnapshot } from "@/lib/data-portability";
 
 const LOCKED_LEASE_PACKET_STATUSES: LeasePacketStatus[] = [
   LeasePacketStatus.SENT_FOR_SIGNATURE,
@@ -74,6 +75,38 @@ const PAID_OR_WAIVED_INSTALLMENT_STATUSES: PaymentPlanInstallmentStatus[] = [
 
 async function requireAdminAction() {
   return await requireRole(["ADMIN"]);
+}
+
+export async function importDataSnapshotAction(formData: FormData) {
+  const actor = await requireAdminAction();
+  const file = formData.get("file");
+  if (!(file instanceof File)) throw new Error("Choose a HomeBase JSON export file to import.");
+  if (file.size > 10 * 1024 * 1024) throw new Error("Import file is too large. Use a JSON file under 10 MB.");
+
+  let snapshot: DataSnapshot;
+  try {
+    snapshot = JSON.parse(await file.text()) as DataSnapshot;
+  } catch {
+    throw new Error("Import file must be valid JSON.");
+  }
+
+  const counts = await importDataSnapshot(snapshot);
+  await writeAuditLog({
+    actor,
+    action: AuditAction.CREATE,
+    entityType: "DataSnapshot",
+    entityId: "import",
+    message: "Imported HomeBase data snapshot.",
+    metadata: counts
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/system");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/properties");
+  revalidatePath("/admin/units");
+  revalidatePath("/marketplace");
+  redirect(`/admin/system?imported=${encodeURIComponent(Object.values(counts).reduce((sum, count) => sum + count, 0).toString())}`);
 }
 
 function getRequiredId(formData: FormData, label: string) {

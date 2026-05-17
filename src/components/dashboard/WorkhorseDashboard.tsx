@@ -31,6 +31,7 @@ type AccessRequest = {
   type: string;
   status: string;
   organization: string | null;
+  reason?: string | null;
   createdAt: Date;
   requester?: string | null;
 };
@@ -186,6 +187,10 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-black text-slate-950">Add access</h2>
             <p className="mt-1 text-sm leading-6 text-slate-600">Start as an applicant, then request work modules as your responsibilities grow.</p>
+            <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50 p-4 text-sm leading-6 text-brand-950">
+              <p className="font-black">Becoming a landlord</p>
+              <p className="mt-1">Request landlord access here. Once an admin approves it, your dashboard opens the landlord module where you can create a property, add units, and publish available listings to the public directory.</p>
+            </div>
             <form action={requestAccountAccessAction} className="mt-5 space-y-4">
               <label className="block">
                 <span className="text-sm font-bold text-slate-700">Access type</span>
@@ -224,6 +229,7 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
                   <div>
                     <p className="font-black text-slate-950">{pretty(request.type)}</p>
                     <p className="mt-1 text-sm text-slate-600">{request.requester ? `${request.requester} - ` : ""}{request.organization || "No organization listed"} - {request.createdAt.toLocaleDateString()}</p>
+                    {request.reason ? <p className="mt-2 rounded-xl bg-slate-50 p-3 text-sm leading-6 text-slate-700">{request.reason}</p> : null}
                   </div>
                   <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${statusBadgeClass(request.status)}`}>{pretty(request.status)}</span>
                 </div>
@@ -232,11 +238,13 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
                     <form action={reviewAccountAccessAction}>
                       <input type="hidden" name="id" value={request.id} />
                       <input type="hidden" name="status" value="APPROVED" />
+                      <input type="hidden" name="reviewNote" value="Approved from dashboard review queue." />
                       <button className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white hover:bg-emerald-700" type="submit">Approve</button>
                     </form>
                     <form action={reviewAccountAccessAction}>
                       <input type="hidden" name="id" value={request.id} />
                       <input type="hidden" name="status" value="DECLINED" />
+                      <input type="hidden" name="reviewNote" value="Declined from dashboard review queue." />
                       <button className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-800 hover:bg-slate-50" type="submit">Decline</button>
                     </form>
                   </div>
