@@ -84,35 +84,36 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
     .map(({ task }) => task);
 
   return (
-    <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <main id="main-content" className="bg-slate-50">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <section className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="rounded-3xl bg-slate-950 p-7 text-white shadow-sm">
-          <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-slate-300">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/15"><Layers3 size={15} /> Main dashboard</span>
-            <span className="rounded-full bg-brand-500 px-3 py-1 text-white">{accountLabel}</span>
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-7 text-slate-950 shadow-sm">
+          <div className="flex flex-wrap items-center gap-3 text-sm font-black text-slate-500">
+            <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2"><Layers3 size={15} /> Main dashboard</span>
+            <span className="rounded-full bg-emerald-50 px-4 py-2 text-emerald-700">{accountLabel}</span>
           </div>
-          <h1 className="mt-5 max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">{headline}</h1>
-          <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">{summary}</p>
+          <h1 className="mt-5 max-w-3xl text-4xl font-black leading-tight tracking-tight sm:text-5xl">{headline}</h1>
+          <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-600">{summary}</p>
           <div className="mt-7 grid gap-3 sm:grid-cols-3">
-            <Link href="/marketplace" className="group rounded-2xl bg-white p-4 text-slate-950 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-100">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-700"><Search size={20} /></span>
+            <Link href="/marketplace" className="group rounded-3xl border border-slate-200 bg-slate-50 p-4 text-slate-950 transition hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white hover:shadow-sm">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-50 text-brand-700"><Search size={20} /></span>
               <span className="mt-4 block text-sm font-black">Find Rentals</span>
               <span className="mt-1 block text-xs font-semibold leading-5 text-slate-600">Profile-aware search and saved homes.</span>
             </Link>
-            <Link href="/applicant/profile" className="group rounded-2xl border border-white/15 bg-white/10 p-4 text-white transition hover:-translate-y-0.5 hover:bg-white/15">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-white"><UserRound size={20} /></span>
+            <Link href="/applicant/profile" className="group rounded-3xl border border-slate-200 bg-slate-50 p-4 text-slate-950 transition hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white hover:shadow-sm">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700"><UserRound size={20} /></span>
               <span className="mt-4 block text-sm font-black">Renter Profile</span>
-              <span className="mt-1 block text-xs font-semibold leading-5 text-slate-300">Household, income, preferences, and story.</span>
+              <span className="mt-1 block text-xs font-semibold leading-5 text-slate-600">Household, income, preferences, and story.</span>
             </Link>
-            <Link href="/account/password" className="group rounded-2xl border border-white/15 bg-white/10 p-4 text-white transition hover:-translate-y-0.5 hover:bg-white/15">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-white"><KeyRound size={20} /></span>
+            <Link href="/account/password" className="group rounded-3xl border border-slate-200 bg-slate-50 p-4 text-slate-950 transition hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white hover:shadow-sm">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700"><KeyRound size={20} /></span>
               <span className="mt-4 block text-sm font-black">Account</span>
-              <span className="mt-1 block text-xs font-semibold leading-5 text-slate-300">Security and password controls.</span>
+              <span className="mt-1 block text-xs font-semibold leading-5 text-slate-600">Security and password controls.</span>
             </Link>
           </div>
         </div>
 
-        <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <aside className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-start gap-3">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-700"><KeyRound size={22} /></span>
             <div>
@@ -131,20 +132,20 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
 
       <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
-          <Link key={metric.label} href={metric.href} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:bg-brand-50">
+          <Link key={metric.label} href={metric.href} className="rounded-[1.7rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:bg-white">
             <div className="flex items-start justify-between gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">{metric.icon ?? <Home size={20} />}</span>
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50 text-brand-700">{metric.icon ?? <Home size={20} />}</span>
               <ArrowUpRight size={18} className="text-slate-400" />
             </div>
-            <p className="mt-5 text-sm font-black uppercase tracking-wide text-slate-500">{metric.label}</p>
-            <p className="mt-1 text-4xl font-black text-slate-950">{metric.value}</p>
+            <p className="mt-5 text-sm font-black text-slate-500">{metric.label}</p>
+            <p className="mt-1 truncate text-4xl font-black text-slate-950">{metric.value}</p>
             {metric.detail ? <p className="mt-2 text-sm leading-6 text-slate-600">{metric.detail}</p> : null}
           </Link>
         ))}
       </section>
 
       <section className="mt-6 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-2xl font-black text-slate-950">Work queue</h2>
@@ -154,7 +155,7 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
           </div>
           <div className="mt-5 space-y-3">
             {sortedTasks.length === 0 ? <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">No urgent work is waiting right now.</p> : sortedTasks.map((task) => (
-              <Link key={`${task.title}-${task.href}`} href={task.href} className="block rounded-2xl border border-slate-200 p-4 transition hover:border-brand-200 hover:bg-brand-50">
+              <Link key={`${task.title}-${task.href}`} href={task.href} className="block rounded-3xl border border-slate-200 bg-slate-50 p-4 transition hover:border-brand-200 hover:bg-white">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-black text-slate-950">{task.title}</p>
@@ -167,13 +168,13 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-slate-950">Work modules</h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">Every account uses the same dashboard; access simply adds more modules to the surface.</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {tools.map((tool) => (
-              <Link key={`${tool.title}-${tool.href}`} href={tool.href} className="rounded-2xl border border-slate-200 p-4 hover:border-brand-200 hover:bg-brand-50">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-700">{tool.icon ?? <BriefcaseBusiness size={19} />}</span>
+              <Link key={`${tool.title}-${tool.href}`} href={tool.href} className="rounded-3xl border border-slate-200 bg-slate-50 p-4 hover:border-brand-200 hover:bg-white">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">{tool.icon ?? <BriefcaseBusiness size={19} />}</span>
                 <p className="mt-4 font-black text-slate-950">{tool.title}</p>
                 <p className="mt-1 text-sm leading-6 text-slate-600">{tool.detail}</p>
               </Link>
@@ -184,7 +185,7 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
 
       <section className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
         {showAccessBuilder ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-black text-slate-950">Add access</h2>
             <p className="mt-1 text-sm leading-6 text-slate-600">Start as an applicant, then request work modules as your responsibilities grow.</p>
             <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50 p-4 text-sm leading-6 text-brand-950">
@@ -220,7 +221,7 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
           </div>
         ) : null}
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-slate-950">{adminAccessQueue.length > 0 ? "Access review queue" : "Access history"}</h2>
           <div className="mt-5 space-y-3">
             {(adminAccessQueue.length > 0 ? adminAccessQueue : accessRequests).slice(0, 8).map((request) => (
@@ -257,6 +258,7 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
           </div>
         </div>
       </section>
+      </div>
     </main>
   );
 }

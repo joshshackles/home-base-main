@@ -68,10 +68,10 @@ const tenantFeatures: Feature[] = [
 ];
 
 const fallbackRentalPreviews: FallbackRentalPreview[] = [
-  { price: "$1,650", title: "Sunny 2 bed near downtown", meta: "2 bd • 1 ba • 850 sqft", address: "123 Main St, Apt 3B", tone: "from-emerald-100 via-white to-brand-100" },
-  { price: "$1,950", title: "Renovated townhome", meta: "3 bd • 2 ba • 1,200 sqft", address: "456 Oak Ave, Apt 2A", tone: "from-sky-100 via-white to-indigo-100" },
-  { price: "$2,100", title: "Family home with yard", meta: "3 bd • 2.5 ba • 1,450 sqft", address: "789 Pine Rd, Apt 1C", tone: "from-amber-100 via-white to-emerald-100" },
-  { price: "$1,750", title: "Loft-style apartment", meta: "2 bd • 1 ba • 950 sqft", address: "321 Elm St, Apt 5D", tone: "from-slate-100 via-white to-blue-100" }
+  { price: "$1,650", title: "Sunny 2 bed near downtown", meta: "2 bd - 1 ba - 850 sqft", address: "123 Main St, Apt 3B", tone: "from-emerald-100 via-white to-brand-100" },
+  { price: "$1,950", title: "Renovated townhome", meta: "3 bd - 2 ba - 1,200 sqft", address: "456 Oak Ave, Apt 2A", tone: "from-sky-100 via-white to-indigo-100" },
+  { price: "$2,100", title: "Family home with yard", meta: "3 bd - 2.5 ba - 1,450 sqft", address: "789 Pine Rd, Apt 1C", tone: "from-amber-100 via-white to-emerald-100" },
+  { price: "$1,750", title: "Loft-style apartment", meta: "2 bd - 1 ba - 950 sqft", address: "321 Elm St, Apt 5D", tone: "from-slate-100 via-white to-blue-100" }
 ];
 
 const landlordSteps = ["List property", "Get leads", "Review applications", "Inspect", "Send lease", "Welcome tenant"];
@@ -301,32 +301,32 @@ export default async function HomePage() {
 
 function HeroDashboard() {
   return (
-    <div className="rounded-[2rem] border border-white bg-white/80 p-3 shadow-2xl shadow-slate-200 backdrop-blur">
+    <div className="mx-auto w-full max-w-[760px] rounded-[2rem] border border-white bg-white/80 p-2 shadow-2xl shadow-slate-200 backdrop-blur">
       <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white">
-        <div className="grid lg:grid-cols-[170px_1fr]">
-          <aside className="hidden border-r border-slate-200 bg-slate-50 p-4 lg:block">
-            <div className="flex items-center gap-2 font-black text-slate-950"><Home className="text-brand-600" size={18} /> HomeBase</div>
-            <div className="mt-6 space-y-2 text-sm font-bold text-slate-600">
+        <div className="grid min-w-0 lg:grid-cols-[190px_minmax(0,1fr)]">
+          <aside className="hidden border-r border-slate-200 bg-slate-50 p-5 lg:block">
+            <div className="flex items-center gap-2 text-base font-black text-slate-950"><Home className="text-brand-600" size={19} /> HomeBase</div>
+            <div className="mt-7 space-y-2 text-sm font-black text-slate-500">
               {["Dashboard", "Listings", "Applications", "Inspections", "Leases", "Messages", "Ledger"].map((item, index) => (
-                <div key={item} className={index === 0 ? "rounded-xl bg-white px-3 py-2 text-slate-950 shadow-sm" : "rounded-xl px-3 py-2"}>{item}</div>
+                <div key={item} className={index === 0 ? "rounded-2xl bg-white px-4 py-3 text-slate-950 shadow-sm" : "rounded-2xl px-4 py-3"}>{item}</div>
               ))}
             </div>
           </aside>
-          <div className="p-5">
-            <div className="mb-5 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-bold text-slate-500">Dashboard preview</p>
-                <h2 className="text-2xl font-black text-slate-950">Good morning, Jessica</h2>
+          <div className="min-w-0 p-4 sm:p-5">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-black text-slate-500">Dashboard preview</p>
+                <h2 className="mt-1 text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl">Good morning, Jessica</h2>
               </div>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-black text-emerald-700">Live workflow</span>
+              <span className="w-fit rounded-full bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700">Live workflow</span>
             </div>
-            <div className="grid gap-3 sm:grid-cols-4">
+            <div className="grid min-w-0 grid-cols-2 gap-3 xl:grid-cols-4">
               <MiniMetric value="12" label="Listings" />
               <MiniMetric value="8" label="Applications" />
               <MiniMetric value="3" label="Inspections" />
               <MiniMetric value="$24,560" label="Rent" />
             </div>
-            <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="mt-5 grid min-w-0 gap-4 xl:grid-cols-[1.1fr_0.9fr]">
               <div className="rounded-3xl border border-slate-200 p-4">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="font-black text-slate-950">Recent applications</h3>
@@ -338,10 +338,10 @@ function HeroDashboard() {
                       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 font-black text-brand-700">{name.charAt(0)}</span>
                       <div>
                         <p className="font-bold text-slate-950">{name}</p>
-                        <p className="text-xs font-semibold text-slate-500">2bd • Apt {index + 1}A</p>
+                        <p className="text-xs font-semibold text-slate-500">2bd - Apt {index + 1}A</p>
                       </div>
                     </div>
-                    <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-black text-blue-700">Under review</span>
+                    <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">Under review</span>
                   </div>
                 ))}
               </div>
@@ -350,7 +350,7 @@ function HeroDashboard() {
                 {["123 Main St", "456 Oak Ave", "789 Pine Rd"].map((address) => (
                   <div key={address} className="mt-3 rounded-2xl bg-slate-50 p-3">
                     <p className="font-bold text-slate-950">{address}</p>
-                    <p className="text-sm font-semibold text-slate-500">Today • 10:00 AM</p>
+                    <p className="text-sm font-semibold text-slate-500">Today - 10:00 AM</p>
                   </div>
                 ))}
               </div>
@@ -364,9 +364,9 @@ function HeroDashboard() {
 
 function MiniMetric({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-2xl font-black text-slate-950">{value}</p>
-      <p className="text-sm font-bold text-slate-500">{label}</p>
+    <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <p className="truncate text-2xl font-black text-slate-950">{value}</p>
+      <p className="truncate text-sm font-bold text-slate-500">{label}</p>
     </div>
   );
 }
@@ -462,7 +462,7 @@ function MarketplacePreviewCard({ unit }: { unit: FeaturedUnit }) {
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/10 to-slate-950/20" />
         <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-black uppercase tracking-wide text-slate-950">Available</div>
         <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/30 bg-white/85 p-3 shadow-sm backdrop-blur">
-          <p className="line-clamp-1 font-black text-slate-950">{unit.property.name} • Unit {unit.unitNumber}</p>
+          <p className="line-clamp-1 font-black text-slate-950">{unit.property.name} - Unit {unit.unitNumber}</p>
           <p className="mt-1 flex items-center gap-1 text-xs font-bold text-slate-600"><MapPin size={14} /> {unit.property.city}, {unit.property.state}</p>
         </div>
       </div>
@@ -501,8 +501,8 @@ function FallbackRentalCard({ rental }: { rental: FallbackRentalPreview }) {
           <Heart className="text-slate-300 group-hover:text-brand-600" size={21} />
         </div>
         <div className="mt-3 flex flex-wrap gap-3 text-sm font-bold text-slate-600">
-          <span className="inline-flex items-center gap-1"><BedDouble size={16} /> {rental.meta.split(" • ")[0]}</span>
-          <span className="inline-flex items-center gap-1"><Bath size={16} /> {rental.meta.split(" • ")[1]}</span>
+          <span className="inline-flex items-center gap-1"><BedDouble size={16} /> {rental.meta.split(" - ")[0]}</span>
+          <span className="inline-flex items-center gap-1"><Bath size={16} /> {rental.meta.split(" - ")[1]}</span>
         </div>
         <p className="mt-3 text-sm font-semibold text-slate-500">{rental.meta}</p>
       </div>

@@ -1,3 +1,11 @@
+## v3.1.2 - Dashboard preview and workspace visual alignment
+
+- Fixed the homepage dashboard preview so metrics and workflow panels stay contained instead of clipping inside the hero mockup.
+- Tightened the preview sidebar, metric tiles, application rows, and inspection cards to better match the supplied rounded light dashboard reference.
+- Restyled the shared Workhorse dashboard with the same light, rounded, soft-panel visual system while preserving the existing dashboard data, module links, tasks, and access-request actions.
+- Removed broken encoded bullet characters from the polished homepage dashboard and listing preview text.
+- Bumped package version to 3.1.2.
+
 ## v3.1.1 - Public homepage polish and marketplace readiness
 
 - Refined the homepage to more closely match the generated public-facing mockup with a polished hero, floating dashboard preview, audience cards, marketplace preview, workflow rows, trust section, testimonial, and final CTA band.
