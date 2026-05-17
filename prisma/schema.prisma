@@ -1,0 +1,832 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  LANDLORD
+  APPLICANT
+  TENANT
+  INSPECTOR
+}
+
+enum UnitStatus {
+  AVAILABLE
+  PENDING
+  OCCUPIED
+  UNAVAILABLE
+  ARCHIVED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  APPLICATION_STARTED
+  CLOSED
+}
+
+enum ApplicationStatus {
+  STARTED
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  DENIED
+  WITHDRAWN
+}
+
+enum IncomeFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  ANNUALLY
+}
+
+enum HouseholdRelationship {
+  SELF
+  SPOUSE
+  CHILD
+  OTHER_ADULT
+  OTHER
+}
+
+enum DocumentCategory {
+  PHOTO_ID
+  PROOF_OF_INCOME
+  LEASE
+  INSPECTION
+  UTILITY_ALLOWANCE
+  RFTA
+  APPLICATION_PACKET
+  LANDLORD_DOCUMENT
+  TENANT_DOCUMENT
+  OTHER
+}
+
+enum DocumentStatus {
+  REQUESTED
+  UPLOADED
+  REVIEWED
+  REJECTED
+  ACCEPTED
+}
+
+enum DocumentVisibility {
+  INTERNAL
+  APPLICANT
+  LANDLORD
+  SHARED
+}
+
+enum DocumentRequestStatus {
+  REQUESTED
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+  WAIVED
+}
+
+enum LeasePacketStatus {
+  DRAFT
+  READY_FOR_REVIEW
+  APPROVED
+  SENT_FOR_SIGNATURE
+  COMPLETED
+  VOIDED
+}
+
+enum SignatureRole {
+  TENANT
+  LANDLORD
+}
+
+enum SignatureStatus {
+  PENDING
+  SIGNED
+  DECLINED
+  VOIDED
+  EXPIRED
+}
+
+enum SignatureNotificationType {
+  INITIAL
+  REMINDER
+  EXPIRATION_WARNING
+  EXPIRED
+}
+
+enum SignatureNotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum InspectionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  PASSED
+  FAILED
+  NEEDS_REINSPECTION
+  CANCELLED
+}
+
+enum InspectionChecklistStatus {
+  PENDING
+  PASS
+  FAIL
+  NA
+}
+
+
+enum LedgerEntryType {
+  CHARGE
+  PAYMENT
+  CREDIT
+  ADJUSTMENT
+}
+
+enum LedgerEntryStatus {
+  POSTED
+  PENDING
+  VOIDED
+}
+
+enum PaymentMethod {
+  CASH
+  CHECK
+  MONEY_ORDER
+  CARD
+  ACH
+  OTHER
+}
+
+enum RecurringChargeFrequency {
+  MONTHLY
+}
+
+enum PaymentPlanStatus {
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+  CANCELLED
+}
+
+enum PaymentPlanInstallmentStatus {
+  DUE
+  PAID
+  MISSED
+  WAIVED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name         String?
+  passwordHash String?
+  role         UserRole @default(APPLICANT)
+  isActive     Boolean  @default(true)
+  forcePasswordReset Boolean @default(false)
+  passwordChangedAt DateTime?
+  lastLoginAt DateTime?
+  failedLoginCount Int @default(0)
+  lockedUntil DateTime?
+  passwordResetTokenHash String?
+  passwordResetExpiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  properties Property[]
+  applicantProfile ApplicantProfile?
+  applications Application[]
+  uploadedDocuments Document[] @relation("UploadedDocuments")
+  reviewedDocuments Document[] @relation("ReviewedDocuments")
+  requestedDocuments DocumentRequest[] @relation("RequestedDocuments")
+  signatureRequests SignatureRequest[]
+  signatureNotifications SignatureNotification[]
+  assignedInspections Inspection[] @relation("AssignedInspections")
+  createdLedgerEntries LedgerEntry[] @relation("CreatedLedgerEntries")
+  tenantLedgerEntries LedgerEntry[] @relation("TenantLedgerEntries")
+  recurringChargeSchedules RecurringChargeSchedule[] @relation("TenantRecurringChargeSchedules")
+  createdRecurringChargeSchedules RecurringChargeSchedule[] @relation("CreatedRecurringChargeSchedules")
+  paymentPlans PaymentPlan[] @relation("TenantPaymentPlans")
+  createdPaymentPlans PaymentPlan[] @relation("CreatedPaymentPlans")
+
+  @@index([role, isActive])
+  @@index([passwordResetTokenHash])
+  @@index([lockedUntil])
+}
+
+
+model Property {
+  id          String   @id @default(cuid())
+  name        String
+  addressLine String
+  city        String
+  state       String
+  zip         String
+  description String?
+  ownerId     String?
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner User? @relation(fields: [ownerId], references: [id])
+  units Unit[]
+  documents Document[]
+
+  @@index([city, state])
+  @@index([ownerId])
+}
+
+model Unit {
+  id              String     @id @default(cuid())
+  propertyId      String
+  unitNumber      String
+  bedrooms        Int
+  bathrooms       Float
+  rentAmount      Int
+  deposit         Int?
+  squareFeet      Int?
+  voucherFriendly Boolean    @default(false)
+  utilitiesNote   String?
+  accessibility   String?
+  petPolicy       String?
+  status          UnitStatus @default(AVAILABLE)
+  description     String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  property     Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  leads        Lead[]
+  applications Application[]
+  documents    Document[]
+  ledgerEntries LedgerEntry[]
+  recurringChargeSchedules RecurringChargeSchedule[]
+  paymentPlans PaymentPlan[]
+
+  @@index([propertyId])
+  @@index([status])
+  @@unique([propertyId, unitNumber])
+}
+
+
+model Lead {
+  id        String     @id @default(cuid())
+  unitId    String
+  name      String
+  email     String
+  phone     String?
+  message   String?
+  status    LeadStatus @default(NEW)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  unit        Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  notes       LeadNote[]
+  application Application?
+
+  @@index([unitId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model LeadNote {
+  id        String   @id @default(cuid())
+  leadId    String
+  note      String
+  createdAt DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([createdAt])
+}
+
+model Application {
+  id              String            @id @default(cuid())
+  leadId          String?           @unique
+  unitId          String
+  applicantUserId String?
+  applicantName   String
+  applicantEmail String
+  applicantPhone String?
+  status         ApplicationStatus @default(STARTED)
+  summary        String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  lead          Lead?             @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  unit          Unit              @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  applicantUser User?             @relation(fields: [applicantUserId], references: [id], onDelete: SetNull)
+  notes         ApplicationNote[]
+  documents     Document[]
+  documentRequests DocumentRequest[]
+  leasePackets LeasePacket[]
+  inspections Inspection[]
+  ledgerEntries LedgerEntry[]
+  recurringChargeSchedules RecurringChargeSchedule[]
+  paymentPlans PaymentPlan[]
+
+  @@index([unitId])
+  @@index([applicantUserId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ApplicationNote {
+  id            String   @id @default(cuid())
+  applicationId String
+  note          String
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([createdAt])
+}
+
+
+model ApplicantProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  legalName       String
+  preferredName   String?
+  phone           String?
+  currentAddress  String?
+  city            String?
+  state           String?
+  zip             String?
+  householdSize   Int?
+  rentalHistory   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user             User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  householdMembers HouseholdMember[]
+  incomeSources    IncomeSource[]
+}
+
+model HouseholdMember {
+  id          String                @id @default(cuid())
+  profileId   String
+  name        String
+  relationship HouseholdRelationship @default(OTHER)
+  age         Int?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  profile ApplicantProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model IncomeSource {
+  id          String          @id @default(cuid())
+  profileId   String
+  sourceName  String
+  amount      Int
+  frequency   IncomeFrequency @default(MONTHLY)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  profile ApplicantProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+
+model Document {
+  id            String             @id @default(cuid())
+  title         String
+  category      DocumentCategory   @default(OTHER)
+  status        DocumentStatus     @default(UPLOADED)
+  visibility    DocumentVisibility @default(INTERNAL)
+  fileName      String
+  originalName  String
+  mimeType      String
+  sizeBytes     Int
+  storagePath   String
+  notes         String?
+  applicationId String?
+  propertyId    String?
+  unitId        String?
+  leasePacketId String?
+  uploadedById  String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  property    Property?    @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  unit        Unit?        @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  leasePacket LeasePacket? @relation(fields: [leasePacketId], references: [id], onDelete: SetNull)
+  uploadedBy  User?        @relation("UploadedDocuments", fields: [uploadedById], references: [id], onDelete: SetNull)
+  reviewedBy  User?        @relation("ReviewedDocuments", fields: [reviewedById], references: [id], onDelete: SetNull)
+  fulfilledRequests DocumentRequest[] @relation("FulfilledDocumentRequests")
+
+  @@index([applicationId])
+  @@index([propertyId])
+  @@index([unitId])
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model Inspection {
+  id              String           @id @default(cuid())
+  unitId          String
+  applicationId   String?
+  assignedToId    String?
+  status          InspectionStatus @default(SCHEDULED)
+  scheduledFor    DateTime?
+  completedAt     DateTime?
+  inspectorName   String?
+  resultSummary   String?
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  unit        Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  assignedTo  User?        @relation("AssignedInspections", fields: [assignedToId], references: [id], onDelete: SetNull)
+  checklistItems InspectionChecklistItem[]
+
+  @@index([unitId])
+  @@index([applicationId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([scheduledFor])
+}
+
+model InspectionChecklistItem {
+  id           String                    @id @default(cuid())
+  inspectionId String
+  label        String
+  status       InspectionChecklistStatus @default(PENDING)
+  notes        String?
+  sortOrder    Int                       @default(0)
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+
+  inspection Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+
+  @@index([inspectionId])
+  @@index([status])
+  @@index([sortOrder])
+}
+
+model LeaseTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  body        String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  leasePackets LeasePacket[]
+
+  @@index([isActive])
+}
+
+model LeasePacket {
+  id              String            @id @default(cuid())
+  applicationId   String
+  templateId      String
+  status          LeasePacketStatus @default(DRAFT)
+  leaseStartDate  DateTime?
+  leaseEndDate    DateTime?
+  monthlyRent     Int
+  securityDeposit Int?
+  terms           String?
+  notes           String?
+  approvedAt      DateTime?
+  sentForSignatureAt DateTime?
+  completedAt     DateTime?
+  voidedAt        DateTime?
+  lockedAt        DateTime?
+  finalDocumentId String?
+  finalPdfGeneratedAt DateTime?
+  reissuedFromId  String?
+  reissueReason   String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  application Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  template    LeaseTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  packetNotes LeaseNote[]
+  documents   Document[]
+  signatureRequests SignatureRequest[]
+
+  @@index([applicationId])
+  @@index([templateId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SignatureRequest {
+  id            String          @id @default(cuid())
+  leasePacketId String
+  signerRole    SignatureRole
+  signerUserId  String?
+  signerName    String
+  signerEmail   String
+  status        SignatureStatus @default(PENDING)
+  signatureText String?
+  signedAt      DateTime?
+  declinedAt    DateTime?
+  ipAddress     String?
+  userAgent     String?
+  expiresAt     DateTime?
+  reminderCount Int             @default(0)
+  lastReminderAt DateTime?
+  lastNotificationAt DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  leasePacket LeasePacket @relation(fields: [leasePacketId], references: [id], onDelete: Cascade)
+  signer      User?       @relation(fields: [signerUserId], references: [id], onDelete: SetNull)
+  notifications SignatureNotification[]
+
+  @@index([leasePacketId])
+  @@index([signerUserId])
+  @@index([signerEmail])
+  @@index([signerRole])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model SignatureNotification {
+  id                 String                      @id @default(cuid())
+  signatureRequestId String
+  recipientEmail     String
+  recipientName      String?
+  type               SignatureNotificationType   @default(INITIAL)
+  status             SignatureNotificationStatus @default(QUEUED)
+  subject            String
+  body               String
+  sentAt             DateTime?
+  failedAt           DateTime?
+  failureReason      String?
+  lastAttemptAt      DateTime?
+  provider           String?
+  providerMessageId  String?
+  createdById        String?
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+
+  signatureRequest SignatureRequest @relation(fields: [signatureRequestId], references: [id], onDelete: Cascade)
+  createdBy        User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([signatureRequestId])
+  @@index([recipientEmail])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model LeaseNote {
+  id            String   @id @default(cuid())
+  leasePacketId String
+  note          String
+  createdAt     DateTime @default(now())
+
+  leasePacket LeasePacket @relation(fields: [leasePacketId], references: [id], onDelete: Cascade)
+
+  @@index([leasePacketId])
+  @@index([createdAt])
+}
+
+model DocumentRequest {
+  id                  String                @id @default(cuid())
+  applicationId        String
+  title               String
+  category            DocumentCategory      @default(OTHER)
+  status              DocumentRequestStatus @default(REQUESTED)
+  visibility          DocumentVisibility    @default(APPLICANT)
+  instructions         String?
+  dueDate             DateTime?
+  requestedById       String?
+  fulfilledDocumentId String?
+  reviewNotes         String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  application       Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  requestedBy       User?       @relation("RequestedDocuments", fields: [requestedById], references: [id], onDelete: SetNull)
+  fulfilledDocument Document?   @relation("FulfilledDocumentRequests", fields: [fulfilledDocumentId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId])
+  @@index([status])
+  @@index([category])
+  @@index([dueDate])
+  @@index([fulfilledDocumentId])
+}
+
+
+model RecurringChargeSchedule {
+  id                    String                    @id @default(cuid())
+  applicationId         String?
+  unitId                String
+  tenantUserId          String?
+  name                  String
+  description           String
+  frequency             RecurringChargeFrequency  @default(MONTHLY)
+  amount                Int
+  tenantPortionAmount   Int?
+  subsidyPortionAmount  Int?
+  dayOfMonth            Int                       @default(1)
+  startDate             DateTime
+  endDate               DateTime?
+  nextRunDate           DateTime
+  lastRunDate           DateTime?
+  isActive              Boolean                   @default(true)
+  createdById           String?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  unit        Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenantUser  User?        @relation("TenantRecurringChargeSchedules", fields: [tenantUserId], references: [id], onDelete: SetNull)
+  createdBy   User?        @relation("CreatedRecurringChargeSchedules", fields: [createdById], references: [id], onDelete: SetNull)
+  ledgerEntries LedgerEntry[] @relation("GeneratedRecurringCharges")
+
+  @@index([applicationId])
+  @@index([unitId])
+  @@index([tenantUserId])
+  @@index([isActive])
+  @@index([nextRunDate])
+}
+
+model PaymentPlan {
+  id                  String             @id @default(cuid())
+  applicationId       String?
+  unitId              String
+  tenantUserId        String?
+  name                String
+  totalAmount         Int
+  installmentAmount   Int
+  dueDayOfMonth       Int                @default(1)
+  startDate           DateTime
+  endDate             DateTime?
+  status              PaymentPlanStatus  @default(ACTIVE)
+  notes               String?
+  createdById         String?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  defaultedAt         DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  application  Application?              @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  unit         Unit                      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenantUser   User?                     @relation("TenantPaymentPlans", fields: [tenantUserId], references: [id], onDelete: SetNull)
+  createdBy    User?                     @relation("CreatedPaymentPlans", fields: [createdById], references: [id], onDelete: SetNull)
+  installments PaymentPlanInstallment[]
+
+  @@index([applicationId])
+  @@index([unitId])
+  @@index([tenantUserId])
+  @@index([status])
+  @@index([startDate])
+}
+
+model PaymentPlanInstallment {
+  id                  String                         @id @default(cuid())
+  paymentPlanId       String
+  dueDate             DateTime
+  amount              Int
+  status              PaymentPlanInstallmentStatus   @default(DUE)
+  paidAt              DateTime?
+  linkedLedgerEntryId String?
+  notes               String?
+  createdAt           DateTime                       @default(now())
+  updatedAt           DateTime                       @updatedAt
+
+  paymentPlan PaymentPlan @relation(fields: [paymentPlanId], references: [id], onDelete: Cascade)
+
+  @@index([paymentPlanId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([linkedLedgerEntryId])
+}
+
+model LedgerEntry {
+  id              String            @id @default(cuid())
+  applicationId   String?
+  unitId          String
+  tenantUserId    String?
+  type            LedgerEntryType
+  status          LedgerEntryStatus @default(POSTED)
+  paymentMethod   PaymentMethod?
+  amount          Int
+  description     String
+  memo            String?
+  dueDate         DateTime?
+  paidAt          DateTime?
+  postedAt        DateTime          @default(now())
+  voidedAt        DateTime?
+  voidReason      String?
+  createdById     String?
+  generatedFromScheduleId String?
+  generatedForPeriod String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  unit        Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenantUser  User?        @relation("TenantLedgerEntries", fields: [tenantUserId], references: [id], onDelete: SetNull)
+  createdBy   User?        @relation("CreatedLedgerEntries", fields: [createdById], references: [id], onDelete: SetNull)
+  generatedFromSchedule RecurringChargeSchedule? @relation("GeneratedRecurringCharges", fields: [generatedFromScheduleId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId])
+  @@index([unitId])
+  @@index([tenantUserId])
+  @@index([type])
+  @@index([status])
+  @@index([dueDate])
+  @@index([postedAt])
+  @@index([generatedFromScheduleId])
+  @@unique([generatedFromScheduleId, generatedForPeriod])
+}
+
+enum SecurityEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+  ACCOUNT_LOCKED
+  LOGOUT
+  PASSWORD_CHANGED
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+  PASSWORD_RESET_LINK_CREATED
+  SIGNATURE_REQUESTED
+  SIGNATURE_REMINDER_QUEUED
+  SIGNATURE_EXPIRED
+  SIGNATURE_EXPIRATION_EXTENDED
+  SIGNATURE_COMPLETED
+  INSPECTION_SCHEDULED
+  INSPECTION_COMPLETED
+  FINAL_LEASE_GENERATED
+  LEASE_REISSUED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  ARCHIVE
+  RESTORE
+  DELETE
+  STATUS_CHANGE
+  NOTE
+  LOGIN
+  LOGOUT
+  UPLOAD
+  DOWNLOAD
+  LINK
+  CONVERT
+  SIGN
+  SEND
+  REMIND
+  EXPIRE
+  COMPLETE
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  actorId     String?
+  actorEmail  String?
+  actorRole   UserRole?
+  action      AuditAction
+  entityType  String
+  entityId    String?
+  message     String
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+
+model SecurityEvent {
+  id        String            @id @default(cuid())
+  type      SecurityEventType
+  userId    String?
+  email     String?
+  message   String
+  metadata  Json?
+  createdAt DateTime          @default(now())
+
+  @@index([type])
+  @@index([userId])
+  @@index([email])
+  @@index([createdAt])
+}

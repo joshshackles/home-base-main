@@ -1,0 +1,51 @@
+{
+  "name": "homebase-mls",
+  "version": "2.6.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "preflight": "tsx scripts/preflight.ts && npm run migrations:check",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "seed": "tsx prisma/seed.ts",
+    "db:setup": "npm run prisma:generate && npm run prisma:migrate && npm run seed",
+    "db:reset": "prisma migrate reset",
+    "routes:check": "tsx scripts/check-routes.ts",
+    "email:send-queued": "tsx scripts/send-queued-email.ts",
+    "verify": "npm run preflight && npm run routes:check && npm run storage:verify && npm run seed:verify && npm run workflow:verify && npm run security:verify && npm run typecheck",
+    "migrations:check": "tsx scripts/check-migrations.ts",
+    "storage:verify": "tsx scripts/verify-storage.ts",
+    "seed:verify": "tsx scripts/verify-seed.ts",
+    "workflow:verify": "tsx scripts/verify-workflows.ts",
+    "security:verify": "tsx scripts/verify-security.ts",
+    "qa:smoke": "npm run routes:check && npm run storage:verify && npm run seed:verify && npm run workflow:verify && npm run security:verify"
+  },
+  "dependencies": {
+    "@prisma/client": "5.22.0",
+    "clsx": "2.1.1",
+    "lucide-react": "0.468.0",
+    "next": "14.2.23",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "tailwind-merge": "2.5.5",
+    "zod": "3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "@types/react": "18.3.14",
+    "@types/react-dom": "18.3.2",
+    "autoprefixer": "10.4.20",
+    "eslint": "8.57.1",
+    "eslint-config-next": "14.2.23",
+    "postcss": "8.4.49",
+    "prisma": "5.22.0",
+    "tailwindcss": "3.4.17",
+    "tsx": "4.19.2",
+    "typescript": "5.7.2"
+  }
+}
