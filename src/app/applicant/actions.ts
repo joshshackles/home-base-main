@@ -32,6 +32,12 @@ async function requireApplicantAction() {
   return await requireRole(["APPLICANT", "TENANT"], "/applicant");
 }
 
+const withdrawableApplicationStatuses: ApplicationStatus[] = [
+  ApplicationStatus.STARTED,
+  ApplicationStatus.SUBMITTED,
+  ApplicationStatus.UNDER_REVIEW
+];
+
 const applicantInquirySchema = z.object({
   unitId: z.string().trim().min(1),
   phone: z.string().trim().max(80).optional(),
@@ -375,7 +381,7 @@ export async function withdrawApplicantApplication(formData: FormData) {
   });
 
   if (!application) throw new Error("This application is not assigned to your account.");
-  if (![ApplicationStatus.STARTED, ApplicationStatus.SUBMITTED, ApplicationStatus.UNDER_REVIEW].includes(application.status)) {
+  if (!withdrawableApplicationStatuses.includes(application.status)) {
     throw new Error("This application can no longer be withdrawn from the applicant portal.");
   }
 

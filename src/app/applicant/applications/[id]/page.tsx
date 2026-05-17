@@ -9,6 +9,12 @@ import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { visibleDocumentRequestWhereForUser, visibleDocumentWhereForUser } from "@/lib/authorization";
 
+const withdrawableApplicationStatuses: ApplicationStatus[] = [
+  ApplicationStatus.STARTED,
+  ApplicationStatus.SUBMITTED,
+  ApplicationStatus.UNDER_REVIEW
+];
+
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
 }
@@ -48,7 +54,7 @@ export default async function ApplicantApplicationDetailPage({ params }: { param
 
   const unresolvedRequests = application.documentRequests.filter((request) => ["REQUESTED", "REJECTED"].includes(request.status));
   const canSubmit = application.status === "STARTED" && profile && profile.householdMembers.length > 0 && profile.incomeSources.length > 0 && unresolvedRequests.length === 0;
-  const canWithdraw = [ApplicationStatus.STARTED, ApplicationStatus.SUBMITTED, ApplicationStatus.UNDER_REVIEW].includes(application.status);
+  const canWithdraw = withdrawableApplicationStatuses.includes(application.status);
 
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
