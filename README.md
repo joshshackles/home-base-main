@@ -193,9 +193,9 @@ New admin routes:
 
 Payment plans are still recordkeeping tools only. Marking an installment paid creates a ledger payment entry, but HomeBase MLS does not collect money online in this release.
 
-## Vercel deployment note
+## v2.6.2 Vercel/Prisma hotfix
 
-This package uses `next.config.mjs` because Vercel does not support `next.config.ts` for this Next.js version. The build command also runs `prisma generate` before `next build` so Prisma enum/type imports are available during Vercel builds.
-
-If Vercel is still building an older failed version, redeploy the newest GitHub commit without the build cache.
-
+- Replaced `next.config.ts` with Vercel-compatible `next.config.mjs`.
+- Updated the build script to run `prisma generate` before `next build`.
+- Added `postinstall` Prisma generation for Vercel installs.
+- Fixed the missing Prisma back-relation from `Unit` to `Inspection`.

@@ -264,6 +264,7 @@ model Unit {
   property     Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   leads        Lead[]
   applications Application[]
+  inspections  Inspection[]
   documents    Document[]
   ledgerEntries LedgerEntry[]
   recurringChargeSchedules RecurringChargeSchedule[]
