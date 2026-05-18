@@ -1,5 +1,10 @@
 # 3.3.1 - Financial Automation & Recovery
 
+## v3.5.2 - Migration Order Hotfix
+
+- Moved the financial automation recovery migration after the rental payment operations migration so `PaymentEventType` exists before the migration alters it.
+- Added a migration-order verification guard to catch this dependency before deployment.
+
 ## v3.5.1 - Prisma Relation Hotfix
 
 - Fixed Prisma schema validation failure by completing the `Application` to `VendorPayout` relation.

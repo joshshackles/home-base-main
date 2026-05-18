@@ -21,4 +21,12 @@ for (const migration of migrations) {
   }
 }
 
+const sortedMigrations = [...migrations].sort();
+const rentalPaymentMigration = sortedMigrations.find((migration) => migration.includes("rental_payment_operations"));
+const financialAutomationMigration = sortedMigrations.find((migration) => migration.includes("financial_automation_recovery"));
+if (rentalPaymentMigration && financialAutomationMigration && sortedMigrations.indexOf(financialAutomationMigration) < sortedMigrations.indexOf(rentalPaymentMigration)) {
+  console.error("Migration order is invalid: financial automation depends on rental payment operations.");
+  process.exit(1);
+}
+
 console.log(`Migration check passed: ${migrations.length} migration folder(s) found.`);
