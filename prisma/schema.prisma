@@ -1095,6 +1095,7 @@ model Unit {
   vendorPayouts VendorPayout[]
   vendorProfiles VendorProfile[] @relation("VendorProfileUnit")
   vendorInvitations VendorInvitation[]
+  occupancies Occupancy[]
   vendorInvoices VendorInvoice[] @relation("VendorInvoiceUnit")
   securityDepositAccounts SecurityDepositAccount[]
   accountingExports AccountingExport[]

@@ -1,4 +1,11 @@
 
+## 4.15.3 — Prisma Occupancy Unit Relation Fix
+
+- Added the missing `Unit.occupancies` opposite relation for `Occupancy.unit`.
+- Bumped the package version to `4.15.3`.
+- Addresses Vercel Prisma P1012 validation failure during `prisma generate`.
+
+
 ## v4.15.1 - Vendor Invitation Onboarding
 
 - Added pending vendor invitations for vendors who do not have accounts yet.
