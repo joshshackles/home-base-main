@@ -19,7 +19,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function SelectAsset({ assets, name = "assetId", keyLockOnly = false }: { assets: InventoryData["assets"]; name?: string; keyLockOnly?: boolean }) {
-  const options = keyLockOnly ? assets.filter((asset) => [MaintenanceAssetType.KEY, MaintenanceAssetType.LOCK].includes(asset.type)) : assets;
+  const options = keyLockOnly ? assets.filter((asset) => asset.type === MaintenanceAssetType.KEY || asset.type === MaintenanceAssetType.LOCK) : assets;
   return (
     <select name={name} required className={inputClass}>
       <option value="">Choose asset</option>
