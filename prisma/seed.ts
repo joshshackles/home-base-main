@@ -308,15 +308,23 @@ async function main() {
   });
 
   const leaseTemplate = await prisma.leaseTemplate.upsert({
-    where: { name: "Standard Residential Lease" },
+    where: {
+      ownerUserId_name: {
+        ownerUserId: admin.id,
+        name: "Standard Residential Lease"
+      }
+    },
     update: {
       body: DEFAULT_LEASE_TEMPLATE_BODY,
-      isActive: true
+      isActive: true,
+      ownerUserId: admin.id
     },
     create: {
       name: "Standard Residential Lease",
       description: "Seeded template used to test lease packet creation and preview rendering.",
       body: DEFAULT_LEASE_TEMPLATE_BODY,
+      ownerUserId: admin.id,
+      isSystem: true,
       isActive: true
     }
   });
