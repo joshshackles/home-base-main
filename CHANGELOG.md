@@ -1,3 +1,9 @@
+## v4.12.1 - Prisma relation validation fix
+
+- Added missing `MaintenanceRequest.vendorWorkLogs` and `MaintenanceRequest.vendorInvoices` opposite relation fields.
+- Removed invalid `LedgerEntry.vendorProfiles` and `LedgerEntry.vendorInvoices` relation arrays that had no foreign-key counterpart.
+- This patch targets the Prisma P1012 validation failure reported during Vercel postinstall.
+
 
 ## v4.11.0 - Insurance / Compliance Module
 

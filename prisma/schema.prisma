@@ -1024,8 +1024,6 @@ model Unit {
   ownerStatements OwnerStatement[]
   paymentDisputes PaymentDispute[]
   vendorPayouts VendorPayout[]
-  vendorProfiles VendorProfile[]
-  vendorInvoices VendorInvoice[]
   securityDepositAccounts SecurityDepositAccount[]
   accountingExports AccountingExport[]
   creditReportingRecords CreditReportingRecord[]
@@ -1437,6 +1435,8 @@ model MaintenanceRequest {
   assignedTo  User?        @relation("AssignedMaintenanceRequests", fields: [assignedToId], references: [id], onDelete: SetNull)
   messageThreads MessageThread[]
   vendorPayouts VendorPayout[]
+  vendorWorkLogs VendorWorkLog[]
+  vendorInvoices VendorInvoice[]
   tasks TaskItem[]
 
   assetServiceRecords AssetServiceRecord[]
@@ -2339,8 +2339,6 @@ model LedgerEntry {
   ownerStatementItems OwnerStatementItem[]
   paymentDisputes PaymentDispute[]
   vendorPayouts VendorPayout[]
-  vendorProfiles VendorProfile[]
-  vendorInvoices VendorInvoice[]
   securityDepositAccounts SecurityDepositAccount[]
   creditReportingRecords CreditReportingRecord[]
   createdById     String?
