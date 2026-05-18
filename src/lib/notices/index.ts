@@ -19,11 +19,17 @@ export function noticeTypeLabel(type: FormalNoticeType | string) {
 }
 
 export function isNoticeActionable(status: FormalNoticeStatus) {
-  return [FormalNoticeStatus.DRAFT, FormalNoticeStatus.READY].includes(status);
+  return status === FormalNoticeStatus.DRAFT || status === FormalNoticeStatus.READY;
 }
 
 export function isNoticeOverdue(dueAt: Date | null, status: FormalNoticeStatus) {
-  return Boolean(dueAt && dueAt < new Date() && ![FormalNoticeStatus.ACKNOWLEDGED, FormalNoticeStatus.CANCELLED, FormalNoticeStatus.EXPIRED].includes(status));
+  return Boolean(
+    dueAt &&
+      dueAt < new Date() &&
+      status !== FormalNoticeStatus.ACKNOWLEDGED &&
+      status !== FormalNoticeStatus.CANCELLED &&
+      status !== FormalNoticeStatus.EXPIRED
+  );
 }
 
 export function getNoticeScopeWhere(user: SessionPayload): Prisma.FormalNoticeWhereInput {

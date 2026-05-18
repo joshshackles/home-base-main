@@ -21,7 +21,7 @@ export function taskPriorityWeight(priority: TaskItemPriority) {
 }
 
 export function isTaskOverdue(dueAt: Date | null, status: TaskItemStatus) {
-  return Boolean(dueAt && dueAt < new Date() && ![TaskItemStatus.DONE, TaskItemStatus.CANCELLED].includes(status));
+  return Boolean(dueAt && dueAt < new Date() && status !== TaskItemStatus.DONE && status !== TaskItemStatus.CANCELLED);
 }
 
 export function getTaskScopeWhere(user: SessionPayload): Prisma.TaskItemWhereInput {
