@@ -1,3 +1,59 @@
+## v4.0.0 - Rental Profile Ecosystem Rebuild
+
+- Rebuilt the public rental profile around a premium, photo-first real-estate layout with immersive hero gallery, thumbnail grid, true photo counts, compact facts, monthly/move-in cost estimates, map link, and sticky mobile apply/contact actions.
+- Added the rental profile domain helper layer for lifecycle labels, health scoring, derived lifecycle states, and timeline assembly so rental pages use shared business logic instead of scattered page calculations.
+- Expanded rental lifecycle support with Draft, Coming Soon, Active, Lead Activity, Application Pending, Lease Pending, Move-In Scheduled, Occupied, Renewal Pending, Notice Given, Turnover, Maintenance Hold, and Archived states.
+- Reworked the owner rental profile into a denser operational surface with media management, compact summary metrics, tenant assignment workflow, lease/ledger/maintenance/message panels, staff/contact context, and reduced whitespace.
+- Added rental profile migration support for lifecycle state persistence and aligned marketplace/detail terminology around Rentals rather than Units where public-facing.
+- Improved mobile rental profile compression and marketplace/profile visual consistency for Vercel-safe server rendering.
+
+## v3.9.2 - Marketplace professionalization
+
+- Added a shared marketplace listing service and RentalListingDTO layer to keep marketplace query logic out of page components.
+- Replaced query-heavy marketplace rent statistics with aggregate-backed marketplace metrics and capped city discovery queries for better Vercel performance.
+- Added true listing photo counts, listing quality scoring, and applicant-only favorite controls with sign-in prompts for public visitors.
+- Rebuilt the rental detail page into a premium real-estate layout with a large gallery hero, compact property facts, monthly/move-in cost estimates, map link, sticky mobile contact bar, and tighter information density.
+- Expanded public inquiry capture with request type, move-in date, household size, and pet notes while preserving the existing lead schema by appending details into the lead message.
+- Improved marketplace terminology so public pages read as Rentals instead of leaking older Unit language.
+
+# v3.9.1 - Marketplace Density & Real Estate Polish
+
+- Reworked the public marketplace into a wider, denser real-estate browsing surface with a sticky result summary bar, compact filters, and a four-column desktop grid.
+- Rebuilt rental cards to show more listings above the fold while preserving large photo-first presentation, gallery counts, fit badges, address, rent, deposit, bedroom/bath/square-foot facts, and high-value feature chips.
+- Tightened marketplace whitespace, reduced card and filter padding, added cleaner blue/slate marketplace styling, and improved focus/hover states for renter browsing.
+- Added average rent and pet-note inventory stats while keeping live database-backed inventory metrics and safe empty-state behavior.
+- Kept Vercel-safe server rendering: no client-only browser APIs, no local filesystem assumptions, and no synchronous marketplace side effects.
+
+# v3.9.0 - Rental Ecosystem Rebuild
+
+- Added the rental ecosystem data layer with rental type, marketplace marketing status, listing headline/highlights, tour links, and walk/transit scoring fields on rentals.
+- Rebranded admin and landlord inventory navigation around Rentals while preserving the existing property/unit database hierarchy for backward compatibility.
+- Added `/admin/rentals` and `/landlord/rentals` entry points so users can manage houses, duplexes, apartments, condos, rooms, and other rental types from a simpler workflow.
+- Upgraded marketplace search with rental-type filtering, active marketing status filtering, larger photo-forward listing cards, dense listing facts, walk/transit metadata, and stronger real-estate presentation.
+- Updated rental detail pages with marketing headlines/highlights, tour information, and marketplace-ready rental language.
+- Added global scroll reset behavior to prevent post-login dashboard redirects from restoring users to the bottom of the page.
+- Set HomeBase platform application fees to default to 0.1% for Stripe Connect checkout, scheduled payments, and retry flows through the shared Stripe fee helper.
+- Expanded lease UX with a visible lifecycle engine panel that clarifies draft, review, signature, completion, and renewal/archive workflow stages.
+
+# v3.8.0 - Operational Intelligence Platform
+
+- Added admin operations control center with deployment readiness checks, system health snapshots, operational alerts, queue monitoring, and automation rule scaffolding.
+- Added Prisma models and migration for AdminSystemHealthSnapshot, AdminOperationalAlert, AdminQueueJob, and AdminAutomationRule.
+- Added admin actions to sync readiness alerts, capture health snapshots, and seed automation scaffolds.
+- Expanded backup/export coverage to include the newer payment, autopay, dispute, vendor payout, escrow, accounting, credit reporting, financial insight, and admin operations models.
+- Fixed backup/import upload forms with multipart encoding and safer redirect behavior from backup recovery imports.
+- Added operations navigation to the admin shell and linked the operations center from the dashboard and system pages.
+
+# 3.7.0 - Admin Operations Studio
+
+- Added Admin Branding Studio with product identity, logo text, homepage copy, colors, support contact, theme mode, and launch toggles.
+- Added Backup & Recovery Center with downloadable JSON backups, checksum manifests, recent backup history, and recovery import workflow.
+- Added Admin Analytics Hub with operating metrics, workflow load, risk index, captured snapshots, and export shortcuts.
+- Added Prisma models and migration for admin branding settings, backup manifests, and analytics snapshots.
+- Updated data portability to include the new admin governance records.
+- Reworked dashboard quick links from a horizontal scrolling rail into a responsive grid for a cleaner admin experience.
+- Wired public homepage hero copy to branding settings while preserving live marketplace metrics.
+
 ## v3.6.2 - Branded Public Homepage Refresh
 
 - Restyled the public homepage around the unified HomeBase Housing OS identity with a darker premium hero, electric-blue primary CTA system, and tighter slate/blue/emerald semantic palette.

@@ -56,6 +56,40 @@ enum UnitStatus {
   ARCHIVED
 }
 
+enum RentalLifecycleStatus {
+  DRAFT
+  COMING_SOON
+  ACTIVE
+  LEAD_ACTIVITY
+  APPLICATION_PENDING
+  LEASE_PENDING
+  MOVE_IN_SCHEDULED
+  OCCUPIED
+  RENEWAL_PENDING
+  NOTICE_GIVEN
+  TURNOVER
+  MAINTENANCE_HOLD
+  ARCHIVED
+}
+
+enum RentalPropertyType {
+  SINGLE_FAMILY
+  DUPLEX
+  APARTMENT
+  CONDO
+  TOWNHOME
+  ROOM
+  COMMERCIAL
+  OTHER
+}
+
+enum RentalMarketingStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
 enum LeadStatus {
   NEW
   CONTACTED
@@ -622,6 +656,14 @@ model Unit {
   id              String     @id @default(cuid())
   propertyId      String
   unitNumber      String
+  rentalType      RentalPropertyType @default(APARTMENT)
+  marketingStatus RentalMarketingStatus @default(ACTIVE)
+  marketingHeadline String?
+  marketingHighlights String?
+  virtualTourUrl  String?
+  videoTourUrl    String?
+  walkScore       Int?
+  transitScore    Int?
   tenantUserId    String?
   currentApplicationId String?
   propertyManagerUserId String?
@@ -654,6 +696,7 @@ model Unit {
   lateFeePolicy   String?
   previousTenantNotes String?
   status          UnitStatus @default(AVAILABLE)
+  lifecycleStatus RentalLifecycleStatus @default(ACTIVE)
   description     String?
   clientNotes     String?
   importantContacts String?
@@ -700,6 +743,7 @@ model Unit {
   @@index([maintenanceUserId])
   @@index([caseworkerUserId])
   @@index([status])
+  @@index([lifecycleStatus])
   @@unique([propertyId, unitNumber])
 }
 
@@ -1869,3 +1913,177 @@ model SecurityEvent {
   @@index([email])
   @@index([createdAt])
 }
+
+
+enum AdminBackupStatus {
+  REQUESTED
+  GENERATED
+  DOWNLOADED
+  RESTORE_STARTED
+  RESTORE_COMPLETED
+  FAILED
+  ARCHIVED
+}
+
+enum AdminBrandingThemeMode {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+enum AdminAnalyticsPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+model AdminBrandingSettings {
+  id                  String                  @id @default("global")
+  productName         String                  @default("HomeBase")
+  shortName           String                  @default("HomeBase")
+  tagline             String                  @default("Housing operations platform")
+  homepageHeadline    String                  @default("The operating system for rental housing.")
+  homepageSubheadline String                  @default("Listings, applications, messaging, maintenance, leases, ledgers, payments, and tenant operations in one secure platform.")
+  primaryColor        String                  @default("#2563EB")
+  accentColor         String                  @default("#10B981")
+  surfaceColor        String                  @default("#0F172A")
+  logoMarkText        String                  @default("HB")
+  logoUrl             String?
+  faviconUrl          String?
+  supportEmail        String?
+  themeMode           AdminBrandingThemeMode  @default(SYSTEM)
+  publicSignupEnabled Boolean                 @default(true)
+  marketplaceEnabled  Boolean                 @default(true)
+  metadata            Json?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+}
+
+model AdminBackupSnapshot {
+  id               String            @id @default(cuid())
+  label            String
+  status           AdminBackupStatus @default(REQUESTED)
+  recordCounts     Json?
+  checksum         String?
+  sizeBytes        Int?
+  storageProvider  String            @default("download")
+  storageKey       String?
+  requestedById    String?
+  requestedByEmail String?
+  downloadedAt     DateTime?
+  restoredAt       DateTime?
+  failureReason    String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([status, createdAt])
+  @@index([requestedById])
+}
+
+model AdminAnalyticsSnapshot {
+  id        String               @id @default(cuid())
+  period    AdminAnalyticsPeriod @default(DAILY)
+  periodKey String
+  metrics   Json
+  createdAt DateTime             @default(now())
+
+  @@unique([period, periodKey])
+  @@index([period, createdAt])
+}
+
+enum AdminOperationalAlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AdminOperationalAlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum AdminQueueJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  RETRYING
+  CANCELLED
+}
+
+enum AdminAutomationRuleStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+}
+
+model AdminSystemHealthSnapshot {
+  id        String   @id @default(cuid())
+  score     Int      @default(0)
+  checks    Json
+  summary   Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([score])
+}
+
+model AdminOperationalAlert {
+  id             String                         @id @default(cuid())
+  severity       AdminOperationalAlertSeverity  @default(INFO)
+  status         AdminOperationalAlertStatus    @default(OPEN)
+  source         String
+  title          String
+  message        String
+  actionHref     String?
+  actionLabel    String?
+  fingerprint    String?                        @unique
+  metadata       Json?
+  acknowledgedAt DateTime?
+  resolvedAt     DateTime?
+  createdAt      DateTime                       @default(now())
+  updatedAt      DateTime                       @updatedAt
+
+  @@index([status, severity])
+  @@index([source, createdAt])
+  @@index([createdAt])
+}
+
+model AdminQueueJob {
+  id            String              @id @default(cuid())
+  queueName     String
+  jobType       String
+  status        AdminQueueJobStatus @default(QUEUED)
+  attempts      Int                 @default(0)
+  maxAttempts   Int                 @default(3)
+  scheduledFor  DateTime?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  failureReason String?
+  metadata      Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([queueName, status])
+  @@index([status, scheduledFor])
+  @@index([createdAt])
+}
+
+model AdminAutomationRule {
+  id          String                    @id @default(cuid())
+  name        String
+  description String?
+  status      AdminAutomationRuleStatus @default(DRAFT)
+  trigger     String
+  action      String
+  conditions  Json?
+  lastRunAt   DateTime?
+  createdById String?
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  @@index([status])
+  @@index([trigger])
+}
+

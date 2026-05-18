@@ -1,4 +1,4 @@
-import { UnitStatus } from "@prisma/client";
+import { RentalMarketingStatus, RentalPropertyType, UnitStatus } from "@prisma/client";
 import { createUnit, updateUnit } from "@/app/admin/actions";
 import { Field, inputClass, SecondaryLink, selectClass, SubmitButton, textareaClass } from "@/components/admin/FormFields";
 
@@ -16,6 +16,14 @@ type UnitFormProps = {
     id: string;
     propertyId: string;
     unitNumber: string;
+    rentalType?: RentalPropertyType;
+    marketingStatus?: RentalMarketingStatus;
+    marketingHeadline?: string | null;
+    marketingHighlights?: string | null;
+    virtualTourUrl?: string | null;
+    videoTourUrl?: string | null;
+    walkScore?: number | null;
+    transitScore?: number | null;
     bedrooms: number;
     bathrooms: number;
     rentAmount: number;
@@ -48,8 +56,21 @@ export function UnitForm({ properties, unit }: UnitFormProps) {
             ))}
           </select>
         </Field>
-        <Field label="Unit number">
-          <input name="unitNumber" required defaultValue={unit?.unitNumber ?? ""} className={inputClass} placeholder="101" />
+        <Field label="Rental number/name">
+          <input name="unitNumber" required defaultValue={unit?.unitNumber ?? ""} className={inputClass} placeholder="101, 4B, Main House, or Suite A" />
+        </Field>
+        <Field label="Rental type">
+          <select name="rentalType" defaultValue={unit?.rentalType ?? RentalPropertyType.APARTMENT} className={selectClass}>
+            {Object.values(RentalPropertyType).map((type) => <option key={type} value={type}>{type.replaceAll("_", " ")}</option>)}
+          </select>
+        </Field>
+        <Field label="Marketing status">
+          <select name="marketingStatus" defaultValue={unit?.marketingStatus ?? RentalMarketingStatus.ACTIVE} className={selectClass}>
+            {Object.values(RentalMarketingStatus).map((status) => <option key={status} value={status}>{status}</option>)}
+          </select>
+        </Field>
+        <Field label="Marketplace headline">
+          <input name="marketingHeadline" defaultValue={unit?.marketingHeadline ?? ""} className={inputClass} placeholder="Bright 2-bed near downtown" />
         </Field>
         <Field label="Bedrooms">
           <input name="bedrooms" required type="number" min="0" step="1" defaultValue={unit?.bedrooms ?? 1} className={inputClass} />
@@ -91,14 +112,29 @@ export function UnitForm({ properties, unit }: UnitFormProps) {
         <Field label="Accessibility notes">
           <textarea name="accessibility" defaultValue={unit?.accessibility ?? ""} className={textareaClass} placeholder="Ground-floor unit, ramp access, wide doorway notes, etc." />
         </Field>
-        <Field label="Unit description">
-          <textarea name="description" defaultValue={unit?.description ?? ""} className={textareaClass} placeholder="Describe the unit layout, condition, parking, or nearby features." />
+        <Field label="Marketing highlights">
+          <textarea name="marketingHighlights" defaultValue={unit?.marketingHighlights ?? ""} className={textareaClass} placeholder="Short real-estate style highlights shown on marketplace cards." />
+        </Field>
+        <Field label="Rental description">
+          <textarea name="description" defaultValue={unit?.description ?? ""} className={textareaClass} placeholder="Describe the rental layout, condition, parking, or nearby features." />
+        </Field>
+        <Field label="Virtual tour URL">
+          <input name="virtualTourUrl" defaultValue={unit?.virtualTourUrl ?? ""} className={inputClass} placeholder="https://..." />
+        </Field>
+        <Field label="Video tour URL">
+          <input name="videoTourUrl" defaultValue={unit?.videoTourUrl ?? ""} className={inputClass} placeholder="https://..." />
+        </Field>
+        <Field label="Walk score">
+          <input name="walkScore" type="number" min="0" max="100" defaultValue={unit?.walkScore ?? ""} className={inputClass} />
+        </Field>
+        <Field label="Transit score">
+          <input name="transitScore" type="number" min="0" max="100" defaultValue={unit?.transitScore ?? ""} className={inputClass} />
         </Field>
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <SubmitButton>{unit ? "Save Unit" : "Create Unit"}</SubmitButton>
-        <SecondaryLink href="/admin/units">Cancel</SecondaryLink>
+        <SubmitButton>{unit ? "Save Rental" : "Create Rental"}</SubmitButton>
+        <SecondaryLink href="/admin/rentals">Cancel</SecondaryLink>
       </div>
     </form>
   );

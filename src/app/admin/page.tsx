@@ -72,13 +72,17 @@ export default async function AdminPage() {
       ]}
       tasks={tasks}
       tools={[
-        { title: "Marketplace inventory", detail: `${propertyCount} properties, ${unitCount} units, public availability, and listing quality.`, href: "/admin/units", icon: dashboardIcons.homes },
+        { title: "Rental marketplace inventory", detail: `${propertyCount} property groups, ${unitCount} rentals, public availability, and listing quality.`, href: "/admin/rentals", icon: dashboardIcons.homes },
         { title: "Applicant module", detail: "Open the base dashboard every account receives: profile, applications, favorites, and home tools.", href: "/applicant", icon: dashboardIcons.applications },
         { title: "Landlord module", detail: "Use the owner/property-manager dashboard for listings, leads, tenant records, and repairs.", href: "/landlord", icon: dashboardIcons.homes },
         { title: "People and access", detail: "Users, account types, password controls, access requests, and staff setup.", href: "/admin/users", icon: dashboardIcons.security },
         { title: "Application pipeline", detail: "Leads, documents, applications, lease packets, signatures, and notices.", href: "/admin/applications", icon: dashboardIcons.applications },
         { title: "Field operations", detail: `${inspectionCount} inspections, ${maintenanceCount} repairs, and ${inboxCount} open conversations.`, href: "/admin/maintenance", icon: dashboardIcons.maintenance },
         { title: "Ledger and documents", detail: `${formatCurrency(ledgerBalance)} ledger balance, ${documentCount} documents, ${leaseCount} lease packets.`, href: "/admin/ledger", icon: dashboardIcons.inbox },
+        { title: "Branding studio", detail: "Public identity, logo mark, homepage copy, color system, and launch toggles.", href: "/admin/branding", icon: dashboardIcons.work },
+        { title: "Analytics hub", detail: "Portfolio KPIs, workflow load, security posture, financial exposure, and snapshots.", href: "/admin/analytics", icon: dashboardIcons.applications },
+        { title: "Operational intelligence", detail: "Readiness checks, alert center, queue monitor, automation scaffolds, and health snapshots.", href: "/admin/operations", icon: dashboardIcons.security },
+        { title: "Backup and recovery", detail: "Downloadable JSON backups, recovery imports, checksums, and restore manifests.", href: "/admin/backups", icon: dashboardIcons.security },
         { title: "System health and data", detail: `Version ${APP_VERSION}, import/export tools, ${auditCount} audit events, ${securityEventCount} security events.`, href: "/admin/system", icon: dashboardIcons.security }
       ]}
       accessRequests={[]}

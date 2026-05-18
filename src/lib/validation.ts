@@ -1,4 +1,4 @@
-import { AccountAccessType, ApplicationStatus, DocumentCategory, DocumentRequestStatus, DocumentStatus, DocumentVisibility, HouseholdRelationship, InspectionChecklistStatus, InspectionStatus, IncomeFrequency, LedgerEntryType, PaymentMethod, PaymentPlanInstallmentStatus, PaymentPlanStatus, RecurringChargeFrequency, LeadStatus, LeasePacketStatus, PayrollFrequency, SignatureNotificationType, SignatureStatus, TenantPaymentMethod, TenantPaymentStatus, UnitStatus, UserRole, UtilityAccountStatus } from "@prisma/client";
+import { AccountAccessType, ApplicationStatus, DocumentCategory, DocumentRequestStatus, DocumentStatus, DocumentVisibility, HouseholdRelationship, InspectionChecklistStatus, InspectionStatus, IncomeFrequency, LedgerEntryType, PaymentMethod, PaymentPlanInstallmentStatus, PaymentPlanStatus, RecurringChargeFrequency, LeadStatus, LeasePacketStatus, PayrollFrequency, SignatureNotificationType, SignatureStatus, TenantPaymentMethod, TenantPaymentStatus, RentalMarketingStatus, RentalPropertyType, UnitStatus, UserRole, UtilityAccountStatus } from "@prisma/client";
 import { z } from "zod";
 import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from "@/lib/password";
 
@@ -38,7 +38,15 @@ export const propertySchema = z.object({
 
 export const unitSchema = z.object({
   propertyId: requiredText("Property ID"),
-  unitNumber: requiredText("Unit number", 40),
+  unitNumber: requiredText("Rental number/name", 40),
+  rentalType: z.nativeEnum(RentalPropertyType).default(RentalPropertyType.APARTMENT),
+  marketingStatus: z.nativeEnum(RentalMarketingStatus).default(RentalMarketingStatus.ACTIVE),
+  marketingHeadline: optionalText,
+  marketingHighlights: optionalText,
+  virtualTourUrl: optionalText,
+  videoTourUrl: optionalText,
+  walkScore: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(0).max(100).nullable()),
+  transitScore: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(0).max(100).nullable()),
   tenantUserId: optionalId,
   currentApplicationId: optionalId,
   bedrooms: z.coerce.number().int().min(0, "Bedrooms cannot be negative.").max(20, "Bedrooms looks too high."),

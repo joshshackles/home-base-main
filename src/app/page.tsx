@@ -31,6 +31,7 @@ import {
 import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { HomeBaseLogo, HomeBaseMark } from "@/components/brand/HomeBaseLogo";
+import { getBrandingSettings } from "@/lib/admin-ops";
 
 export const dynamic = "force-dynamic";
 
@@ -164,7 +165,7 @@ async function getFeaturedUnits() {
 }
 
 export default async function HomePage() {
-  const [featuredUnits, homePageStats] = await Promise.all([getFeaturedUnits(), getHomePageStats()]);
+  const [featuredUnits, homePageStats, branding] = await Promise.all([getFeaturedUnits(), getHomePageStats(), getBrandingSettings()]);
   const hasLiveMarketplace = featuredUnits.length > 0;
 
   return (
@@ -192,13 +193,13 @@ export default async function HomePage() {
           <div className="grid gap-12 pb-16 pt-4 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:pb-20">
             <div>
               <p className="inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-4 py-2 text-sm font-black text-blue-100 shadow-sm ring-1 ring-white/10">
-                <Sparkles size={16} /> Public listings plus a complete rental workflow
+                <Sparkles size={16} /> {branding.tagline}
               </p>
               <h1 className="mt-6 max-w-4xl text-5xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl">
-                The rental workflow platform for <span className="text-emerald-400">landlords</span> and <span className="text-blue-400">tenants</span>.
+                {branding.homepageHeadline}
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-                List properties, find homes, collect applications, run inspections, send leases, track documents, and keep the entire housing journey organized in one modern HomeBase account.
+                {branding.homepageSubheadline}
               </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
                 <Link href="/signup?intent=landlord" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-6 py-4 font-black text-slate-950 shadow-lg shadow-emerald-950/20 hover:bg-emerald-400">
@@ -355,7 +356,7 @@ export default async function HomePage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>
             <h2 className="text-4xl font-black tracking-tight">Ready to simplify renting?</h2>
-            <p className="mt-2 text-blue-50">Join landlords, applicants, and tenants using HomeBase to move faster with less confusion.</p>
+            <p className="mt-2 text-blue-50">Join landlords, applicants, and tenants using {branding.shortName} to move faster with less confusion.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link href="/signup?intent=landlord" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 font-black text-white hover:bg-emerald-400">Create Landlord Account</Link>

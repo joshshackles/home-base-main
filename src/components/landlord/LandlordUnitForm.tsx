@@ -65,7 +65,7 @@ type LandlordUnitFormProps = {
   };
 };
 
-const landlordStatuses = [UnitStatus.AVAILABLE, UnitStatus.PENDING, UnitStatus.OCCUPIED, UnitStatus.UNAVAILABLE];
+const landlordStatuses = [UnitStatus.AVAILABLE, UnitStatus.PENDING, UnitStatus.OCCUPIED, UnitStatus.PENDING];
 
 function optionLabel(name: string | null, email: string) {
   return name ? `${name} (${email})` : email;
@@ -93,7 +93,7 @@ export function LandlordUnitForm({ properties, tenants = [], applications = [], 
           <input name="unitNumber" required defaultValue={unit?.unitNumber ?? ""} className={inputClass} placeholder="101" />
         </Field>
         <Field label="Status">
-          <select name="status" required defaultValue={unit?.status === UnitStatus.ARCHIVED ? UnitStatus.UNAVAILABLE : unit?.status ?? UnitStatus.AVAILABLE} className={selectClass}>
+          <select name="status" required defaultValue={unit?.status === UnitStatus.ARCHIVED ? UnitStatus.PENDING : unit?.status ?? UnitStatus.AVAILABLE} className={selectClass}>
             {landlordStatuses.map((status) => (
               <option key={status} value={status}>{status}</option>
             ))}

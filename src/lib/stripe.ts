@@ -15,7 +15,7 @@ export function getStripeWebhookSecret() {
 }
 
 export function getPlatformApplicationFeeAmount(amountCents: number) {
-  const percent = Number.parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT || "0");
+  const percent = Number.parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT || "0.1");
   const fixed = Number.parseInt(process.env.STRIPE_PLATFORM_FEE_FIXED_CENTS || "0", 10);
   const percentAmount = Number.isFinite(percent) && percent > 0 ? Math.round(amountCents * (percent / 100)) : 0;
   const fixedAmount = Number.isFinite(fixed) && fixed > 0 ? fixed : 0;

@@ -1,6 +1,6 @@
 "use server";
 
-import { AccountAccessType, AuditAction, ApplicationStatus, ConnectionRole, ConnectionStatus, LeasePacketStatus, MaintenancePriority, MessageThreadStatus, MessageThreadType, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
+import { AccountAccessType, AuditAction, ApplicationStatus, ConnectionRole, ConnectionStatus, LeasePacketStatus, MaintenancePriority, MessageThreadStatus, MessageThreadType, RentalLifecycleStatus, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -79,6 +79,11 @@ const staffAssignmentSchema = z.object({
   propertyManagerUserId: z.string().trim().optional(),
   maintenanceUserId: z.string().trim().optional(),
   caseworkerUserId: z.string().trim().optional()
+});
+
+const rentalLifecycleSchema = z.object({
+  unitId: z.string().trim().min(1),
+  lifecycleStatus: z.nativeEnum(RentalLifecycleStatus)
 });
 
 const unitContactSchema = z.object({
@@ -444,6 +449,34 @@ async function userHasAccess(userId: string, allowed: AccountAccessType[]) {
   return Boolean(user && (user.role === UserRole.ADMIN || user.role === UserRole.LANDLORD || (allowed.includes(AccountAccessType.MAINTENANCE) && user.role === UserRole.INSPECTOR) || user.accountAccessRequests.length > 0));
 }
 
+
+export async function updateLandlordUnitLifecycleStatus(formData: FormData) {
+  const user = await requireLandlordAction();
+  const parsed = rentalLifecycleSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+  await assertOwnsUnit(parsed.data.unitId, user.userId);
+
+  const unitStatus = parsed.data.lifecycleStatus === RentalLifecycleStatus.OCCUPIED
+    ? UnitStatus.OCCUPIED
+    : parsed.data.lifecycleStatus === RentalLifecycleStatus.ARCHIVED
+      ? UnitStatus.ARCHIVED
+      : parsed.data.lifecycleStatus === RentalLifecycleStatus.MAINTENANCE_HOLD
+        ? UnitStatus.UNAVAILABLE
+        : parsed.data.lifecycleStatus === RentalLifecycleStatus.APPLICATION_PENDING || parsed.data.lifecycleStatus === RentalLifecycleStatus.LEASE_PENDING || parsed.data.lifecycleStatus === RentalLifecycleStatus.MOVE_IN_SCHEDULED
+          ? UnitStatus.PENDING
+          : UnitStatus.AVAILABLE;
+
+  await prisma.unit.update({
+    where: { id: parsed.data.unitId },
+    data: { lifecycleStatus: parsed.data.lifecycleStatus, status: unitStatus }
+  });
+
+  await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: parsed.data.unitId, message: `Updated rental lifecycle to ${parsed.data.lifecycleStatus}.` });
+  revalidateLandlord();
+  revalidatePath(`/landlord/units/${parsed.data.unitId}`);
+  redirect(`/landlord/units/${parsed.data.unitId}?status=updated`);
+}
+
 export async function assignLandlordUnitTenant(formData: FormData) {
   const user = await requireLandlordAction();
   const parsed = tenantAssignmentSchema.safeParse(formDataToObject(formData));
@@ -500,7 +533,8 @@ export async function assignLandlordUnitTenant(formData: FormData) {
     data: {
       tenantUserId: tenant.id,
       currentApplicationId: application.id,
-      status: UnitStatus.OCCUPIED
+      status: UnitStatus.OCCUPIED,
+      lifecycleStatus: RentalLifecycleStatus.OCCUPIED
     }
   });
 

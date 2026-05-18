@@ -151,10 +151,10 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
                 <MiniSignal label="Modules" value={tools.length} />
               </div>
             </div>
-            <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               {quickLinks.map((link) => (
-                <Link key={`${link.href}-${link.label}`} href={link.href} className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-800 transition hover:border-brand-200 hover:bg-white">
-                  <span className="text-brand-700">{link.icon}</span>{link.label}
+                <Link key={`${link.href}-${link.label}`} href={link.href} className="inline-flex min-w-0 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-800 transition hover:border-brand-200 hover:bg-white">
+                  <span className="shrink-0 text-brand-700">{link.icon}</span><span className="truncate">{link.label}</span>
                 </Link>
               ))}
             </div>

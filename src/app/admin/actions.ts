@@ -1,6 +1,6 @@
 "use server";
 
-import { ApplicationStatus, AuditAction, DocumentCategory, DocumentRequestStatus, DocumentStatus, DocumentVisibility, InspectionStatus, LedgerEntryStatus, LedgerEntryType, PaymentPlanInstallmentStatus, PaymentPlanStatus, LeadStatus, LeasePacketStatus, SecurityEventType, SignatureNotificationStatus, SignatureNotificationType, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
+import { AdminAnalyticsPeriod, AdminBrandingThemeMode, ApplicationStatus, AuditAction, DocumentCategory, DocumentRequestStatus, DocumentStatus, DocumentVisibility, InspectionStatus, LedgerEntryStatus, LedgerEntryType, PaymentPlanInstallmentStatus, PaymentPlanStatus, LeadStatus, LeasePacketStatus, SecurityEventType, SignatureNotificationStatus, SignatureNotificationType, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -61,6 +61,7 @@ import { defaultSignatureExpirationDate, queueSignatureNotification } from "@/li
 import { sendEmail, sendQueuedSignatureNotificationEmails, sendSignatureNotificationEmail } from "@/lib/email";
 import { addMonthsSafe, advanceMonthlyRunDate, isScheduleDue, nextMonthlyRunDate, plannedInstallmentCount, recurringChargePeriodKey } from "@/lib/ledger";
 import { importDataSnapshot, type DataSnapshot } from "@/lib/data-portability";
+import { captureAnalyticsSnapshot, captureSystemHealthSnapshot, ensureDefaultAutomationRules, markBackupRestoreStarted, saveBrandingSettings, syncOperationalAlertsFromReadiness } from "@/lib/admin-ops";
 
 const LOCKED_LEASE_PACKET_STATUSES: LeasePacketStatus[] = [
   LeasePacketStatus.SENT_FOR_SIGNATURE,
@@ -77,6 +78,94 @@ async function requireAdminAction() {
   return await requireRole(["ADMIN"]);
 }
 
+
+function optionalString(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function requiredString(formData: FormData, key: string, label: string, max = 240) {
+  const value = formData.get(key);
+  if (typeof value !== "string" || value.trim().length === 0) throw new Error(`${label} is required.`);
+  const trimmed = value.trim();
+  if (trimmed.length > max) throw new Error(`${label} must be ${max} characters or fewer.`);
+  return trimmed;
+}
+
+function requiredColor(formData: FormData, key: string, label: string) {
+  const value = requiredString(formData, key, label, 24);
+  if (!/^#[0-9A-Fa-f]{6}$/.test(value)) throw new Error(`${label} must be a valid hex color like #2563EB.`);
+  return value.toUpperCase();
+}
+
+export async function saveAdminBrandingAction(formData: FormData) {
+  const actor = await requireAdminAction();
+  const rawThemeMode = formData.get("themeMode");
+  const themeMode = Object.values(AdminBrandingThemeMode).includes(rawThemeMode as AdminBrandingThemeMode)
+    ? (rawThemeMode as AdminBrandingThemeMode)
+    : AdminBrandingThemeMode.SYSTEM;
+
+  await saveBrandingSettings(actor, {
+    productName: requiredString(formData, "productName", "Product name", 80),
+    shortName: requiredString(formData, "shortName", "Short name", 40),
+    tagline: requiredString(formData, "tagline", "Tagline", 160),
+    homepageHeadline: requiredString(formData, "homepageHeadline", "Homepage headline", 180),
+    homepageSubheadline: requiredString(formData, "homepageSubheadline", "Homepage subheadline", 360),
+    primaryColor: requiredColor(formData, "primaryColor", "Primary color"),
+    accentColor: requiredColor(formData, "accentColor", "Accent color"),
+    surfaceColor: requiredColor(formData, "surfaceColor", "Surface color"),
+    logoMarkText: requiredString(formData, "logoMarkText", "Logo mark", 8).toUpperCase(),
+    logoUrl: optionalString(formData, "logoUrl"),
+    faviconUrl: optionalString(formData, "faviconUrl"),
+    supportEmail: optionalString(formData, "supportEmail"),
+    themeMode,
+    publicSignupEnabled: formData.get("publicSignupEnabled") === "on",
+    marketplaceEnabled: formData.get("marketplaceEnabled") === "on"
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/branding");
+  redirect("/admin/branding?saved=1");
+}
+
+
+export async function syncOperationalReadinessAction() {
+  const actor = await requireAdminAction();
+  await syncOperationalAlertsFromReadiness(actor);
+  await captureSystemHealthSnapshot(actor);
+  revalidatePath("/admin");
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/system");
+  redirect("/admin/operations?synced=1");
+}
+
+export async function captureSystemHealthAction() {
+  const actor = await requireAdminAction();
+  await captureSystemHealthSnapshot(actor);
+  revalidatePath("/admin/operations");
+  revalidatePath("/admin/system");
+  redirect("/admin/operations?health=1");
+}
+
+export async function seedAutomationRulesAction() {
+  const actor = await requireAdminAction();
+  await ensureDefaultAutomationRules(actor);
+  revalidatePath("/admin/operations");
+  redirect("/admin/operations?rules=1");
+}
+
+export async function captureAdminAnalyticsAction(formData?: FormData) {
+  const actor = await requireAdminAction();
+  const rawPeriod = formData?.get("period");
+  const period = Object.values(AdminAnalyticsPeriod).includes(rawPeriod as AdminAnalyticsPeriod)
+    ? (rawPeriod as AdminAnalyticsPeriod)
+    : AdminAnalyticsPeriod.DAILY;
+  await captureAnalyticsSnapshot(actor, period);
+  revalidatePath("/admin/analytics");
+  redirect("/admin/analytics?snapshot=1");
+}
+
 export async function importDataSnapshotAction(formData: FormData) {
   const actor = await requireAdminAction();
   const file = formData.get("file");
@@ -91,6 +180,7 @@ export async function importDataSnapshotAction(formData: FormData) {
   }
 
   const counts = await importDataSnapshot(snapshot);
+  await markBackupRestoreStarted(actor, optionalString(formData, "backupId"), Object.values(counts).reduce((sum, count) => sum + count, 0));
   await writeAuditLog({
     actor,
     action: AuditAction.CREATE,
@@ -105,8 +195,11 @@ export async function importDataSnapshotAction(formData: FormData) {
   revalidatePath("/admin/users");
   revalidatePath("/admin/properties");
   revalidatePath("/admin/units");
+  revalidatePath("/admin/rentals");
   revalidatePath("/marketplace");
-  redirect(`/admin/system?imported=${encodeURIComponent(Object.values(counts).reduce((sum, count) => sum + count, 0).toString())}`);
+  const redirectTo = optionalString(formData, "redirectTo") || "/admin/system";
+  const safeRedirectTo = redirectTo.startsWith("/admin/backups") ? "/admin/backups" : "/admin/system";
+  redirect(`${safeRedirectTo}?imported=${encodeURIComponent(Object.values(counts).reduce((sum, count) => sum + count, 0).toString())}`);
 }
 
 function getRequiredId(formData: FormData, label: string) {
@@ -143,6 +236,7 @@ function revalidateInventory() {
   revalidatePath("/admin");
   revalidatePath("/admin/properties");
   revalidatePath("/admin/units");
+  revalidatePath("/admin/rentals");
   revalidatePath("/admin/leads");
   revalidatePath("/admin/applications");
   revalidatePath("/admin/users");
@@ -221,33 +315,33 @@ export async function deleteProperty(formData: FormData) {
 export async function createUnit(formData: FormData) {
   const actor = await requireAdminAction();
   const created = await prisma.unit.create({ data: await unitPayload(formData) });
-  await writeAuditLog({ actor, action: AuditAction.CREATE, entityType: "Unit", entityId: created.id, message: `Created unit ${created.unitNumber}.` });
+  await writeAuditLog({ actor, action: AuditAction.CREATE, entityType: "Rental", entityId: created.id, message: `Created rental ${created.unitNumber}.` });
   revalidateInventory();
-  redirect("/admin/units");
+  redirect("/admin/rentals");
 }
 
 export async function updateUnit(formData: FormData) {
   const actor = await requireAdminAction();
   const id = getRequiredId(formData, "Unit ID");
   const updated = await prisma.unit.update({ where: { id }, data: await unitPayload(formData) });
-  await writeAuditLog({ actor, action: AuditAction.UPDATE, entityType: "Unit", entityId: updated.id, message: `Updated unit ${updated.unitNumber}.` });
+  await writeAuditLog({ actor, action: AuditAction.UPDATE, entityType: "Rental", entityId: updated.id, message: `Updated rental ${updated.unitNumber}.` });
   revalidateInventory();
-  redirect("/admin/units");
+  redirect("/admin/rentals");
 }
 
 export async function archiveUnit(formData: FormData) {
   const actor = await requireAdminAction();
   const id = getRequiredId(formData, "Unit ID");
   await prisma.unit.update({ where: { id }, data: { status: UnitStatus.ARCHIVED } });
-  await writeAuditLog({ actor, action: AuditAction.ARCHIVE, entityType: "Unit", entityId: id, message: "Archived unit." });
+  await writeAuditLog({ actor, action: AuditAction.ARCHIVE, entityType: "Rental", entityId: id, message: "Archived rental." });
   revalidateInventory();
 }
 
 export async function restoreUnit(formData: FormData) {
   const actor = await requireAdminAction();
   const id = getRequiredId(formData, "Unit ID");
-  await prisma.unit.update({ where: { id }, data: { status: UnitStatus.UNAVAILABLE } });
-  await writeAuditLog({ actor, action: AuditAction.RESTORE, entityType: "Unit", entityId: id, message: "Restored unit to unavailable status." });
+  await prisma.unit.update({ where: { id }, data: { status: UnitStatus.PENDING } });
+  await writeAuditLog({ actor, action: AuditAction.RESTORE, entityType: "Rental", entityId: id, message: "Restored unit to unavailable status." });
   revalidateInventory();
 }
 
@@ -255,7 +349,7 @@ export async function deleteUnit(formData: FormData) {
   const actor = await requireAdminAction();
   const id = getRequiredId(formData, "Unit ID");
   await prisma.unit.update({ where: { id }, data: { status: UnitStatus.ARCHIVED } });
-  await writeAuditLog({ actor, action: AuditAction.ARCHIVE, entityType: "Unit", entityId: id, message: "Soft-deleted unit by archiving it." });
+  await writeAuditLog({ actor, action: AuditAction.ARCHIVE, entityType: "Rental", entityId: id, message: "Soft-deleted unit by archiving it." });
   revalidateInventory();
 }
 

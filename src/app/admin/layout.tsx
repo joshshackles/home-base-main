@@ -1,13 +1,13 @@
 import { requireRole } from "@/lib/auth";
 import type { ReactNode } from "react";
-import { Building2, ClipboardCheck, ClipboardList, Database, DollarSign, FileSignature, Home, Inbox, LayoutDashboard, MessageSquare, ShieldCheck, Users, Wrench } from "lucide-react";
+import { Activity, Building2, ClipboardCheck, ClipboardList, Database, DollarSign, FileSignature, Home, Inbox, LayoutDashboard, MessageSquare, ShieldCheck, Users, Wrench } from "lucide-react";
 import { DashboardShell, type ShellNavGroup } from "@/components/layout/DashboardShell";
 
 const navGroups: ShellNavGroup[] = [
   { label: "Operations", items: [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/properties", label: "Properties", icon: Building2 },
-    { href: "/admin/units", label: "Units", icon: Home },
+    { href: "/admin/rentals", label: "Rentals", icon: Home },
+    { href: "/admin/properties", label: "Property groups", icon: Building2 },
     { href: "/admin/users", label: "Users", icon: Users }
   ] },
   { label: "Leasing", items: [
@@ -28,6 +28,7 @@ const navGroups: ShellNavGroup[] = [
     { href: "/admin/notifications", label: "Notifications", icon: Inbox }
   ] },
   { label: "Administration", items: [
+    { href: "/admin/operations", label: "Operations", icon: Activity },
     { href: "/admin/security", label: "Security", icon: ShieldCheck },
     { href: "/admin/system", label: "System", icon: Database }
   ] }
@@ -35,5 +36,5 @@ const navGroups: ShellNavGroup[] = [
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   await requireRole(["ADMIN"]);
-  return <DashboardShell groups={navGroups} title="Admin command center" accountLabel="Platform operations" inboxHref="/admin/inbox" quickCreateHref="/admin/units/new">{children}</DashboardShell>;
+  return <DashboardShell groups={navGroups} title="Admin command center" accountLabel="Platform operations" inboxHref="/admin/inbox" quickCreateHref="/admin/rentals/new">{children}</DashboardShell>;
 }

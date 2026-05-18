@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
-import { CheckCircle2, ServerCog, TriangleAlert } from "lucide-react";
+import Link from "next/link";
+import { Activity, BarChart3, CheckCircle2, DatabaseBackup, Palette, ServerCog, TriangleAlert } from "lucide-react";
 import { importDataSnapshotAction } from "@/app/admin/actions";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { prisma } from "@/lib/prisma";
@@ -36,6 +37,30 @@ export default async function SystemStatusPage({ searchParams }: { searchParams?
         description="Run a quick production-readiness check for database access, environment variables, upload storage, and app version."
       />
 
+
+      <section className="mb-8 grid gap-3 sm:grid-cols-3">
+        <Link href="/admin/branding" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:bg-slate-50">
+          <Palette className="text-brand-700" size={24} />
+          <h2 className="mt-3 text-lg font-black text-slate-950">Branding studio</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Control logo text, public copy, colors, launch toggles, and identity settings.</p>
+        </Link>
+        <Link href="/admin/backups" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:bg-slate-50">
+          <DatabaseBackup className="text-brand-700" size={24} />
+          <h2 className="mt-3 text-lg font-black text-slate-950">Backup & recovery</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Generate JSON exports, track manifests, checksums, and recovery imports.</p>
+        </Link>
+        <Link href="/admin/analytics" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:bg-slate-50">
+          <BarChart3 className="text-brand-700" size={24} />
+          <h2 className="mt-3 text-lg font-black text-slate-950">Analytics hub</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Review operating KPIs, workflow load, risk index, and captured snapshots.</p>
+        </Link>
+        <Link href="/admin/operations" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:bg-slate-50">
+          <Activity className="text-brand-700" size={24} />
+          <h2 className="mt-3 text-lg font-black text-slate-950">Operations center</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Monitor readiness, alerts, queue jobs, automation scaffolds, and health snapshots.</p>
+        </Link>
+      </section>
+
       <div className="grid gap-4">
         {checks.map((check) => (
           <div key={check.label} className="flex gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -62,7 +87,7 @@ export default async function SystemStatusPage({ searchParams }: { searchParams?
           <p className="mt-2 text-sm leading-6 text-slate-600">Upload a HomeBase JSON snapshot to create or update records by ID. Existing matching IDs are updated; new IDs are inserted.</p>
           <a href="/admin/system/sample-data" className="mt-4 inline-flex rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-50">Download Sample Data</a>
           {searchParams?.imported ? <p className="mt-4 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Imported {searchParams.imported} records.</p> : null}
-          <form action={importDataSnapshotAction} className="mt-5 space-y-4">
+          <form action={importDataSnapshotAction} encType="multipart/form-data" className="mt-5 space-y-4">
             <input name="file" type="file" accept="application/json,.json" required className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900" />
             <button type="submit" className="rounded-2xl bg-slate-950 px-5 py-3 font-bold text-white hover:bg-slate-800">Import JSON</button>
           </form>

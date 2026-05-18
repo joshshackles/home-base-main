@@ -5,8 +5,8 @@ import { DashboardShell, type ShellNavGroup } from "@/components/layout/Dashboar
 const navGroups: ShellNavGroup[] = [
   { label: "Operations", items: [
     { href: "/landlord", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/landlord/properties", label: "Properties", icon: Building2 },
-    { href: "/landlord/units", label: "Units", icon: Home },
+    { href: "/landlord/rentals", label: "Rentals", icon: Home },
+    { href: "/landlord/properties", label: "Property groups", icon: Building2 },
     { href: "/landlord/contacts", label: "Contacts", icon: Users }
   ] },
   { label: "Leasing", items: [
@@ -31,7 +31,7 @@ export default async function LandlordLayout({ children }: { children: React.Rea
   await requireRole(["LANDLORD"], "/landlord");
 
   return (
-    <DashboardShell groups={navGroups} title="Landlord command center" accountLabel="Housing operations" inboxHref="/landlord/inbox" quickCreateHref="/landlord/units/new">
+    <DashboardShell groups={navGroups} title="Landlord command center" accountLabel="Housing operations" inboxHref="/landlord/inbox" quickCreateHref="/landlord/rentals/new">
       {children}
     </DashboardShell>
   );

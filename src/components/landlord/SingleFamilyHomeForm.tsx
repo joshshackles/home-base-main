@@ -2,7 +2,7 @@ import { UnitStatus } from "@prisma/client";
 import { createLandlordSingleFamilyHome } from "@/app/landlord/actions";
 import { Field, inputClass, SecondaryLink, selectClass, SubmitButton, textareaClass } from "@/components/admin/FormFields";
 
-const listingStatuses = [UnitStatus.AVAILABLE, UnitStatus.PENDING, UnitStatus.OCCUPIED, UnitStatus.UNAVAILABLE];
+const listingStatuses = [UnitStatus.AVAILABLE, UnitStatus.PENDING, UnitStatus.OCCUPIED, UnitStatus.PENDING];
 
 export function SingleFamilyHomeForm() {
   return (

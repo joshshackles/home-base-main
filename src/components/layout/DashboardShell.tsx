@@ -43,13 +43,13 @@ export function DashboardShell({ children, groups, title, accountLabel, inboxHre
           </div>
         </aside>
 
-        <div className="min-w-0">
+        <div className="min-w-0" data-dashboard-scroll-root>
           <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
             <div className="flex items-center gap-2 px-3 py-2 sm:px-4 lg:px-5">
               <button className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-700 lg:hidden" type="button" aria-label="Open navigation">
                 <Menu size={18} />
               </button>
-              <div className="min-w-0">
+              <div className="min-w-0" data-dashboard-scroll-root>
                 <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">{accountLabel}</p>
                 <h1 className="truncate text-base font-black text-slate-950">{title}</h1>
               </div>
