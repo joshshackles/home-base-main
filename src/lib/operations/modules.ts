@@ -28,7 +28,7 @@ export async function getApplicantScreeningModule(ownerId?: string) {
     prisma.screeningReference.count({ where: ownerId ? { application: applicationWhere } : {} }),
     prisma.backgroundCheckRequest.count({ where: ownerId ? { application: applicationWhere } : {} })
   ]);
-  const pending = screenings.filter((item) => [ScreeningRequestStatus.ORDERED, ScreeningRequestStatus.IN_PROGRESS, ScreeningRequestStatus.NEEDS_REVIEW].includes(item.status)).length;
+  const pending = screenings.filter((item) => item.status === ScreeningRequestStatus.ORDERED || item.status === ScreeningRequestStatus.IN_PROGRESS || item.status === ScreeningRequestStatus.NEEDS_REVIEW).length;
   return { applications, screenings, packages, counts: { applications: applications.length, screenings: screenings.length, pending, income, rentalHistory, references, background } };
 }
 
@@ -58,7 +58,7 @@ export async function getInsuranceComplianceModule(ownerId?: string) {
     prisma.unit.findMany({ where: ownerUnitWhere(ownerId), select: { id: true, unitNumber: true, property: { select: { name: true } } }, orderBy: [{ property: { name: "asc" } }, { unitNumber: "asc" }], take: 200 }),
     prisma.application.findMany({ where: applicationWhere, select: { id: true, applicantName: true, applicantEmail: true, unit: { select: { unitNumber: true, property: { select: { name: true } } } } }, orderBy: { updatedAt: "desc" }, take: 200 })
   ]);
-  const risky = [...policies, ...certifications, ...requirements].filter((item) => [ComplianceRecordStatus.EXPIRED, ComplianceRecordStatus.EXPIRING_SOON, ComplianceRecordStatus.MISSING].includes(item.status)).length;
+  const risky = [...policies, ...certifications, ...requirements].filter((item) => item.status === ComplianceRecordStatus.EXPIRED || item.status === ComplianceRecordStatus.EXPIRING_SOON || item.status === ComplianceRecordStatus.MISSING).length;
   return { policies, certifications, requirements, properties, units, applications, counts: { policies: policies.length, certifications: certifications.length, requirements: requirements.length, risky } };
 }
 

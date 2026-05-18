@@ -72,10 +72,10 @@ export async function getOwnerVendorCenter(ownerUserId?: string) {
     getVendorAssignableUsers(ownerUserId)
   ]);
 
-  const openJobs = jobs.filter((job) => ![MaintenanceRequestStatus.COMPLETED, MaintenanceRequestStatus.CANCELLED].includes(job.status)).length;
+  const openJobs = jobs.filter((job) => job.status !== MaintenanceRequestStatus.COMPLETED && job.status !== MaintenanceRequestStatus.CANCELLED).length;
   const submittedInvoices = invoices.filter((invoice) => invoice.status === VendorInvoiceStatus.SUBMITTED).length;
-  const unpaidInvoiceAmount = invoices.filter((invoice) => [VendorInvoiceStatus.SUBMITTED, VendorInvoiceStatus.APPROVED].includes(invoice.status)).reduce((sum, invoice) => sum + invoice.amount, 0);
-  const pendingPayoutAmount = payouts.filter((payout) => [VendorPayoutStatus.APPROVAL_REQUIRED, VendorPayoutStatus.APPROVED, VendorPayoutStatus.PROCESSING].includes(payout.status)).reduce((sum, payout) => sum + payout.amount, 0);
+  const unpaidInvoiceAmount = invoices.filter((invoice) => invoice.status === VendorInvoiceStatus.SUBMITTED || invoice.status === VendorInvoiceStatus.APPROVED).reduce((sum, invoice) => sum + invoice.amount, 0);
+  const pendingPayoutAmount = payouts.filter((payout) => payout.status === VendorPayoutStatus.APPROVAL_REQUIRED || payout.status === VendorPayoutStatus.APPROVED || payout.status === VendorPayoutStatus.PROCESSING).reduce((sum, payout) => sum + payout.amount, 0);
 
   return { profiles, jobs, invoices, payouts, units, vendorUsers, metrics: { vendorCount: profiles.length, openJobs, submittedInvoices, unpaidInvoiceAmount, pendingPayoutAmount } };
 }
@@ -89,9 +89,9 @@ export async function getVendorPortal(userId: string) {
     prisma.vendorWorkLog.findMany({ where: { vendorUserId: userId }, include: { maintenanceRequest: { select: { subject: true } } }, orderBy: { createdAt: "desc" }, take: 20 })
   ]);
 
-  const openJobs = jobs.filter((job) => ![MaintenanceRequestStatus.COMPLETED, MaintenanceRequestStatus.CANCELLED].includes(job.status)).length;
-  const approvedInvoiceAmount = invoices.filter((invoice) => [VendorInvoiceStatus.APPROVED, VendorInvoiceStatus.PAID].includes(invoice.status)).reduce((sum, invoice) => sum + invoice.amount, 0);
-  const pendingInvoiceAmount = invoices.filter((invoice) => [VendorInvoiceStatus.DRAFT, VendorInvoiceStatus.SUBMITTED].includes(invoice.status)).reduce((sum, invoice) => sum + invoice.amount, 0);
+  const openJobs = jobs.filter((job) => job.status !== MaintenanceRequestStatus.COMPLETED && job.status !== MaintenanceRequestStatus.CANCELLED).length;
+  const approvedInvoiceAmount = invoices.filter((invoice) => invoice.status === VendorInvoiceStatus.APPROVED || invoice.status === VendorInvoiceStatus.PAID).reduce((sum, invoice) => sum + invoice.amount, 0);
+  const pendingInvoiceAmount = invoices.filter((invoice) => invoice.status === VendorInvoiceStatus.DRAFT || invoice.status === VendorInvoiceStatus.SUBMITTED).reduce((sum, invoice) => sum + invoice.amount, 0);
 
   return { profiles, jobs, invoices, payouts, workLogs, metrics: { openJobs, invoiceCount: invoices.length, approvedInvoiceAmount, pendingInvoiceAmount } };
 }
