@@ -23,7 +23,7 @@ export default async function LandlordDocumentsPage({ searchParams }: { searchPa
     prisma.property.findMany({ where: { ownerId: user.userId, isArchived: false }, orderBy: { name: "asc" } }),
     prisma.unit.findMany({ where: { property: { ownerId: user.userId, isArchived: false }, NOT: { status: "ARCHIVED" } }, include: { property: true }, orderBy: [{ property: { name: "asc" } }, { unitNumber: "asc" }] }),
     prisma.application.findMany({ where: { unit: { property: { ownerId: user.userId, isArchived: false } } }, include: { unit: { include: { property: true } } }, orderBy: { createdAt: "desc" }, take: 120 }),
-    prisma.leasePacket.findMany({ where: { application: { unit: { property: { ownerId: user.userId, isArchived: false } } } }, include: { application: { include: { unit: { include: { property: true } } } } }, orderBy: { createdAt: "desc" }, take: 120 })
+    prisma.leasePacket.findMany({ where: { application: { unit: { property: { ownerId: user.userId, isArchived: false } } } }, include: { template: { select: { name: true } }, application: { include: { unit: { include: { property: true } } } } }, orderBy: { createdAt: "desc" }, take: 120 })
   ]);
 
   const uploadPanel = (

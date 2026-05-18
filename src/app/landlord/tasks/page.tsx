@@ -20,7 +20,7 @@ export default async function LandlordTasksPage({ searchParams }: { searchParams
     prisma.unit.findMany({ where: { property: portfolioWhere, NOT: { status: "ARCHIVED" } }, include: { property: { select: { name: true } } }, orderBy: [{ property: { name: "asc" } }, { unitNumber: "asc" }], take: 300 }),
     prisma.application.findMany({ where: { unit: { property: portfolioWhere } }, include: { unit: { include: { property: true } } }, orderBy: { createdAt: "desc" }, take: 200 }),
     prisma.maintenanceRequest.findMany({ where: { unit: { property: portfolioWhere } }, include: { unit: { include: { property: true } } }, orderBy: { createdAt: "desc" }, take: 200 }),
-    prisma.leasePacket.findMany({ where: { application: { unit: { property: portfolioWhere } } }, include: { application: { include: { unit: { include: { property: true } } } } }, orderBy: { createdAt: "desc" }, take: 200 }),
+    prisma.leasePacket.findMany({ where: { application: { unit: { property: portfolioWhere } } }, include: { template: { select: { name: true } }, application: { include: { unit: { include: { property: true } } } } }, orderBy: { createdAt: "desc" }, take: 200 }),
     prisma.document.findMany({ where: { OR: [{ property: portfolioWhere }, { unit: { property: portfolioWhere } }, { application: { unit: { property: portfolioWhere } } }] }, orderBy: { createdAt: "desc" }, select: { id: true, title: true, category: true }, take: 200 })
   ]);
 
