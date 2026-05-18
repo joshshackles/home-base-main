@@ -28,6 +28,8 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
   const enabled = stripePaymentsEnabled();
   const returned = searchParams?.stripe === "return";
   const refresh = searchParams?.stripe === "refresh";
+  const missingStripeAccount = searchParams?.stripe === "missing";
+  const syncedStripeAccount = searchParams?.stripe === "synced";
   const recentPayments = ops.entries.filter((entry) => entry.type === "PAYMENT" || entry.type === "CREDIT").slice(0, 8);
   const openCharges = ops.entries.filter((entry) => (entry.type === "CHARGE" || entry.type === "ADJUSTMENT") && entry.stripePaymentStatus !== "paid").slice(0, 8);
 
@@ -50,6 +52,8 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
 
       {returned ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Stripe sent you back to HomeBase. Refresh status below to confirm account readiness.</p> : null}
       {refresh ? <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-900 ring-1 ring-amber-200">Your onboarding link expired or was interrupted. Create a new onboarding link below.</p> : null}
+      {missingStripeAccount ? <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-900 ring-1 ring-amber-200">Start Stripe setup before refreshing account status.</p> : null}
+      {syncedStripeAccount ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Stripe account status refreshed.</p> : null}
       {searchParams?.policy ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Rent policy updated.</p> : null}
 
       <section className="mt-3 grid gap-3 md:grid-cols-6">

@@ -1,5 +1,10 @@
 # 3.3.1 - Financial Automation & Recovery
 
+## v3.5.5 - Payments Form Action Hotfix
+
+- Fixed `refreshStripeConnectStatus` so it redirects instead of returning an object from a `<form action>`.
+- Added landlord payment status query banners for missing and refreshed Stripe account states.
+
 ## v3.5.4 - Dashboard Shell Type Hotfix
 
 - Fixed the shared dashboard shell navigation icon type to use Lucide's native `LucideIcon` type.

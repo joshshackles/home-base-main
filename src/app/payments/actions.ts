@@ -49,7 +49,7 @@ export async function refreshStripeConnectStatus() {
   assertStripeReady();
   const stripe = getStripe();
   const dbUser = await prisma.user.findUnique({ where: { id: user.userId }, select: { stripeConnectAccountId: true } });
-  if (!dbUser?.stripeConnectAccountId) return { ok: false, message: "No Stripe account is connected yet." };
+  if (!dbUser?.stripeConnectAccountId) redirect("/landlord/payments?stripe=missing");
   const account = await stripe.accounts.retrieve(dbUser.stripeConnectAccountId);
   if (("deleted" in account) && account.deleted) throw new Error("The connected Stripe account was deleted. Start payment setup again.");
   await prisma.user.update({
@@ -61,7 +61,7 @@ export async function refreshStripeConnectStatus() {
       stripeConnectLastSyncedAt: new Date()
     }
   });
-  return { ok: true, message: "Stripe status refreshed." };
+  redirect("/landlord/payments?stripe=synced");
 }
 
 export async function createLedgerCheckoutSession(formData: FormData) {
