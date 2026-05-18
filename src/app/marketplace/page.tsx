@@ -85,6 +85,18 @@ function matchScore(
   return Math.min(score, 100);
 }
 
+
+function clean(value?: string) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function numberParam(value?: string) {
+  if (!value) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 function priceLabel(minRent?: number, maxRent?: number) {
   if (minRent !== undefined && maxRent !== undefined)
     return `${formatCurrency(minRent)}-${formatCurrency(maxRent)}`;

@@ -1,3 +1,8 @@
+## v4.0.1 - Marketplace build fix
+
+- Fixed the marketplace route build failure by restoring safe query-param helper functions for string cleaning and numeric parsing.
+- Preserved the v4.0.0 rental profile ecosystem work while making the public marketplace page compile cleanly on Vercel.
+
 ## v4.0.0 - Rental Profile Ecosystem Rebuild
 
 - Rebuilt the public rental profile around a premium, photo-first real-estate layout with immersive hero gallery, thumbnail grid, true photo counts, compact facts, monthly/move-in cost estimates, map link, and sticky mobile apply/contact actions.
