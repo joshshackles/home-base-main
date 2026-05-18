@@ -3,18 +3,19 @@ export const dynamic = "force-dynamic";
 import { Prisma } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
-import { agingBucket, installmentStatusLabel, ledgerSignedAmount, ledgerStatusLabel, ledgerTypeLabel, paymentPlanStatusLabel } from "@/lib/ledger";
+import { agingBucket, installmentStatusLabel, ledgerAttentionLabel, ledgerSignedAmount, ledgerStatusLabel, ledgerTypeLabel, paymentPlanStatusLabel } from "@/lib/ledger";
 import { prisma } from "@/lib/prisma";
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";
 import { Pagination } from "@/components/admin/Pagination";
 import { DEFAULT_PAGE_SIZE, SearchParams, getPagination } from "@/lib/pagination";
-import { ledgerTotals } from "@/lib/ledger-queries";
+import { ledgerOperationsSnapshot } from "@/lib/ledger-queries";
+import { LedgerAmount, LedgerMetricGrid, LedgerStatusPill, LedgerTypePill } from "@/components/ledger/LedgerDashboard";
 
 export default async function LandlordLedgerPage({ searchParams }: { searchParams?: SearchParams }) {
   const user = await requireRole(["LANDLORD"], "/landlord/ledger");
   const { page, take, skip } = getPagination(searchParams);
   const ledgerWhere: Prisma.LedgerEntryWhereInput = { unit: { property: { ownerId: user.userId } } };
-  const [entries, totalEntries, totals, plans] = await Promise.all([
+  const [entries, totalEntries, snapshot, plans] = await Promise.all([
     prisma.ledgerEntry.findMany({
       where: ledgerWhere,
       orderBy: [{ postedAt: "desc" }, { createdAt: "desc" }],
@@ -23,7 +24,7 @@ export default async function LandlordLedgerPage({ searchParams }: { searchParam
       include: { unit: { include: { property: true } }, application: true, tenantUser: true }
     }),
     prisma.ledgerEntry.count({ where: ledgerWhere }),
-    ledgerTotals(ledgerWhere),
+    ledgerOperationsSnapshot(ledgerWhere),
     prisma.paymentPlan.findMany({
       where: { unit: { property: { ownerId: user.userId } } },
       orderBy: { createdAt: "desc" },
@@ -31,21 +32,22 @@ export default async function LandlordLedgerPage({ searchParams }: { searchParam
       include: { unit: { include: { property: true } }, application: true, tenantUser: true, installments: { orderBy: { dueDate: "asc" } } }
     })
   ]);
-  const balance = totals.balance;
-  const charges = totals.charges;
-  const payments = totals.payments;
+  const balance = snapshot.balance;
+  const charges = snapshot.charges;
+  const payments = snapshot.payments;
 
   return (
-    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <LandlordPageHeader title="Ledger" description="Review charges, payments, credits, and balances connected to your assigned units." />
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><p className="text-sm font-bold uppercase tracking-wide text-slate-500">Charges</p><p className="mt-2 text-4xl font-black text-slate-950">{formatCurrency(charges)}</p></div>
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><p className="text-sm font-bold uppercase tracking-wide text-slate-500">Payments & Credits</p><p className="mt-2 text-4xl font-black text-emerald-700">{formatCurrency(payments)}</p></div>
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><p className="text-sm font-bold uppercase tracking-wide text-slate-500">Balance</p><p className="mt-2 text-4xl font-black text-slate-950">{formatCurrency(balance)}</p></div>
-      </section>
+    <main id="main-content" className="mx-auto max-w-7xl px-3 py-6 sm:px-4 lg:px-6">
+      <LandlordPageHeader title="Ledger" description="Compact finance view for portfolio charges, payments, overdue risk, and payment plans." />
+      <LedgerMetricGrid metrics={[
+        { label: "Balance", value: formatCurrency(balance), detail: `${snapshot.collectionRate}% collected`, tone: balance > 0 ? "amber" : "emerald" },
+        { label: "Charges", value: formatCurrency(charges), detail: "Posted charge total" },
+        { label: "Payments & credits", value: formatCurrency(payments), detail: "Collected / credited", tone: "emerald" },
+        { label: "Overdue", value: formatCurrency(snapshot.overdueAmount), detail: `${snapshot.overdueCount} overdue`, tone: snapshot.overdueCount > 0 ? "rose" : "emerald" }
+      ]} />
 
       {plans.length > 0 ? (
-        <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-xl font-black text-slate-950">Payment plans</h2>
           <p className="mt-1 text-sm text-slate-500">Plans connected to your assigned units are visible here.</p>
           <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -66,11 +68,11 @@ export default async function LandlordLedgerPage({ searchParams }: { searchParam
         </section>
       ) : null}
 
-      <div className="mt-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[820px] text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-4">Date</th><th className="px-5 py-4">Unit</th><th className="px-5 py-4">Type</th><th className="px-5 py-4">Description</th><th className="px-5 py-4">Status</th><th className="px-5 py-4 text-right">Amount</th></tr></thead>
+      <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full min-w-[860px] text-left text-sm">
+          <thead className="bg-slate-50 text-[0.68rem] uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Unit</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Description</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Amount</th></tr></thead>
           <tbody className="divide-y divide-slate-100">
-            {entries.map((entry) => <tr key={entry.id}><td className="px-5 py-4 text-slate-600">{entry.postedAt.toLocaleDateString()}</td><td className="px-5 py-4 font-bold text-slate-950">{entry.unit.property.name}<br/><span className="font-medium text-slate-500">Unit {entry.unit.unitNumber}</span></td><td className="px-5 py-4">{ledgerTypeLabel(entry.type)}</td><td className="px-5 py-4">{entry.description}<br/><span className="text-xs text-slate-500">{entry.application?.applicantName || entry.tenantUser?.name || "No application linked"}</span></td><td className="px-5 py-4">{ledgerStatusLabel(entry.status)}</td><td className="px-5 py-4 text-right font-black">{formatCurrency(Math.abs(ledgerSignedAmount(entry)))}</td></tr>)}
+            {entries.map((entry) => <tr key={entry.id} className="align-top hover:bg-slate-50/70"><td className="px-4 py-3 text-slate-600">{entry.postedAt.toLocaleDateString()}<br/><span className="text-xs text-slate-400">{ledgerAttentionLabel(entry)}</span></td><td className="px-4 py-3 font-bold text-slate-950">{entry.unit.property.name}<br/><span className="font-medium text-slate-500">Unit {entry.unit.unitNumber}</span></td><td className="px-4 py-3"><LedgerTypePill type={entry.type} /></td><td className="px-4 py-3">{entry.description}<br/><span className="text-xs text-slate-500">{entry.application?.applicantName || entry.tenantUser?.name || "No application linked"}</span></td><td className="px-4 py-3"><LedgerStatusPill status={entry.status} /></td><td className="px-4 py-3 text-right"><LedgerAmount amount={ledgerSignedAmount(entry)} isCredit={entry.type === "PAYMENT" || entry.type === "CREDIT"} muted={entry.status === "VOIDED"} /></td></tr>)}
             {entries.length === 0 ? <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-500">No ledger activity is connected to your units yet.</td></tr> : null}
           </tbody>
         </table>

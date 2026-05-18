@@ -5,6 +5,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        system: {
+          bg: "#0F172A",
+          surface: "#111827",
+          accent: "#2563EB",
+          success: "#10B981",
+          warning: "#F59E0B",
+          danger: "#EF4444",
+          border: "#334155"
+        },
         brand: {
           50: "#eff6ff",
           100: "#dbeafe",

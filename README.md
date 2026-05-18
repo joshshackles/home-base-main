@@ -1,12 +1,13 @@
 # HomeBase MLS
 
-Production-oriented rental marketplace and housing workflow system for properties, units, leads, applications, documents, inspections, lease packets, e-signature evidence, notifications, and ledgers.
+Premium housing operations platform for properties, units, leads, applications, documents, inspections, lease packets, e-signature evidence, notifications, communication, payments, and ledgers.
 
-Current package version: **3.1.6**
+Current package version: **3.5.0**
 
 ## What is included
 
 - Admin, landlord, applicant, and marketplace portals.
+- Unified housing OS brand system with geometric HomeBase mark, favicon/app icon, grouped dashboard shell, and shared UI primitives.
 - Property/unit inventory management.
 - Public lead capture with anti-spam protections.
 - Applications, documents, inspections, leases, signatures, and ledger workflows.
@@ -15,6 +16,7 @@ Current package version: **3.1.6**
 - E-signature consent/evidence hashing.
 - Security headers, password policy hardening, durable rate limiting, and DB-verified session checks.
 - Email queue hardening and cron-compatible sending route.
+- Stripe Connect, tenant checkout, scheduled payments, autopay, retry recovery, refunds, and enterprise finance records.
 - Vitest test scaffolding, structured logging, and verification scripts.
 - SEO, accessibility, and legal-page starter polish.
 
@@ -63,6 +65,7 @@ Update docs live in `docs/`, including:
 - `update-10-email-queue-production-env.md`
 - `UPDATE_11_TESTS_OBSERVABILITY.md`
 - `UPDATE_12_PRODUCTION_POLISH.md`
+- `PRODUCT_IDENTITY_UX_SYSTEM.md`
 
 ## Changelog
 

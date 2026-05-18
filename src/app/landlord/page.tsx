@@ -44,7 +44,8 @@ export default async function LandlordDashboardPage() {
         { title: "Home and unit operations", detail: "Add single-family homes, create multi-unit properties, mark availability, and open tenant records.", href: "/landlord/units", icon: dashboardIcons.homes },
         { title: "Leads and applications", detail: "Review prospects, notes, applications, documents, and next steps.", href: "/landlord/applications", icon: dashboardIcons.applications },
         { title: "Maintenance queue", detail: "Assign repairs, message tenants, and track completion.", href: "/landlord/maintenance", icon: dashboardIcons.maintenance },
-        { title: "Messages", detail: "Keep application, lease, and repair conversations in one place.", href: "/landlord/inbox", icon: dashboardIcons.inbox }
+        { title: "Messages", detail: "Keep application, lease, and repair conversations in one place.", href: "/landlord/inbox", icon: dashboardIcons.inbox },
+        { title: "Payments", detail: "Connect Stripe, accept online ledger payments, and reconcile tenant charges.", href: "/landlord/payments", icon: dashboardIcons.work }
       ]}
       accessRequests={accessRequests}
     />

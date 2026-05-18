@@ -1,3 +1,93 @@
+# 3.3.1 - Financial Automation & Recovery
+
+## v3.5.0 - Unified Product Identity & UX System
+
+- Repositioned HomeBase as a premium housing operations platform with updated product metadata and README language.
+- Added a geometric HomeBase H mark, shared wordmark component, SVG favicon, and SVG app icon.
+- Added global design tokens for the slate/blue/green/amber/red semantic color system and density variables.
+- Added the shared `src/components/ui/system/` layer with cards, metrics, compact tables, badges, section headers, action bars, empty states, timelines, drawer panels, quick actions, data grids, tabs, and command palette scaffolding.
+- Added a grouped dashboard shell with sidebar modules, sticky operational topbar, mobile navigation strip, search affordance, quick create entry, and command palette surface.
+- Migrated admin, landlord, and applicant layouts onto grouped Operations, Leasing, Financial, Maintenance, Communication, and Administration navigation.
+- Added DTO foundation folders for dashboard, financial, and messaging surfaces.
+- Added product identity documentation and a static verifier for the new UX foundation.
+
+## v3.4.1 - Payment Reliability & UX Cleanup
+
+- Hardened Stripe Checkout, Connect onboarding, off-session PaymentIntent, and refund calls with idempotency keys.
+- Let Stripe Checkout use dashboard-managed dynamic payment methods instead of forcing card-only flows.
+- Stopped scheduled payment and retry jobs from marking ledger charges as paid until Stripe returns a succeeded PaymentIntent.
+- Added PaymentIntent success/failure webhook reconciliation for scheduled payments and retry attempts.
+- Cleaned visible payment-screen encoding artifacts and accidental extra vertical gaps.
+
+## v3.4.0 - Enterprise Financial Ecosystem
+
+- Added landlord enterprise finance workspace for disputes, vendor payouts, security deposits, accounting exports, credit reporting readiness, and portfolio risk insights.
+- Added Prisma models and migration for PaymentDispute, VendorPayout, SecurityDepositAccount, AccountingExport, CreditReportingRecord, and FinancialInsightSnapshot.
+- Added enterprise finance actions for vendor payout approval, deposit reconciliation, accounting export records, credit reporting record generation, and risk insight refresh.
+- Linked the main payments command center to the advanced enterprise finance page.
+- Hardened schema relations and build-safe enum handling for Vercel.
+
+
+- Added full autopay enrollment records with pause, resume, cancellation, amount caps, backup methods, next-run tracking, and tenant controls.
+- Added monthly rent generation from unit rent billing policies with duplicate-period protection and payment timeline events.
+- Added failed-payment recovery with retry attempts, retry queue visibility, automatic retry scheduling, and Stripe off-session processing.
+- Added refund and financial adjustment workflows with audit-friendly reasons, ledger credits/adjustments, and Stripe refund support for Stripe-backed payments.
+- Added owner statement generation with period totals, unit scoping, statement items, and landlord dashboard visibility.
+- Expanded the scheduled payment cron to run rent generation, autopay scheduling, scheduled payments, and retry recovery in one protected job.
+
+# 3.3.0 - Rental Payment Operations Expansion
+
+- Added renter wallet foundations with Stripe setup-mode payment-method collection for bank accounts and cards.
+- Added scheduled payment records, cancellation workflow, and renter payment timeline events.
+- Added landlord financial command center with received payment metrics, scheduled payment totals, Stripe readiness, rent policy editing, and late fee application workflow.
+- Added rent billing policies with due day, grace period, late fee mode, late fee amount, daily fee support, and autopay/partial-pay flags.
+- Added payment event audit trail, webhook idempotency protections, payment method reconciliation, and failed-payment tracking.
+- Added payment-domain helpers for rent policy calculations, landlord operations metrics, tenant payment center data loading, late fee calculation, and safer Stripe event logging.
+
+## v3.2.11 - Contact access intelligence pass
+
+- Added contact permission footprints so each row explains scope, assignment, and source context in one compact line.
+- Added governance flags for portfolio-wide explicit access, operational access, multi-source relationships, review requirements, and low-confidence contacts.
+- Added a priority contact review queue with quick access to the highest-risk relationships.
+- Expanded filters and sorting with portfolio-wide explicit access, operational access, revocable/workflow-only contacts, and permission-footprint sorting.
+- Expanded contact CSV exports with scope type, permission footprint, governance flags, and revocation eligibility.
+- Tightened contact summary metrics for privileged access and revocable relationship auditing.
+
+## v3.2.10 - Contact governance quality pass
+
+- Added contact risk levels, attention reasons, and recommended actions to the landlord contacts dashboard.
+- Added high-risk and low-confidence contact filters plus risk-priority sorting.
+- Expanded contact CSV exports with risk, attention, and recommended-action fields.
+- Improved contact de-duplication by using stable unit scope keys instead of display labels.
+- Fixed a malformed staff-connection sync block to keep the profile connection workflow build-safe.
+
+
+## 3.2.9 - Stripe Connect Payment Foundation
+
+- Added Stripe Connect onboarding fields for landlord accounts.
+- Added payment metadata fields to ledger entries for checkout and webhook reconciliation.
+- Added landlord payment setup page with onboarding and status refresh actions.
+- Added tenant ledger checkout action for eligible charges.
+- Added Stripe webhook route to sync connected-account status and reconcile paid checkout sessions into ledger payments.
+- Added payment environment guidance and Vercel preflight warnings.
+
+# v3.2.8 — Contact governance intelligence and density polish
+
+- Added contact review states for stale explicit links, missing profile names, and multi-scope contacts.
+- Added confidence scoring, source-count tracking, attention filtering, and review-priority sorting for landlord contacts.
+- Expanded contacts CSV export with review status and confidence score columns while sharing the same filter/sort logic as the UI.
+- Made the contacts dashboard denser and more usable in smaller spaces with compact KPIs, tighter filters, and streamlined rows.
+- Reduced duplicated contact labeling/export logic and centralized contact governance helpers in `src/lib/profile-connections.ts`.
+
+# v3.2.7 — Ledger workflow intelligence and density upgrade
+
+- Added reusable compact ledger dashboard components for metrics, pills, quick links, and signed amount rendering.
+- Added shared ledger operations snapshot helpers for overdue balances, due-soon counts, pending entries, voided entries, and collection-rate calculations.
+- Upgraded the admin ledger into a tighter finance command center with compact KPIs, sticky quick actions, an attention filter, denser ledger table rows, and clearer risk labels.
+- Improved landlord ledger visibility with overdue risk, collection rate, compact metrics, and polished ledger row states.
+- Improved applicant ledger UX with compact balance tiles, next-due context, printable statement access, and denser transaction cards.
+- Reduced duplicated ledger UI logic so future ledger, billing, and statement features can share safer formatting and status components.
+
 # v3.2.6 — Messaging performance and read-state safety
 
 - Centralized inbox selected-thread parsing and optimistic read-state projection in `src/lib/messaging.ts` so admin, landlord, and applicant inbox pages share the same behavior.

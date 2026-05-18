@@ -12,10 +12,10 @@ export const metadata: Metadata = {
     default: APP_RELEASE_LABEL,
     template: `%s | ${APP_RELEASE_LABEL}`,
   },
-  description: "A modern rental marketplace and housing workflow application for properties, applications, documents, inspections, leases, and ledgers.",
+  description: "A premium housing operations platform for rentals, applications, documents, inspections, leases, payments, communication, and ledgers.",
   openGraph: {
     title: APP_RELEASE_LABEL,
-    description: "Browse rental units and manage the full housing workflow in one secure platform.",
+    description: "Operate rental housing workflows, marketplace discovery, payments, messaging, and compliance in one secure platform.",
     type: "website",
   },
   robots: {

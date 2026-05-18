@@ -278,6 +278,149 @@ enum TenantPaymentMethod {
   OTHER
 }
 
+
+enum StoredPaymentMethodType {
+  US_BANK_ACCOUNT
+  CARD
+  OTHER
+}
+
+enum PaymentMethodVerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+enum ScheduledPaymentStatus {
+  SCHEDULED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum LateFeeMode {
+  NONE
+  FLAT
+  PERCENT
+  DAILY_FLAT
+}
+
+enum PaymentEventType {
+  METHOD_ADDED
+  METHOD_VERIFIED
+  SCHEDULE_CREATED
+  SCHEDULE_CANCELLED
+  PAYMENT_STARTED
+  PAYMENT_SUCCEEDED
+  PAYMENT_FAILED
+  PAYMENT_REFUNDED
+  PAYMENT_RETRY_SCHEDULED
+  PAYMENT_RETRY_SUCCEEDED
+  PAYMENT_RETRY_FAILED
+  AUTOPAY_ENABLED
+  AUTOPAY_PAUSED
+  AUTOPAY_CANCELLED
+  RENT_GENERATED
+  STATEMENT_GENERATED
+  FINANCIAL_ADJUSTMENT_CREATED
+  REFUND_REQUESTED
+  LATE_FEE_APPLIED
+  RENT_ADJUSTED
+}
+
+enum AutoPayEnrollmentStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum PaymentRetryAttemptStatus {
+  SCHEDULED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum FinancialAdjustmentType {
+  CREDIT
+  WAIVER
+  REFUND
+  RENT_ADJUSTMENT
+  MANUAL_CHARGE
+}
+
+enum OwnerStatementStatus {
+  DRAFT
+  FINALIZED
+  EXPORTED
+}
+
+
+enum PaymentDisputeStatus {
+  NEEDS_RESPONSE
+  UNDER_REVIEW
+  WON
+  LOST
+  CLOSED
+}
+
+enum VendorPayoutStatus {
+  DRAFT
+  APPROVAL_REQUIRED
+  APPROVED
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum SecurityDepositStatus {
+  DUE
+  HELD
+  PARTIALLY_RELEASED
+  RELEASED
+  DISPUTED
+}
+
+enum AccountingExportType {
+  QUICKBOOKS_CSV
+  XERO_CSV
+  OWNER_STATEMENT_CSV
+  PORTFOLIO_SUMMARY_CSV
+}
+
+enum AccountingExportStatus {
+  GENERATED
+  DOWNLOADED
+  ARCHIVED
+}
+
+enum CreditReportingStatus {
+  NOT_ELIGIBLE
+  READY
+  EXPORTED
+  SUPPRESSED
+}
+
+enum FinancialRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FinancialPermission {
+  VIEW_FINANCIALS
+  COLLECT_PAYMENTS
+  REFUND_PAYMENTS
+  WAIVE_FEES
+  EDIT_RENT
+  EXPORT_STATEMENTS
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -290,6 +433,12 @@ model User {
   lastLoginAt DateTime?
   failedLoginCount Int @default(0)
   lockedUntil DateTime?
+  stripeConnectAccountId String? @unique
+  stripeChargesEnabled Boolean @default(false)
+  stripePayoutsEnabled Boolean @default(false)
+  stripeOnboardingComplete Boolean @default(false)
+  stripeConnectLastSyncedAt DateTime?
+  stripeCustomerId String? @unique
   passwordResetTokenHash String?
   passwordResetExpiresAt DateTime?
   createdAt DateTime @default(now())
@@ -319,6 +468,23 @@ model User {
   utilityAccounts UtilityAccount[]
   payrollReminders PayrollReminder[]
   tenantPayments TenantPayment[]
+  renterPaymentMethods RenterPaymentMethod[]
+  scheduledPayments ScheduledPayment[]
+  paymentEvents PaymentEvent[]
+  autoPayEnrollments AutoPayEnrollment[]
+  paymentRetryAttempts PaymentRetryAttempt[]
+  financialAdjustments FinancialAdjustment[] @relation("FinancialAdjustmentActor")
+  ownerStatements OwnerStatement[] @relation("OwnerStatements")
+  generatedOwnerStatements OwnerStatement[] @relation("GeneratedOwnerStatements")
+  paymentDisputes PaymentDispute[] @relation("DisputeOwner")
+  vendorPayouts VendorPayout[] @relation("VendorPayoutOwner")
+  vendorPayoutVendorRecords VendorPayout[] @relation("VendorPayoutVendor")
+  approvedVendorPayouts VendorPayout[] @relation("VendorPayoutApprover")
+  securityDepositAccounts SecurityDepositAccount[] @relation("SecurityDepositTenant")
+  accountingExports AccountingExport[] @relation("AccountingExportOwner")
+  generatedAccountingExports AccountingExport[] @relation("AccountingExportGenerator")
+  creditReportingRecords CreditReportingRecord[] @relation("CreditReportingTenant")
+  financialInsightSnapshots FinancialInsightSnapshot[] @relation("FinancialInsightOwner")
   accountAccessRequests AccountAccessRequest[] @relation("AccountAccessRequests")
   reviewedAccountAccessRequests AccountAccessRequest[] @relation("ReviewedAccountAccessRequests")
   sessions UserSession[]
@@ -505,6 +671,19 @@ model Unit {
   favoriteRentals FavoriteRental[]
   utilityAccounts UtilityAccount[]
   tenantPayments TenantPayment[]
+  rentBillingPolicy RentBillingPolicy?
+  scheduledPayments ScheduledPayment[]
+  paymentEvents PaymentEvent[]
+  autoPayEnrollments AutoPayEnrollment[]
+  paymentRetryAttempts PaymentRetryAttempt[]
+  financialAdjustments FinancialAdjustment[]
+  ownerStatements OwnerStatement[]
+  paymentDisputes PaymentDispute[]
+  vendorPayouts VendorPayout[]
+  securityDepositAccounts SecurityDepositAccount[]
+  accountingExports AccountingExport[]
+  creditReportingRecords CreditReportingRecord[]
+  financialInsightSnapshots FinancialInsightSnapshot[]
   inspections  Inspection[]
   maintenanceRequests MaintenanceRequest[]
   documents    Document[]
@@ -600,6 +779,7 @@ model Application {
   inspections Inspection[]
   maintenanceRequests MaintenanceRequest[]
   messageThreads MessageThread[]
+  vendorPayouts VendorPayout[]
   ledgerEntries LedgerEntry[]
   recurringChargeSchedules RecurringChargeSchedule[]
   paymentPlans PaymentPlan[]
@@ -892,6 +1072,7 @@ model MaintenanceRequest {
   requester   User         @relation("RequestedMaintenanceRequests", fields: [requesterId], references: [id], onDelete: Cascade)
   assignedTo  User?        @relation("AssignedMaintenanceRequests", fields: [assignedToId], references: [id], onDelete: SetNull)
   messageThreads MessageThread[]
+  vendorPayouts VendorPayout[]
 
   @@index([unitId])
   @@index([applicationId])
@@ -1193,6 +1374,367 @@ model PaymentPlanInstallment {
   @@index([linkedLedgerEntryId])
 }
 
+
+model RenterPaymentMethod {
+  id                    String                          @id @default(cuid())
+  userId                String
+  stripeCustomerId      String?
+  stripePaymentMethodId String                          @unique
+  type                  StoredPaymentMethodType         @default(US_BANK_ACCOUNT)
+  brand                 String?
+  bankName              String?
+  last4                 String?
+  nickname              String?
+  isDefault             Boolean                         @default(false)
+  verificationStatus    PaymentMethodVerificationStatus @default(PENDING)
+  createdAt             DateTime                        @default(now())
+  updatedAt             DateTime                        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isDefault])
+  @@index([verificationStatus])
+}
+
+model RentBillingPolicy {
+  id              String      @id @default(cuid())
+  unitId          String      @unique
+  monthlyRent     Int
+  dueDayOfMonth   Int         @default(1)
+  graceDays       Int         @default(5)
+  lateFeeMode     LateFeeMode @default(FLAT)
+  lateFeeAmount   Int         @default(0)
+  dailyLateFee    Int         @default(0)
+  maxLateFee      Int?
+  allowPartialPay Boolean     @default(true)
+  autopayAllowed  Boolean     @default(true)
+  startsOn        DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@index([dueDayOfMonth])
+  @@index([autopayAllowed])
+}
+
+model ScheduledPayment {
+  id                    String                 @id @default(cuid())
+  userId                String
+  unitId                String
+  ledgerEntryId         String?
+  stripePaymentMethodId String?
+  amount                Int
+  status                ScheduledPaymentStatus @default(SCHEDULED)
+  scheduledFor          DateTime
+  processedAt           DateTime?
+  failureReason         String?
+  isAutopay             Boolean                @default(false)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit        Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  ledgerEntry LedgerEntry? @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
+  retryAttempts PaymentRetryAttempt[]
+
+  @@index([userId, status])
+  @@index([unitId, status])
+  @@index([ledgerEntryId])
+  @@index([scheduledFor, status])
+}
+
+model PaymentEvent {
+  id            String           @id @default(cuid())
+  type          PaymentEventType
+  userId        String?
+  unitId        String?
+  ledgerEntryId String?
+  stripeEventId String?          @unique
+  amount        Int?
+  message       String
+  metadata      Json?
+  createdAt     DateTime         @default(now())
+
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  unit        Unit?        @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  ledgerEntry LedgerEntry? @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
+  @@index([userId, createdAt])
+  @@index([unitId, createdAt])
+  @@index([ledgerEntryId])
+  @@index([type])
+}
+
+model AutoPayEnrollment {
+  id                    String                  @id @default(cuid())
+  userId                String
+  unitId                String
+  ledgerEntryId         String?
+  stripePaymentMethodId String
+  backupPaymentMethodId String?
+  status                AutoPayEnrollmentStatus @default(ACTIVE)
+  amountLimit           Int?
+  dayOfMonth            Int                     @default(1)
+  nextRunDate           DateTime
+  lastRunDate           DateTime?
+  pausedAt              DateTime?
+  cancelledAt           DateTime?
+  failureCount          Int                     @default(0)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit        Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  ledgerEntry LedgerEntry? @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, unitId])
+  @@index([status, nextRunDate])
+  @@index([unitId, status])
+}
+
+model PaymentRetryAttempt {
+  id                    String                    @id @default(cuid())
+  userId                String
+  unitId                String
+  ledgerEntryId         String?
+  scheduledPaymentId    String?
+  stripePaymentMethodId String?
+  backupPaymentMethodId String?
+  amount                Int
+  attemptNumber         Int                       @default(1)
+  status                PaymentRetryAttemptStatus @default(SCHEDULED)
+  nextAttemptAt         DateTime
+  processedAt           DateTime?
+  failureReason         String?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit             Unit              @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  ledgerEntry      LedgerEntry?      @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
+  scheduledPayment ScheduledPayment? @relation(fields: [scheduledPaymentId], references: [id], onDelete: SetNull)
+
+  @@unique([ledgerEntryId, attemptNumber])
+  @@index([status, nextAttemptAt])
+  @@index([userId, status])
+  @@index([unitId, status])
+}
+
+model FinancialAdjustment {
+  id                    String                  @id @default(cuid())
+  type                  FinancialAdjustmentType
+  unitId                String
+  ledgerEntryId         String?
+  actorUserId           String?
+  tenantUserId          String?
+  amount                Int
+  reason                String
+  stripeRefundId        String?                 @unique
+  stripePaymentIntentId String?
+  createdAt             DateTime                @default(now())
+
+  unit        Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  ledgerEntry LedgerEntry? @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
+  actor       User?        @relation("FinancialAdjustmentActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([unitId, createdAt])
+  @@index([ledgerEntryId])
+  @@index([actorUserId])
+  @@index([type])
+}
+
+model OwnerStatement {
+  id                 String               @id @default(cuid())
+  ownerUserId        String
+  unitId             String?
+  periodStart        DateTime
+  periodEnd          DateTime
+  status             OwnerStatementStatus @default(DRAFT)
+  grossCharges       Int                  @default(0)
+  collectedPayments  Int                  @default(0)
+  creditsAndRefunds  Int                  @default(0)
+  outstandingBalance Int                  @default(0)
+  generatedById      String?
+  finalizedAt        DateTime?
+  exportedAt         DateTime?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  owner       User                 @relation("OwnerStatements", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  unit        Unit?                @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  generatedBy User?                @relation("GeneratedOwnerStatements", fields: [generatedById], references: [id], onDelete: SetNull)
+  items       OwnerStatementItem[]
+
+  @@unique([ownerUserId, unitId, periodStart, periodEnd])
+  @@index([ownerUserId, periodStart])
+  @@index([status])
+}
+
+model OwnerStatementItem {
+  id               String   @id @default(cuid())
+  ownerStatementId String
+  ledgerEntryId    String
+  amount           Int
+  label            String
+  createdAt        DateTime @default(now())
+
+  ownerStatement OwnerStatement @relation(fields: [ownerStatementId], references: [id], onDelete: Cascade)
+  ledgerEntry     LedgerEntry    @relation(fields: [ledgerEntryId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerStatementId, ledgerEntryId])
+  @@index([ledgerEntryId])
+}
+
+
+model PaymentDispute {
+  id                    String               @id @default(cuid())
+  ownerUserId           String
+  unitId                String?
+  ledgerEntryId         String?
+  stripeDisputeId       String?              @unique
+  stripeChargeId        String?
+  amount                Int
+  reason                String?
+  status                PaymentDisputeStatus @default(NEEDS_RESPONSE)
+  evidenceDueBy         DateTime?
+  evidenceSubmittedAt   DateTime?
+  resolvedAt            DateTime?
+  notes                 String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  owner       User         @relation("DisputeOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  unit        Unit?        @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  ledgerEntry LedgerEntry? @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
+
+  @@index([ownerUserId, status])
+  @@index([unitId])
+  @@index([ledgerEntryId])
+  @@index([evidenceDueBy])
+}
+
+model VendorPayout {
+  id                    String             @id @default(cuid())
+  ownerUserId           String
+  vendorUserId          String?
+  unitId                String?
+  maintenanceRequestId  String?
+  ledgerEntryId         String?
+  stripeTransferId      String?            @unique
+  amount                Int
+  description           String
+  status                VendorPayoutStatus @default(DRAFT)
+  approvedById          String?
+  approvedAt            DateTime?
+  paidAt                DateTime?
+  failureReason         String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  owner              User                @relation("VendorPayoutOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  vendor             User?               @relation("VendorPayoutVendor", fields: [vendorUserId], references: [id], onDelete: SetNull)
+  approvedBy         User?               @relation("VendorPayoutApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  unit               Unit?               @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  maintenanceRequest MaintenanceRequest? @relation(fields: [maintenanceRequestId], references: [id], onDelete: SetNull)
+  ledgerEntry        LedgerEntry?        @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
+
+  @@index([ownerUserId, status])
+  @@index([vendorUserId, status])
+  @@index([unitId])
+  @@index([maintenanceRequestId])
+}
+
+model SecurityDepositAccount {
+  id              String                @id @default(cuid())
+  tenantUserId    String?
+  unitId          String
+  ledgerEntryId   String?
+  amountRequired  Int
+  amountHeld      Int                   @default(0)
+  amountReleased  Int                   @default(0)
+  deductions      Int                   @default(0)
+  status          SecurityDepositStatus @default(DUE)
+  dueDate         DateTime?
+  heldAt          DateTime?
+  releasedAt      DateTime?
+  reconciliationNotes String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  tenantUser  User?        @relation("SecurityDepositTenant", fields: [tenantUserId], references: [id], onDelete: SetNull)
+  unit        Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  ledgerEntry LedgerEntry? @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
+
+  @@index([tenantUserId, status])
+  @@index([unitId, status])
+}
+
+model AccountingExport {
+  id            String                 @id @default(cuid())
+  ownerUserId   String
+  generatedById String?
+  unitId        String?
+  type          AccountingExportType
+  status        AccountingExportStatus @default(GENERATED)
+  periodStart   DateTime
+  periodEnd     DateTime
+  fileName      String
+  rowCount      Int                    @default(0)
+  totalAmount   Int                    @default(0)
+  createdAt     DateTime               @default(now())
+  downloadedAt  DateTime?
+
+  owner       User  @relation("AccountingExportOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  generatedBy User? @relation("AccountingExportGenerator", fields: [generatedById], references: [id], onDelete: SetNull)
+  unit        Unit? @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  @@index([ownerUserId, createdAt])
+  @@index([type, status])
+}
+
+model CreditReportingRecord {
+  id            String                @id @default(cuid())
+  tenantUserId  String
+  unitId        String
+  ledgerEntryId String?
+  period        String
+  amountDue     Int
+  amountPaid    Int                   @default(0)
+  paidOnTime    Boolean               @default(false)
+  status        CreditReportingStatus @default(READY)
+  exportedAt    DateTime?
+  suppressedAt  DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  tenantUser  User         @relation("CreditReportingTenant", fields: [tenantUserId], references: [id], onDelete: Cascade)
+  unit        Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  ledgerEntry LedgerEntry? @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantUserId, unitId, period])
+  @@index([status, period])
+}
+
+model FinancialInsightSnapshot {
+  id                String             @id @default(cuid())
+  unitId            String?
+  ownerUserId       String
+  riskLevel         FinancialRiskLevel @default(LOW)
+  score             Int                @default(0)
+  delinquentBalance Int                @default(0)
+  projectedCashflow Int                @default(0)
+  recommendation    String
+  reasons           Json?
+  createdAt         DateTime           @default(now())
+
+  owner User @relation("FinancialInsightOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  unit Unit? @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  @@index([ownerUserId, createdAt])
+  @@index([unitId])
+  @@index([riskLevel])
+}
+
 model LedgerEntry {
   id              String            @id @default(cuid())
   applicationId   String?
@@ -1209,6 +1751,20 @@ model LedgerEntry {
   postedAt        DateTime          @default(now())
   voidedAt        DateTime?
   voidReason      String?
+  stripeCheckoutSessionId String? @unique
+  stripePaymentIntentId String? @unique
+  stripePaymentStatus String?
+  stripePaidAt DateTime?
+  scheduledPayments ScheduledPayment[]
+  paymentEvents PaymentEvent[]
+  autoPayEnrollments AutoPayEnrollment[]
+  paymentRetryAttempts PaymentRetryAttempt[]
+  financialAdjustments FinancialAdjustment[]
+  ownerStatementItems OwnerStatementItem[]
+  paymentDisputes PaymentDispute[]
+  vendorPayouts VendorPayout[]
+  securityDepositAccounts SecurityDepositAccount[]
+  creditReportingRecords CreditReportingRecord[]
   createdById     String?
   generatedFromScheduleId String?
   generatedForPeriod String?
@@ -1229,6 +1785,7 @@ model LedgerEntry {
   @@index([status])
   @@index([dueDate])
   @@index([postedAt])
+  @@index([stripePaymentStatus])
   @@index([generatedFromScheduleId])
   @@unique([generatedFromScheduleId, generatedForPeriod])
 }

@@ -39,6 +39,9 @@ export function getEnvironmentWarnings() {
   if (provider === "resend" && !process.env.RESEND_API_KEY) warnings.push("RESEND_API_KEY is required when EMAIL_PROVIDER=resend.");
   if (provider === "webhook" && !process.env.EMAIL_WEBHOOK_URL) warnings.push("EMAIL_WEBHOOK_URL is required when EMAIL_PROVIDER=webhook.");
   if (provider !== "disabled" && !process.env.EMAIL_FROM) warnings.push("EMAIL_FROM is not set; a development sender address will be used.");
+
+  if (process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_WEBHOOK_SECRET) warnings.push("STRIPE_WEBHOOK_SECRET should be set when Stripe payments are enabled.");
+  if (process.env.STRIPE_SECRET_KEY && !process.env.APP_URL) warnings.push("APP_URL is required for Stripe Connect return URLs and checkout redirects.");
   const emailMaxAttempts = Number.parseInt(process.env.EMAIL_MAX_ATTEMPTS || "5", 10);
   if (!Number.isFinite(emailMaxAttempts) || emailMaxAttempts < 1) warnings.push("EMAIL_MAX_ATTEMPTS must be a positive number.");
   const emailBatchSize = Number.parseInt(process.env.EMAIL_QUEUE_BATCH_SIZE || "50", 10);

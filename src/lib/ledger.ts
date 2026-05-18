@@ -64,6 +64,33 @@ export function agingBucketKey(dueDate: Date | null | undefined, now = new Date(
   return "90_plus";
 }
 
+export function isLedgerChargeLike(type: LedgerEntryType) {
+  return type === "CHARGE" || type === "ADJUSTMENT";
+}
+
+export function isLedgerPaymentLike(type: LedgerEntryType) {
+  return type === "PAYMENT" || type === "CREDIT";
+}
+
+export function daysUntilDue(dueDate: Date | null | undefined, now = new Date()) {
+  if (!dueDate) return null;
+  const due = monthStart(dueDate).getTime();
+  const today = monthStart(now).getTime();
+  return Math.ceil((due - today) / 86400000);
+}
+
+export function ledgerAttentionLabel(entry: { dueDate?: Date | null; status: LedgerEntryStatus; type: LedgerEntryType }) {
+  if (entry.status === "VOIDED") return "Voided";
+  if (entry.status === "PENDING") return "Pending";
+  if (!isLedgerChargeLike(entry.type)) return "Recorded";
+  const days = daysUntilDue(entry.dueDate);
+  if (days === null) return "No due date";
+  if (days < 0) return `${Math.abs(days)}d overdue`;
+  if (days === 0) return "Due today";
+  if (days <= 14) return `Due in ${days}d`;
+  return "Scheduled";
+}
+
 export function paymentPlanStatusLabel(value: string) {
   return value.toLowerCase().replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
 }
