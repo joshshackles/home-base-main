@@ -14,7 +14,7 @@ export default async function CalendarPage({ searchParams }: { searchParams?: Re
   const user = await requireUser("/applicant/calendar");
   const [center, users, properties, units, tasks] = await Promise.all([
     getCalendarCenter(user, { q: getParam(searchParams, "q"), status: getParam(searchParams, "status"), type: getParam(searchParams, "type"), range: (getParam(searchParams, "range") || "upcoming") as "upcoming" | "today" | "week" | "month" | "all", owner: getParam(searchParams, "owner") === "mine" ? "mine" : "all" }),
-    Promise.resolve([]),
+    Promise.resolve([] as Array<{ id: string; name: string | null; email: string; role: string }>),
     prisma.property.findMany({ where: { units: { some: { tenantUserId: user.userId } }, isArchived: false }, orderBy: { name: "asc" }, select: { id: true, name: true, city: true, state: true }, take: 250 }),
     prisma.unit.findMany({ where: { tenantUserId: user.userId }, include: { property: { select: { name: true } } }, orderBy: [{ property: { name: "asc" } }, { unitNumber: "asc" }], take: 300 }),
     prisma.taskItem.findMany({ where: { OR: [{ createdById: user.userId }, { assignedToId: user.userId }, { unit: { tenantUserId: user.userId } }] }, orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }], select: { id: true, title: true, type: true, status: true }, take: 200 })

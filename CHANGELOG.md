@@ -1,3 +1,9 @@
+
+## 4.12.6 - Applicant calendar type fix
+
+- Fixed the applicant calendar build failure caused by an untyped empty users list being inferred as `never[]`.
+- Kept the applicant calendar read-only for user selection while preserving property, unit, and task context.
+
 ## v4.12.5
 
 - Fixed admin notifications signature queue to use `SignatureRequest.signerRole` instead of removed `role` property.
