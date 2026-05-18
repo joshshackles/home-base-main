@@ -1,3 +1,7 @@
+## v4.12.5
+
+- Fixed admin notifications signature queue to use `SignatureRequest.signerRole` instead of removed `role` property.
+
 ## v4.12.1 - Prisma relation validation fix
 
 - Added missing `MaintenanceRequest.vendorWorkLogs` and `MaintenanceRequest.vendorInvoices` opposite relation fields.

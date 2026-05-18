@@ -128,7 +128,7 @@ export default async function AdminNotificationsPage() {
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           {pendingSignatures.slice(0, 8).map((request) => (
             <div key={request.id} className="rounded-2xl border border-amber-200 bg-white p-3">
-              <p className="font-black text-slate-950">{request.signerName} · {notificationLabel(request.role)}</p>
+              <p className="font-black text-slate-950">{request.signerName} · {notificationLabel(request.signerRole)}</p>
               <p className="text-xs text-slate-500">{request.leasePacket.application.unit.property.name} #{request.leasePacket.application.unit.unitNumber} · expires {request.expiresAt ? request.expiresAt.toLocaleDateString() : "not set"}</p>
               <form action={queueSignatureReminder} className="mt-2"><input type="hidden" name="requestId" value={request.id} /><input type="hidden" name="type" value="REMINDER" /><button className="rounded-xl bg-brand-600 px-3 py-2 text-xs font-black text-white">Queue reminder</button></form>
             </div>
