@@ -1111,7 +1111,6 @@ model Unit {
   tasks TaskItem[]
   scheduleEvents ScheduleEvent[]
   notices FormalNotice[]
-  occupancies Occupancy[]
 
   applicantScreenings ApplicantScreening[]
   maintenanceAssets MaintenanceAsset[]
@@ -1215,7 +1214,6 @@ model Application {
   tenantPayments TenantPayment[]
   tasks TaskItem[]
   notices FormalNotice[]
-  occupancies Occupancy[]
 
   applicantScreenings ApplicantScreening[]
   incomeVerifications IncomeVerification[]
