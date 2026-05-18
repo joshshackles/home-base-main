@@ -1,4 +1,71 @@
+
+## v4.11.0 - Insurance / Compliance Module
+
+- Added functional admin and landlord compliance pages for update 11.
+- Added insurance policy create workflow for renters, landlord, liability, flood, umbrella, and other policy types.
+- Added certification expiration tracking and recurring inspection compliance rule creation.
+- Added landlord portfolio access checks for compliance records.
+- Added update 11 verification script and module documentation.
+
+## v4.9.0 — Operations Modules Updates 9-12
+
+- Added Applicant Screening module for background checks, income verification, rental history, references, and screening packages.
+- Added Maintenance Inventory module for appliances, HVAC, keys, locks, warranties, serial numbers, and service history.
+- Added Insurance / Compliance module for renters insurance, landlord insurance docs, inspection compliance, and certification expirations.
+- Added Integrations Hub for Stripe, Plaid, Twilio, SendGrid/Postmark, S3/R2, QuickBooks, Google Calendar, maps, and screening providers.
+- Added Prisma schema, migration, admin/landlord navigation, dashboard query helpers, shared operations UI, docs, and verification coverage.
+
+## v4.7.0 — Vendor Portal Module
+
+- Added dedicated vendor portal routes for assigned jobs, work updates, invoices, and payout visibility.
+- Added admin and landlord vendor operations pages for enabling vendors, assigning repair work, reviewing invoices, and preparing payouts.
+- Added VendorProfile, VendorWorkLog, and VendorInvoice schema models with migration.
+- Added vendor access wiring through approved Vendor account access and Preferred Vendor profile connections.
+- Added vendor directory metrics, invoice review workflow, work-log status updates, and backup/export coverage.
+- Added admin and landlord navigation entries for Vendors.
+
+
+## v4.6.0 - Notices Module
+
+- Added the Formal Notices module for rent reminders, late notices, entry notices, lease renewal/non-renewal notices, maintenance notices, policy notices, move-out notices, and general formal communications.
+- Added Prisma notice enums, FormalNotice model, relations to users/properties/rentals/applications/lease packets, and migration coverage.
+- Added admin, landlord, and applicant notice centers with metrics, filters, creation workflow, send/draft/acknowledge/cancel/expire statuses, and dense notice rows.
+- Added server actions for notice creation/status updates, recipient inference from rentals/applications/leases, notification delivery queue integration, audit logging, and dashboard revalidation.
+- Added notice backup/export coverage and navigation links across admin, landlord, and applicant dashboards.
+
+## v4.5.0 - Real Reports & Analytics Suite
+
+- Added real admin and landlord Reports routes with financial, occupancy, leasing, maintenance, and communications sections.
+- Added `src/lib/reports` service layer with Prisma-backed KPI aggregation, scoped landlord/admin filters, date ranges, property/rental filters, and DTO output.
+- Added CSV and JSON export routes for report sections.
+- Added dense report dashboard UI with metrics, trend bars, status breakdowns, and compact report tables.
+- Wired Reports into admin and landlord financial navigation from the v4.4.0 Calendar/Scheduling baseline.
+
+
+## v4.4.0 - Calendar / Scheduling Module
+
+- Added a unified Calendar / Scheduling module for admin, landlord, and applicant dashboards.
+- Added schedule event models, participants, lifecycle statuses, visibility controls, and task-to-calendar linking.
+- Added schedule filters, dense event rows, metrics, status updates, assignment controls, and renter-visible calendar views.
+- Added migration coverage and dashboard navigation links for tours, inspections, maintenance windows, lease signings, move-ins, rent deadlines, and renewals.
+
+# 4.3.0 - Tasks & Work Orders Module
+
+- Added universal `TaskItem` schema for tasks, work orders, leasing follow-up, document chases, move-ins, move-outs, collections, vendor work, and maintenance coordination.
+- Added admin, landlord, and applicant task centers with compact filters, metrics, assignment controls, status updates, and operational context links.
+- Added task/work-order navigation across dashboards and backup/export coverage.
+- Added migration `20260518130000_tasks_work_orders`.
+
 ## v4.0.1 - Marketplace build fix
+
+## v4.1.0 - Notifications Center Module
+
+- Added a generalized Notifications Center module with in-app, email, and SMS-ready channels.
+- Added notification templates, per-user preferences, delivery logs, queue processing, and broadcast alerts.
+- Added landlord and applicant notification inboxes with read/dismiss actions and preference controls.
+- Expanded admin notifications into a unified center while preserving lease signature notification workflows.
+- Added Prisma schema, migration, backup/export coverage, and cron processing for generic notification deliveries.
+
 
 - Fixed the marketplace route build failure by restoring safe query-param helper functions for string cleaning and numeric parsing.
 - Preserved the v4.0.0 rental profile ecosystem work while making the public marketplace page compile cleanly on Vercel.

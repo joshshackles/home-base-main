@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { ClipboardCheck, ClipboardList, DollarSign, FileSignature, Heart, Home, LayoutDashboard, MessageSquare, Wrench, UserRound } from "lucide-react";
+import { Bell, Megaphone, ClipboardCheck, ClipboardList, DollarSign, FileSignature, FileText, Heart, Home, LayoutDashboard, MessageSquare, Wrench, UserRound, CheckSquare, CalendarDays } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { DashboardShell, type ShellNavGroup } from "@/components/layout/DashboardShell";
 
@@ -13,18 +13,23 @@ const navGroups: ShellNavGroup[] = [
   ] },
   { label: "Leasing", items: [
     { href: "/applicant/applications", label: "Applications", icon: ClipboardList },
-    { href: "/applicant/leases", label: "Leases", icon: FileSignature }
+    { href: "/applicant/leases", label: "Leases", icon: FileSignature },
+    { href: "/applicant/documents", label: "Documents", icon: FileText }
   ] },
   { label: "Maintenance", items: [
     { href: "/applicant/inspections", label: "Inspections", icon: ClipboardCheck },
-    { href: "/applicant/maintenance", label: "Maintenance", icon: Wrench }
+    { href: "/applicant/maintenance", label: "Maintenance", icon: Wrench },
+    { href: "/applicant/tasks", label: "Tasks", icon: CheckSquare },
+    { href: "/applicant/calendar", label: "Calendar", icon: CalendarDays }
   ] },
   { label: "Financial", items: [
     { href: "/applicant/ledger", label: "Ledger", icon: DollarSign },
     { href: "/applicant/payments", label: "Payments", icon: DollarSign }
   ] },
   { label: "Communication", items: [
-    { href: "/applicant/inbox", label: "Inbox", icon: MessageSquare }
+    { href: "/applicant/inbox", label: "Inbox", icon: MessageSquare },
+    { href: "/applicant/notifications", label: "Notifications", icon: Bell },
+    { href: "/applicant/notices", label: "Notices", icon: Megaphone }
   ] }
 ];
 

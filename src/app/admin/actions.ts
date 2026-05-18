@@ -61,6 +61,9 @@ import { defaultSignatureExpirationDate, queueSignatureNotification } from "@/li
 import { sendEmail, sendQueuedSignatureNotificationEmails, sendSignatureNotificationEmail } from "@/lib/email";
 import { addMonthsSafe, advanceMonthlyRunDate, isScheduleDue, nextMonthlyRunDate, plannedInstallmentCount, recurringChargePeriodKey } from "@/lib/ledger";
 import { importDataSnapshot, type DataSnapshot } from "@/lib/data-portability";
+import { createAssetServiceRecordFromForm, createAssetWarrantyFromForm, createKeyLockRecordFromForm, createMaintenanceAssetFromForm, maintenanceInventoryPaths } from "@/lib/maintenance-inventory";
+import { createCertificationRecordFromForm, createComplianceInspectionRequirementFromForm, createInsurancePolicyFromForm, insuranceCompliancePaths } from "@/lib/insurance-compliance";
+import { createIntegrationConnectionFromForm, createIntegrationEventFromForm, integrationsHubPaths, updateIntegrationConnectionStatusFromForm } from "@/lib/integrations-hub";
 import { captureAnalyticsSnapshot, captureSystemHealthSnapshot, ensureDefaultAutomationRules, markBackupRestoreStarted, saveBrandingSettings, syncOperationalAlertsFromReadiness } from "@/lib/admin-ops";
 
 const LOCKED_LEASE_PACKET_STATUSES: LeasePacketStatus[] = [
@@ -129,6 +132,88 @@ export async function saveAdminBrandingAction(formData: FormData) {
   redirect("/admin/branding?saved=1");
 }
 
+
+function revalidateIntegrationsHubModule(base: "admin" | "landlord" = "admin") {
+  for (const path of integrationsHubPaths(base)) revalidatePath(path);
+}
+
+export async function createAdminIntegrationConnectionAction(formData: FormData) {
+  await requireAdminAction();
+  await createIntegrationConnectionFromForm(formData, {});
+  revalidateIntegrationsHubModule("admin");
+  redirect("/admin/integrations?connection=created");
+}
+
+export async function updateAdminIntegrationConnectionStatusAction(formData: FormData) {
+  await requireAdminAction();
+  await updateIntegrationConnectionStatusFromForm(formData, {});
+  revalidateIntegrationsHubModule("admin");
+  redirect("/admin/integrations?status=updated");
+}
+
+export async function createAdminIntegrationEventAction(formData: FormData) {
+  const actor = await requireAdminAction();
+  await createIntegrationEventFromForm(formData, { actorId: actor.userId });
+  revalidateIntegrationsHubModule("admin");
+  redirect("/admin/integrations?event=logged");
+}
+
+function revalidateInsuranceComplianceModule(base: "admin" | "landlord" = "admin") {
+  for (const path of insuranceCompliancePaths(base)) revalidatePath(path);
+}
+
+export async function createAdminInsurancePolicyAction(formData: FormData) {
+  await requireAdminAction();
+  await createInsurancePolicyFromForm(formData, {});
+  revalidateInsuranceComplianceModule("admin");
+  redirect("/admin/compliance?policy=created");
+}
+
+export async function createAdminCertificationRecordAction(formData: FormData) {
+  await requireAdminAction();
+  await createCertificationRecordFromForm(formData, {});
+  revalidateInsuranceComplianceModule("admin");
+  redirect("/admin/compliance?certification=created");
+}
+
+export async function createAdminComplianceInspectionRequirementAction(formData: FormData) {
+  await requireAdminAction();
+  await createComplianceInspectionRequirementFromForm(formData, {});
+  revalidateInsuranceComplianceModule("admin");
+  redirect("/admin/compliance?requirement=created");
+}
+
+function revalidateMaintenanceInventoryModule(base: "admin" | "landlord" = "admin") {
+  for (const path of maintenanceInventoryPaths(base)) revalidatePath(path);
+}
+
+export async function createAdminMaintenanceAssetAction(formData: FormData) {
+  const actor = await requireAdminAction();
+  await createMaintenanceAssetFromForm(formData, { actorId: actor.userId });
+  revalidateMaintenanceInventoryModule("admin");
+  redirect("/admin/inventory?asset=created");
+}
+
+export async function createAdminAssetServiceRecordAction(formData: FormData) {
+  const actor = await requireAdminAction();
+  await createAssetServiceRecordFromForm(formData, { actorId: actor.userId });
+  revalidateMaintenanceInventoryModule("admin");
+  redirect("/admin/inventory?service=created");
+}
+
+export async function createAdminAssetWarrantyAction(formData: FormData) {
+  await requireAdminAction();
+  await createAssetWarrantyFromForm(formData, {});
+  revalidateMaintenanceInventoryModule("admin");
+  redirect("/admin/inventory?warranty=created");
+}
+
+export async function createAdminKeyLockRecordAction(formData: FormData) {
+  await requireAdminAction();
+  await createKeyLockRecordFromForm(formData, {});
+  revalidateMaintenanceInventoryModule("admin");
+  redirect("/admin/inventory?key=created");
+}
 
 export async function syncOperationalReadinessAction() {
   const actor = await requireAdminAction();

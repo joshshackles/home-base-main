@@ -1,6 +1,6 @@
 "use server";
 
-import { AccountAccessType, AuditAction, ApplicationStatus, ConnectionRole, ConnectionStatus, LeasePacketStatus, MaintenancePriority, MessageThreadStatus, MessageThreadType, RentalLifecycleStatus, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
+import { AccountAccessType, AuditAction, ApplicationStatus, ConnectionRole, ConnectionStatus, DocumentCategory, DocumentStatus, DocumentVisibility, LeasePacketStatus, MaintenancePriority, MessageThreadStatus, MessageThreadType, RentalLifecycleStatus, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -14,10 +14,107 @@ import { removeStoredDocument, saveUploadedDocument } from "@/lib/storage";
 import { sendEmail } from "@/lib/email";
 import { appUrl, createSecureToken, hashToken } from "@/lib/tokens";
 import { syncUnitStaffConnections, upsertProfileConnection } from "@/lib/profile-connections";
+import { createAssetServiceRecordFromForm, createAssetWarrantyFromForm, createKeyLockRecordFromForm, createMaintenanceAssetFromForm, maintenanceInventoryPaths } from "@/lib/maintenance-inventory";
+import { createCertificationRecordFromForm, createComplianceInspectionRequirementFromForm, createInsurancePolicyFromForm, insuranceCompliancePaths } from "@/lib/insurance-compliance";
+import { createIntegrationConnectionFromForm, createIntegrationEventFromForm, integrationsHubPaths, updateIntegrationConnectionStatusFromForm } from "@/lib/integrations-hub";
 
 async function requireLandlordAction() {
   return await requireRole(["LANDLORD"], "/landlord");
 }
+
+
+function revalidateLandlordIntegrationsHubModule() {
+  for (const path of integrationsHubPaths("landlord")) revalidatePath(path);
+}
+
+export async function createLandlordIntegrationConnectionAction(formData: FormData) {
+  const actor = await requireLandlordAction();
+  await createIntegrationConnectionFromForm(formData, { ownerId: actor.userId });
+  revalidateLandlordIntegrationsHubModule();
+  redirect("/landlord/integrations?connection=created");
+}
+
+export async function updateLandlordIntegrationConnectionStatusAction(formData: FormData) {
+  const actor = await requireLandlordAction();
+  await updateIntegrationConnectionStatusFromForm(formData, { ownerId: actor.userId });
+  revalidateLandlordIntegrationsHubModule();
+  redirect("/landlord/integrations?status=updated");
+}
+
+export async function createLandlordIntegrationEventAction(formData: FormData) {
+  const actor = await requireLandlordAction();
+  await createIntegrationEventFromForm(formData, { actorId: actor.userId, ownerId: actor.userId });
+  revalidateLandlordIntegrationsHubModule();
+  redirect("/landlord/integrations?event=logged");
+}
+
+function revalidateLandlordInsuranceComplianceModule() {
+  for (const path of insuranceCompliancePaths("landlord")) revalidatePath(path);
+}
+
+export async function createLandlordInsurancePolicyAction(formData: FormData) {
+  const actor = await requireLandlordAction();
+  await createInsurancePolicyFromForm(formData, { ownerId: actor.userId });
+  revalidateLandlordInsuranceComplianceModule();
+  redirect("/landlord/compliance?policy=created");
+}
+
+export async function createLandlordCertificationRecordAction(formData: FormData) {
+  const actor = await requireLandlordAction();
+  await createCertificationRecordFromForm(formData, { ownerId: actor.userId });
+  revalidateLandlordInsuranceComplianceModule();
+  redirect("/landlord/compliance?certification=created");
+}
+
+export async function createLandlordComplianceInspectionRequirementAction(formData: FormData) {
+  const actor = await requireLandlordAction();
+  await createComplianceInspectionRequirementFromForm(formData, { ownerId: actor.userId });
+  revalidateLandlordInsuranceComplianceModule();
+  redirect("/landlord/compliance?requirement=created");
+}
+
+function revalidateLandlordMaintenanceInventoryModule() {
+  for (const path of maintenanceInventoryPaths("landlord")) revalidatePath(path);
+}
+
+export async function createLandlordMaintenanceAssetAction(formData: FormData) {
+  const actor = await requireLandlordAction();
+  await createMaintenanceAssetFromForm(formData, { actorId: actor.userId, ownerId: actor.userId });
+  revalidateLandlordMaintenanceInventoryModule();
+  redirect("/landlord/inventory?asset=created");
+}
+
+export async function createLandlordAssetServiceRecordAction(formData: FormData) {
+  const actor = await requireLandlordAction();
+  await createAssetServiceRecordFromForm(formData, { actorId: actor.userId, ownerId: actor.userId });
+  revalidateLandlordMaintenanceInventoryModule();
+  redirect("/landlord/inventory?service=created");
+}
+
+export async function createLandlordAssetWarrantyAction(formData: FormData) {
+  const actor = await requireLandlordAction();
+  await createAssetWarrantyFromForm(formData, { ownerId: actor.userId });
+  revalidateLandlordMaintenanceInventoryModule();
+  redirect("/landlord/inventory?warranty=created");
+}
+
+export async function createLandlordKeyLockRecordAction(formData: FormData) {
+  const actor = await requireLandlordAction();
+  await createKeyLockRecordFromForm(formData, { ownerId: actor.userId });
+  revalidateLandlordMaintenanceInventoryModule();
+  redirect("/landlord/inventory?key=created");
+}
+
+const landlordDocumentUploadSchema = z.object({
+  title: z.string().trim().min(1).max(160),
+  category: z.nativeEnum(DocumentCategory),
+  visibility: z.nativeEnum(DocumentVisibility).default(DocumentVisibility.LANDLORD),
+  applicationId: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.string().trim().min(1).nullable()),
+  propertyId: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.string().trim().min(1).nullable()),
+  unitId: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.string().trim().min(1).nullable()),
+  leasePacketId: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.string().trim().min(1).nullable()),
+  notes: z.string().trim().max(2000).optional()
+});
 
 const landlordMaintenanceSchema = z.object({
   unitId: z.string().trim().min(1),
@@ -795,4 +892,62 @@ export async function signLandlordLease(formData: FormData) {
   revalidateLandlord();
   revalidatePath(`/landlord/leases/${signature.leasePacketId}`);
   redirect(`/landlord/leases/${signature.leasePacketId}`);
+}
+
+
+export async function uploadLandlordDocument(formData: FormData) {
+  const user = await requireLandlordAction();
+  const parsed = landlordDocumentUploadSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Invalid document upload.");
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) throw new Error("A document file is required.");
+
+  if (!parsed.data.applicationId && !parsed.data.propertyId && !parsed.data.unitId && !parsed.data.leasePacketId) {
+    throw new Error("Attach this document to an application, property group, rental, or lease packet.");
+  }
+
+  const [application, property, unit, leasePacket] = await Promise.all([
+    parsed.data.applicationId
+      ? prisma.application.findFirst({ where: { id: parsed.data.applicationId, unit: { property: { ownerId: user.userId, isArchived: false } } }, select: { id: true, unitId: true, unit: { select: { propertyId: true } } } })
+      : null,
+    parsed.data.propertyId
+      ? prisma.property.findFirst({ where: { id: parsed.data.propertyId, ownerId: user.userId, isArchived: false }, select: { id: true } })
+      : null,
+    parsed.data.unitId
+      ? prisma.unit.findFirst({ where: { id: parsed.data.unitId, property: { ownerId: user.userId, isArchived: false } }, select: { id: true, propertyId: true } })
+      : null,
+    parsed.data.leasePacketId
+      ? prisma.leasePacket.findFirst({ where: { id: parsed.data.leasePacketId, application: { unit: { property: { ownerId: user.userId, isArchived: false } } } }, select: { id: true, applicationId: true, application: { select: { unitId: true, unit: { select: { propertyId: true } } } } } })
+      : null
+  ]);
+
+  if (parsed.data.applicationId && !application) throw new Error("Application was not found or is not in your portfolio.");
+  if (parsed.data.propertyId && !property) throw new Error("Property group was not found or is not in your portfolio.");
+  if (parsed.data.unitId && !unit) throw new Error("Rental was not found or is not in your portfolio.");
+  if (parsed.data.leasePacketId && !leasePacket) throw new Error("Lease packet was not found or is not in your portfolio.");
+
+  if (application && unit && application.unitId !== unit.id) throw new Error("Selected application and rental do not match.");
+  if (application && property && application.unit.propertyId !== property.id) throw new Error("Selected application and property group do not match.");
+  if (unit && property && unit.propertyId !== property.id) throw new Error("Selected rental and property group do not match.");
+  if (leasePacket && application && leasePacket.applicationId !== application.id) throw new Error("Selected lease packet and application do not match.");
+  if (leasePacket && unit && leasePacket.application.unitId !== unit.id) throw new Error("Selected lease packet and rental do not match.");
+  if (leasePacket && property && leasePacket.application.unit.propertyId !== property.id) throw new Error("Selected lease packet and property group do not match.");
+
+  const stored = await saveUploadedDocument(file);
+  const created = await prisma.document.create({
+    data: {
+      ...parsed.data,
+      status: DocumentStatus.UPLOADED,
+      uploadedById: user.userId,
+      ...stored
+    }
+  });
+
+  await writeAuditLog({ actor: user, action: AuditAction.UPLOAD, entityType: "Document", entityId: created.id, message: `Landlord uploaded document ${created.title}.` });
+  revalidatePath("/landlord/documents");
+  if (created.applicationId) revalidatePath(`/landlord/applications/${created.applicationId}`);
+  if (created.leasePacketId) revalidatePath(`/landlord/leases/${created.leasePacketId}`);
+  if (created.unitId) revalidatePath(`/landlord/units/${created.unitId}`);
+  redirect("/landlord/documents?uploaded=1");
 }

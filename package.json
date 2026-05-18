@@ -1,6 +1,6 @@
 {
   "name": "homebase-mls",
-  "version": "4.0.1",
+  "version": "4.12.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -61,7 +61,11 @@
     "unit-media:verify": "tsx scripts/verify-unit-media-details.ts",
     "dashboard-polish:verify": "tsx scripts/verify-dashboard-polish.ts",
     "landlord-unit-workflow:verify": "tsx scripts/verify-landlord-unit-workflow.ts",
-    "product-identity:verify": "tsx scripts/verify-product-identity-ux.ts"
+    "product-identity:verify": "tsx scripts/verify-product-identity-ux.ts",
+    "updates:9-12:verify": "tsx scripts/verify-updates-9-12.ts",
+    "update10:verify": "tsx scripts/verify-update10-maintenance-inventory.ts",
+    "update11:verify": "tsx scripts/verify-update11-insurance-compliance.ts",
+    "update12:integrations:verify": "tsx scripts/verify-update12-integrations-hub.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.716.0",

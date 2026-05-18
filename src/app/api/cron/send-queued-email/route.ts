@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { emailQueueStats, queuedEmailBatchSize, sendQueuedSignatureNotificationEmails } from "@/lib/email";
+import { notificationStats, processQueuedNotifications } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -19,16 +20,18 @@ export async function GET(request: NextRequest) {
 
   const limitParam = Number.parseInt(request.nextUrl.searchParams.get("limit") || "", 10);
   const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 200) : queuedEmailBatchSize();
-  const results = await sendQueuedSignatureNotificationEmails(limit);
-  const stats = await emailQueueStats();
+  const [results, genericResults] = await Promise.all([sendQueuedSignatureNotificationEmails(limit), processQueuedNotifications(limit)]);
+  const [stats, genericStats] = await Promise.all([emailQueueStats(), notificationStats()]);
 
   return NextResponse.json({
     ok: true,
-    processed: results.length,
+    processed: results.length + genericResults.length,
+    genericProcessed: genericResults.length,
     sent: results.filter((item) => item.status === "SENT").length,
     queuedForRetry: results.filter((item) => item.status === "QUEUED").length,
     failed: results.filter((item) => item.status === "FAILED").length,
-    stats
+    stats,
+    genericStats
   });
 }
 
