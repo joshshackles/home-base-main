@@ -1,12 +1,13 @@
 import Link from "next/link";
-import type { ComponentType, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Bell, ChevronDown, Menu, Search, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { HomeBaseLogo } from "@/components/brand/HomeBaseLogo";
 import { CommandPalette } from "@/components/ui/system";
 
 export type ShellNavGroup = {
   label: string;
-  items: Array<{ href: string; label: string; icon: ComponentType<{ size?: number; className?: string }> }>;
+  items: Array<{ href: string; label: string; icon: LucideIcon }>;
 };
 
 export function DashboardShell({ children, groups, title, accountLabel, inboxHref = "/applicant/inbox", quickCreateHref = "/marketplace" }: { children: ReactNode; groups: ShellNavGroup[]; title: string; accountLabel: string; inboxHref?: string; quickCreateHref?: string }) {

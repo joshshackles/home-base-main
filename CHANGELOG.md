@@ -1,5 +1,10 @@
 # 3.3.1 - Financial Automation & Recovery
 
+## v3.5.4 - Dashboard Shell Type Hotfix
+
+- Fixed the shared dashboard shell navigation icon type to use Lucide's native `LucideIcon` type.
+- Cleared the Vercel `admin/layout.tsx` TypeScript failure caused by narrowing icon `size` to only `number`.
+
 ## v3.5.3 - Vercel Migration Recovery Hotfix
 
 - Added a narrow Vercel migration recovery script for the known failed `20260518000100_financial_automation_recovery` record.
