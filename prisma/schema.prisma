@@ -1024,6 +1024,8 @@ model Unit {
   ownerStatements OwnerStatement[]
   paymentDisputes PaymentDispute[]
   vendorPayouts VendorPayout[]
+  vendorProfiles VendorProfile[] @relation("VendorProfileUnit")
+  vendorInvoices VendorInvoice[] @relation("VendorInvoiceUnit")
   securityDepositAccounts SecurityDepositAccount[]
   accountingExports AccountingExport[]
   creditReportingRecords CreditReportingRecord[]
@@ -2145,7 +2147,7 @@ model VendorProfile {
   user      User  @relation("VendorProfileUser", fields: [userId], references: [id], onDelete: Cascade)
   owner     User  @relation("VendorProfileOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
   createdBy User? @relation("VendorProfileCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  unit      Unit? @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  unit      Unit? @relation("VendorProfileUnit", fields: [unitId], references: [id], onDelete: SetNull)
   invoices  VendorInvoice[]
   workLogs  VendorWorkLog[]
 
@@ -2208,7 +2210,7 @@ model VendorInvoice {
   createdBy          User?               @relation("VendorInvoiceCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   reviewedBy         User?               @relation("VendorInvoiceReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
   vendorProfile      VendorProfile?      @relation(fields: [vendorProfileId], references: [id], onDelete: SetNull)
-  unit               Unit?               @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  unit               Unit?               @relation("VendorInvoiceUnit", fields: [unitId], references: [id], onDelete: SetNull)
   maintenanceRequest MaintenanceRequest? @relation(fields: [maintenanceRequestId], references: [id], onDelete: SetNull)
   vendorPayout       VendorPayout?       @relation(fields: [vendorPayoutId], references: [id], onDelete: SetNull)
 
