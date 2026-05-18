@@ -1,5 +1,10 @@
 # 3.3.1 - Financial Automation & Recovery
 
+## v3.5.1 - Prisma Relation Hotfix
+
+- Fixed Prisma schema validation failure by completing the `Application` to `VendorPayout` relation.
+- Added `VendorPayout.applicationId`, relation wiring, index, foreign key, and migration for clean Vercel install.
+
 ## v3.5.0 - Unified Product Identity & UX System
 
 - Repositioned HomeBase as a premium housing operations platform with updated product metadata and README language.

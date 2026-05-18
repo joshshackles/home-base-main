@@ -1618,6 +1618,7 @@ model VendorPayout {
   ownerUserId           String
   vendorUserId          String?
   unitId                String?
+  applicationId         String?
   maintenanceRequestId  String?
   ledgerEntryId         String?
   stripeTransferId      String?            @unique
@@ -1635,12 +1636,14 @@ model VendorPayout {
   vendor             User?               @relation("VendorPayoutVendor", fields: [vendorUserId], references: [id], onDelete: SetNull)
   approvedBy         User?               @relation("VendorPayoutApprover", fields: [approvedById], references: [id], onDelete: SetNull)
   unit               Unit?               @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  application        Application?        @relation(fields: [applicationId], references: [id], onDelete: SetNull)
   maintenanceRequest MaintenanceRequest? @relation(fields: [maintenanceRequestId], references: [id], onDelete: SetNull)
   ledgerEntry        LedgerEntry?        @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
 
   @@index([ownerUserId, status])
   @@index([vendorUserId, status])
   @@index([unitId])
+  @@index([applicationId])
   @@index([maintenanceRequestId])
 }
 
