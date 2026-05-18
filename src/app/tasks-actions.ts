@@ -65,16 +65,14 @@ export async function createTaskItem(formData: FormData) {
     assignedToId: nullable(value(formData, "assignedToId"))
   });
 
-  if (actor.role === UserRole.LANDLORD) {
-    if (parsed.propertyId) {
-      const property = await prisma.property.findFirst({ where: { id: parsed.propertyId, ownerId: actor.userId, isArchived: false }, select: { id: true } });
-      if (!property) throw new Error("You can only create tasks for your own portfolio.");
-    }
-    if (parsed.unitId) {
-      const unit = await prisma.unit.findFirst({ where: { id: parsed.unitId, property: { ownerId: actor.userId, isArchived: false } }, select: { id: true, propertyId: true } });
-      if (!unit) throw new Error("You can only create tasks for your own rentals.");
-      parsed.propertyId = parsed.propertyId ?? unit.propertyId;
-    }
+  if (parsed.unitId) {
+    const unit = await prisma.unit.findFirst({ where: { id: parsed.unitId, ...(actor.role === UserRole.LANDLORD ? { property: { ownerId: actor.userId, isArchived: false } } : {}) }, select: { id: true, propertyId: true } });
+    if (!unit) throw new Error(actor.role === UserRole.LANDLORD ? "You can only create tasks for your own rentals." : "Selected rental was not found.");
+    parsed.propertyId = unit.propertyId;
+  }
+  if (actor.role === UserRole.LANDLORD && parsed.propertyId && !parsed.unitId) {
+    const property = await prisma.property.findFirst({ where: { id: parsed.propertyId, ownerId: actor.userId, isArchived: false }, select: { id: true } });
+    if (!property) throw new Error("You can only create tasks for your own portfolio.");
   }
 
   const task = await prisma.taskItem.create({ data: { ...parsed, createdById: actor.userId, source: "manual" } });

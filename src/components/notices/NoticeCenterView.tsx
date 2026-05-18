@@ -55,12 +55,12 @@ function FilterSelect({ name, labelText, values, current }: { name: string; labe
   );
 }
 
-function OptionSelect({ name, labelText, options, defaultValue = "" }: { name: string; labelText: string; options: Option[]; defaultValue?: string }) {
+function OptionSelect({ name, labelText, options, defaultValue = "", emptyLabel = "None" }: { name: string; labelText: string; options: Option[]; defaultValue?: string; emptyLabel?: string }) {
   return (
     <label className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
       {labelText}
       <select name={name} defaultValue={defaultValue} className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold normal-case tracking-normal text-slate-900">
-        <option value="">None</option>
+        <option value="">{emptyLabel}</option>
         {options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
       </select>
     </label>
@@ -190,8 +190,7 @@ export function NoticeCenterView({ title, description, basePath, center, searchP
                 <label className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Expires<input name="expiresAt" type="date" className="mt-1 w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm font-bold normal-case tracking-normal" /></label>
                 <OptionSelect name="recipientUserId" labelText="Recipient user" options={users} />
                 <div className="grid grid-cols-2 gap-2"><input name="recipientName" className="rounded-2xl border border-slate-300 px-3 py-2 text-sm" placeholder="Recipient name" /><input name="recipientEmail" type="email" className="rounded-2xl border border-slate-300 px-3 py-2 text-sm" placeholder="Recipient email" /></div>
-                <OptionSelect name="propertyId" labelText="Property group" options={properties} />
-                <OptionSelect name="unitId" labelText="Rental" options={units} />
+                <OptionSelect name="unitId" labelText="Applies to" options={units} emptyLabel="Portfolio-wide" />
                 <OptionSelect name="applicationId" labelText="Application" options={applications} />
                 <OptionSelect name="leasePacketId" labelText="Lease packet" options={leasePackets} />
                 <div className="grid grid-cols-2 gap-2"><button name="sendNow" value="no" className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-900">Save draft</button><button name="sendNow" value="yes" className="rounded-2xl bg-brand-600 px-4 py-3 text-sm font-black text-white hover:bg-brand-700">Send notice</button></div>

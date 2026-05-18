@@ -78,16 +78,14 @@ export async function createScheduleEvent(formData: FormData) {
   });
   if (parsed.endsAt <= parsed.startsAt) throw new Error("End time must be after start time.");
 
-  if (actor.role === UserRole.LANDLORD) {
-    if (parsed.propertyId) {
-      const property = await prisma.property.findFirst({ where: { id: parsed.propertyId, ownerId: actor.userId, isArchived: false }, select: { id: true } });
-      if (!property) throw new Error("You can only schedule events for your own portfolio.");
-    }
-    if (parsed.unitId) {
-      const unit = await prisma.unit.findFirst({ where: { id: parsed.unitId, property: { ownerId: actor.userId, isArchived: false } }, select: { id: true, propertyId: true } });
-      if (!unit) throw new Error("You can only schedule events for your own rentals.");
-      parsed.propertyId = parsed.propertyId ?? unit.propertyId;
-    }
+  if (parsed.unitId) {
+    const unit = await prisma.unit.findFirst({ where: { id: parsed.unitId, ...(actor.role === UserRole.LANDLORD ? { property: { ownerId: actor.userId, isArchived: false } } : {}) }, select: { id: true, propertyId: true } });
+    if (!unit) throw new Error(actor.role === UserRole.LANDLORD ? "You can only schedule events for your own rentals." : "Selected rental was not found.");
+    parsed.propertyId = unit.propertyId;
+  }
+  if (actor.role === UserRole.LANDLORD && parsed.propertyId && !parsed.unitId) {
+    const property = await prisma.property.findFirst({ where: { id: parsed.propertyId, ownerId: actor.userId, isArchived: false }, select: { id: true } });
+    if (!property) throw new Error("You can only schedule events for your own portfolio.");
   }
 
   const ids = Array.from(new Set([parsed.assignedToId, actor.userId, ...participantIds(formData)].filter(Boolean) as string[]));

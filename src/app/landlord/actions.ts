@@ -16,10 +16,16 @@ import { appUrl, createSecureToken, hashToken } from "@/lib/tokens";
 import { syncUnitStaffConnections, upsertProfileConnection } from "@/lib/profile-connections";
 import { createAssetServiceRecordFromForm, createAssetWarrantyFromForm, createKeyLockRecordFromForm, createMaintenanceAssetFromForm, maintenanceInventoryPaths } from "@/lib/maintenance-inventory";
 import { createCertificationRecordFromForm, createComplianceInspectionRequirementFromForm, createInsurancePolicyFromForm, insuranceCompliancePaths } from "@/lib/insurance-compliance";
-import { createIntegrationConnectionFromForm, createIntegrationEventFromForm, integrationsHubPaths, updateIntegrationConnectionStatusFromForm } from "@/lib/integrations-hub";
+import { activateTenantFromApplication, endTenantOccupancy } from "@/lib/relationship-lifecycle";
+import { createIntegrationConnectionFromForm, createIntegrationEventFromForm, createQuickBooksConnectionFromForm, integrationsHubPaths, runIntegrationDiagnosticFromForm, updateIntegrationConnectionStatusFromForm } from "@/lib/integrations-hub";
 
 async function requireLandlordAction() {
   return await requireRole(["LANDLORD"], "/landlord");
+}
+
+function optionalString(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 
@@ -34,6 +40,13 @@ export async function createLandlordIntegrationConnectionAction(formData: FormDa
   redirect("/landlord/integrations?connection=created");
 }
 
+export async function createLandlordQuickBooksConnectionAction(formData: FormData) {
+  const actor = await requireLandlordAction();
+  await createQuickBooksConnectionFromForm(formData, { ownerId: actor.userId });
+  revalidateLandlordIntegrationsHubModule();
+  redirect("/landlord/integrations?quickbooks=created");
+}
+
 export async function updateLandlordIntegrationConnectionStatusAction(formData: FormData) {
   const actor = await requireLandlordAction();
   await updateIntegrationConnectionStatusFromForm(formData, { ownerId: actor.userId });
@@ -46,6 +59,13 @@ export async function createLandlordIntegrationEventAction(formData: FormData) {
   await createIntegrationEventFromForm(formData, { actorId: actor.userId, ownerId: actor.userId });
   revalidateLandlordIntegrationsHubModule();
   redirect("/landlord/integrations?event=logged");
+}
+
+export async function runLandlordIntegrationDiagnosticAction(formData: FormData) {
+  const actor = await requireLandlordAction();
+  await runIntegrationDiagnosticFromForm(formData, { actorId: actor.userId, ownerId: actor.userId });
+  revalidateLandlordIntegrationsHubModule();
+  redirect("/landlord/integrations?diagnostic=complete");
 }
 
 function revalidateLandlordInsuranceComplianceModule() {
@@ -178,6 +198,14 @@ const staffAssignmentSchema = z.object({
   caseworkerUserId: z.string().trim().optional()
 });
 
+
+const profileConnectionSchema = z.object({
+  targetUserId: z.string().trim().min(1),
+  assignedRole: z.nativeEnum(ConnectionRole),
+  unitId: z.string().trim().optional(),
+  notes: z.string().trim().max(1000).optional()
+});
+
 const rentalLifecycleSchema = z.object({
   unitId: z.string().trim().min(1),
   lifecycleStatus: z.nativeEnum(RentalLifecycleStatus)
@@ -300,18 +328,44 @@ function photoFilesFromFormData(formData: FormData) {
   return formData.getAll("photos").filter((value): value is File => value instanceof File && value.size > 0);
 }
 
-async function landlordUnitPayload(formData: FormData, landlordId: string, unitId?: string) {
-  const parsed = unitSchema.safeParse(formDataToObject(formData));
+function landlordUnifiedRentalPropertyPayload(formData: FormData, landlordId: string) {
+  const raw = formDataToObject(formData);
+  const parsed = propertySchema.safeParse({
+    name: raw.propertyName || raw.name || raw.addressLine,
+    addressLine: raw.addressLine,
+    city: raw.city,
+    state: raw.state,
+    zip: raw.zip,
+    description: raw.description,
+    ownerId: landlordId,
+    isArchived: false
+  });
   if (!parsed.success) throw new Error(validationMessage(parsed.error));
+  return { ...parsed.data, ownerId: landlordId, isArchived: false };
+}
 
-  if (parsed.data.status === UnitStatus.ARCHIVED) {
-    throw new Error("Landlords cannot archive units from the landlord portal.");
-  }
-
-  await assertOwnsProperty(parsed.data.propertyId, landlordId);
+async function landlordUnitPayload(formData: FormData, landlordId: string, unitId?: string) {
+  const raw = formDataToObject(formData);
+  let propertyId = typeof raw.propertyId === "string" && raw.propertyId.trim().length > 0 ? raw.propertyId.trim() : null;
+  const propertyData = landlordUnifiedRentalPropertyPayload(formData, landlordId);
 
   if (unitId) {
     await assertOwnsUnit(unitId, landlordId);
+  }
+
+  if (propertyId) {
+    await assertOwnsProperty(propertyId, landlordId);
+    await prisma.property.update({ where: { id: propertyId }, data: propertyData });
+  } else {
+    const property = await prisma.property.create({ data: propertyData });
+    propertyId = property.id;
+  }
+
+  const parsed = unitSchema.safeParse({ ...raw, propertyId });
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+
+  if (parsed.data.status === UnitStatus.ARCHIVED) {
+    throw new Error("Landlords cannot archive rentals from the landlord portal.");
   }
 
   if (parsed.data.tenantUserId) {
@@ -351,7 +405,7 @@ export async function createLandlordUnit(formData: FormData) {
   }
 
   revalidateLandlord();
-  redirect(`/landlord/units/${created.id}`);
+  redirect(`/landlord/rentals/${created.id}`);
 }
 
 export async function createLandlordProperty(formData: FormData) {
@@ -379,7 +433,7 @@ export async function createLandlordProperty(formData: FormData) {
   });
 
   revalidateLandlord();
-  redirect("/landlord/units/new?property=created");
+  redirect("/landlord/rentals/new?property=created");
 }
 
 export async function createLandlordSingleFamilyHome(formData: FormData) {
@@ -456,7 +510,7 @@ export async function createLandlordSingleFamilyHome(formData: FormData) {
   }
 
   revalidateLandlord();
-  redirect(`/landlord/units/${created.unit.id}?home=created`);
+  redirect(`/landlord/rentals/${created.unit.id}?home=created`);
 }
 
 export async function updateLandlordUnit(formData: FormData) {
@@ -469,7 +523,7 @@ export async function updateLandlordUnit(formData: FormData) {
 
   revalidateLandlord();
   revalidatePath(`/landlord/units/${id}`);
-  redirect(`/landlord/units/${id}`);
+  redirect(`/landlord/rentals/${id}`);
 }
 
 export async function uploadLandlordUnitPhotos(formData: FormData) {
@@ -486,7 +540,7 @@ export async function uploadLandlordUnitPhotos(formData: FormData) {
   await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: unitId, message: `Landlord uploaded ${createdIds.length} unit photo(s).` });
   revalidateLandlord();
   revalidatePath(`/landlord/units/${unitId}`);
-  redirect(`/landlord/units/${unitId}?photos=uploaded`);
+  redirect(`/landlord/rentals/${unitId}?photos=uploaded`);
 }
 
 export async function setFeaturedLandlordUnitPhoto(formData: FormData) {
@@ -507,7 +561,7 @@ export async function setFeaturedLandlordUnitPhoto(formData: FormData) {
   await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: unitId, message: "Landlord changed the featured unit photo." });
   revalidateLandlord();
   revalidatePath(`/landlord/units/${unitId}`);
-  redirect(`/landlord/units/${unitId}?photos=featured`);
+  redirect(`/landlord/rentals/${unitId}?photos=featured`);
 }
 
 export async function deleteLandlordUnitPhoto(formData: FormData) {
@@ -531,7 +585,7 @@ export async function deleteLandlordUnitPhoto(formData: FormData) {
   await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: unitId, message: "Landlord deleted a unit photo." });
   revalidateLandlord();
   revalidatePath(`/landlord/units/${unitId}`);
-  redirect(`/landlord/units/${unitId}?photos=deleted`);
+  redirect(`/landlord/rentals/${unitId}?photos=deleted`);
 }
 
 async function userHasAccess(userId: string, allowed: AccountAccessType[]) {
@@ -571,7 +625,7 @@ export async function updateLandlordUnitLifecycleStatus(formData: FormData) {
   await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: parsed.data.unitId, message: `Updated rental lifecycle to ${parsed.data.lifecycleStatus}.` });
   revalidateLandlord();
   revalidatePath(`/landlord/units/${parsed.data.unitId}`);
-  redirect(`/landlord/units/${parsed.data.unitId}?status=updated`);
+  redirect(`/landlord/rentals/${parsed.data.unitId}?status=updated`);
 }
 
 export async function assignLandlordUnitTenant(formData: FormData) {
@@ -656,7 +710,7 @@ export async function assignLandlordUnitTenant(formData: FormData) {
   await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: parsed.data.unitId, message: `Assigned tenant ${tenant.email} and marked unit occupied.` });
   revalidateLandlord();
   revalidatePath(`/landlord/units/${parsed.data.unitId}`);
-  redirect(`/landlord/units/${parsed.data.unitId}?tenant=assigned`);
+  redirect(`/landlord/rentals/${parsed.data.unitId}?tenant=assigned`);
 }
 
 export async function assignLandlordUnitStaff(formData: FormData) {
@@ -691,7 +745,7 @@ export async function assignLandlordUnitStaff(formData: FormData) {
   await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: parsed.data.unitId, message: "Updated unit staff assignments." });
   revalidateLandlord();
   revalidatePath(`/landlord/units/${parsed.data.unitId}`);
-  redirect(`/landlord/units/${parsed.data.unitId}?staff=assigned`);
+  redirect(`/landlord/rentals/${parsed.data.unitId}?staff=assigned`);
 }
 
 export async function addLandlordUnitContact(formData: FormData) {
@@ -712,9 +766,43 @@ export async function addLandlordUnitContact(formData: FormData) {
   await prisma.unit.update({ where: { id: unit.id }, data: { importantContacts: nextContacts } });
   await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: unit.id, message: "Added an important unit contact." });
   revalidatePath(`/landlord/units/${unit.id}`);
-  redirect(`/landlord/units/${unit.id}?contact=added`);
+  redirect(`/landlord/rentals/${unit.id}?contact=added`);
 }
 
+
+export async function createLandlordProfileConnection(formData: FormData) {
+  const user = await requireLandlordAction();
+  const parsed = profileConnectionSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+  if (parsed.data.targetUserId === user.userId) throw new Error("You cannot connect yourself as a contact.");
+
+  const unitId = cleanOptionalId(parsed.data.unitId);
+  if (unitId) await assertOwnsUnit(unitId, user.userId);
+
+  const target = await prisma.user.findUnique({ where: { id: parsed.data.targetUserId }, select: { id: true, email: true, name: true } });
+  if (!target) throw new Error("Choose a valid contact user.");
+
+  const connection = await upsertProfileConnection({
+    landlordUserId: user.userId,
+    targetUserId: target.id,
+    unitId,
+    assignedRole: parsed.data.assignedRole,
+    notes: cleanOptionalText(parsed.data.notes)
+  });
+
+  await writeAuditLog({
+    actor: user,
+    action: AuditAction.CREATE,
+    entityType: "ProfileConnection",
+    entityId: connection.id,
+    message: `Created ${parsed.data.assignedRole} relationship for ${target.email}.`,
+    metadata: { unitId: unitId ?? null }
+  });
+
+  revalidatePath("/landlord/contacts");
+  if (unitId) revalidatePath(`/landlord/units/${unitId}`);
+  redirect("/landlord/contacts?status=connected");
+}
 
 export async function revokeLandlordProfileConnection(formData: FormData) {
   const user = await requireLandlordAction();
@@ -778,7 +866,7 @@ export async function updateLandlordUnitTerms(formData: FormData) {
   await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: parsed.data.unitId, message: "Updated rent, deposit, and move-in terms." });
   revalidateLandlord();
   revalidatePath(`/landlord/units/${parsed.data.unitId}`);
-  redirect(`/landlord/units/${parsed.data.unitId}?terms=updated`);
+  redirect(`/landlord/rentals/${parsed.data.unitId}?terms=updated`);
 }
 
 export async function createLandlordMaintenanceRequest(formData: FormData) {
@@ -827,7 +915,7 @@ export async function createLandlordMaintenanceRequest(formData: FormData) {
   revalidatePath(`/landlord/units/${unit.id}`);
   revalidatePath("/landlord/maintenance");
   revalidatePath("/landlord/inbox");
-  redirect(`/landlord/units/${unit.id}?repair=created`);
+  redirect(`/landlord/rentals/${unit.id}?repair=created`);
 }
 
 export async function addLandlordLeadNote(formData: FormData) {
@@ -846,6 +934,53 @@ export async function addLandlordLeadNote(formData: FormData) {
 
   revalidateLandlord();
   revalidatePath(`/landlord/leads/${parsed.data.leadId}`);
+}
+
+export async function approveLandlordApplicationAsTenant(formData: FormData) {
+  const actor = await requireLandlordAction();
+  const applicationId = String(formData.get("applicationId") || "");
+  const moveInValue = String(formData.get("moveInDate") || "");
+  if (!applicationId) throw new Error("Application is required.");
+  await assertOwnsApplication(applicationId, actor.userId);
+  await activateTenantFromApplication({
+    applicationId,
+    actor,
+    moveInDate: moveInValue ? new Date(`${moveInValue}T12:00:00`) : null,
+    notes: "Tenant relationship activated by landlord application approval."
+  });
+  revalidateLandlord();
+  revalidatePath(`/landlord/applications/${applicationId}`);
+  revalidatePath("/applicant");
+  redirect(`/landlord/applications/${applicationId}?tenant=activated`);
+}
+
+
+export async function endLandlordTenantOccupancy(formData: FormData) {
+  const actor = await requireLandlordAction();
+  const occupancyId = String(formData.get("occupancyId") || "");
+  const applicationId = String(formData.get("applicationId") || "");
+  const moveOutValue = String(formData.get("moveOutDate") || "");
+  const reason = optionalString(formData, "reason") ?? "Tenancy ended";
+  const notes = optionalString(formData, "notes") ?? "Ended from landlord relationship lifecycle controls.";
+  const releaseRental = String(formData.get("releaseRental") || "on") !== "off";
+  if (!occupancyId) throw new Error("Occupancy is required.");
+
+  const occupancy = await prisma.occupancy.findUnique({ where: { id: occupancyId }, select: { unit: { select: { property: { select: { ownerId: true } } } } } });
+  if (!occupancy || occupancy.unit.property.ownerId !== actor.userId) throw new Error("You do not have access to end this tenancy.");
+
+  await endTenantOccupancy({
+    occupancyId,
+    actor,
+    moveOutDate: moveOutValue ? new Date(`${moveOutValue}T12:00:00`) : null,
+    reason,
+    notes,
+    releaseRental
+  });
+
+  revalidateLandlord();
+  if (applicationId) revalidatePath(`/landlord/applications/${applicationId}`);
+  revalidatePath("/applicant");
+  redirect(applicationId ? `/landlord/applications/${applicationId}?tenant=ended` : "/landlord?tenant=ended");
 }
 
 export async function addLandlordApplicationNote(formData: FormData) {
@@ -903,9 +1038,7 @@ export async function uploadLandlordDocument(formData: FormData) {
   const file = formData.get("file");
   if (!(file instanceof File)) throw new Error("A document file is required.");
 
-  if (!parsed.data.applicationId && !parsed.data.propertyId && !parsed.data.unitId && !parsed.data.leasePacketId) {
-    throw new Error("Attach this document to an application, property group, rental, or lease packet.");
-  }
+  // Portfolio-wide documents are valid; when a rental/application/lease is selected, propertyId is derived below for compatibility.
 
   const [application, property, unit, leasePacket] = await Promise.all([
     parsed.data.applicationId
@@ -934,10 +1067,12 @@ export async function uploadLandlordDocument(formData: FormData) {
   if (leasePacket && unit && leasePacket.application.unitId !== unit.id) throw new Error("Selected lease packet and rental do not match.");
   if (leasePacket && property && leasePacket.application.unit.propertyId !== property.id) throw new Error("Selected lease packet and property group do not match.");
 
+  const resolvedPropertyId = property?.id ?? unit?.propertyId ?? application?.unit.propertyId ?? leasePacket?.application.unit.propertyId ?? null;
   const stored = await saveUploadedDocument(file);
   const created = await prisma.document.create({
     data: {
       ...parsed.data,
+      propertyId: resolvedPropertyId,
       status: DocumentStatus.UPLOADED,
       uploadedById: user.userId,
       ...stored

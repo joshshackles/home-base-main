@@ -1,6 +1,7 @@
 import { FormalNoticeAudience, FormalNoticeStatus, FormalNoticeType, UserRole, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth";
+import { activeOccupancyStatuses } from "@/lib/relationship-lifecycle";
 
 export type NoticeFilters = {
   q?: string;
@@ -51,7 +52,7 @@ export function getNoticeScopeWhere(user: SessionPayload): Prisma.FormalNoticeWh
       { recipientUserId: user.userId },
       { recipientEmail: user.email },
       { application: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] } },
-      { unit: { tenantUserId: user.userId } }
+      { unit: { OR: [{ tenantUserId: user.userId }, { occupancies: { some: { userId: user.userId, status: { in: activeOccupancyStatuses() } } } }] } }
     ]
   };
 }

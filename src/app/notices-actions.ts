@@ -132,6 +132,11 @@ export async function createFormalNotice(formData: FormData) {
     expiresAt: parseDate(value(formData, "expiresAt")),
     deliveryChannel: value(formData, "deliveryChannel") || NotificationChannel.IN_APP
   });
+  if (parsed.unitId && !parsed.propertyId) {
+    const unit = await prisma.unit.findUnique({ where: { id: parsed.unitId }, select: { propertyId: true } });
+    if (!unit) throw new Error("Selected rental was not found.");
+    parsed.propertyId = unit.propertyId;
+  }
   await assertLandlordScope(actor, parsed);
   const sendNow = value(formData, "sendNow") === "yes";
   const notice = await prisma.formalNotice.create({

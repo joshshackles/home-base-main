@@ -21,12 +21,8 @@ function DateInput({ name }: { name: string }) {
   return <input name={name} type="date" className={inputClass} />;
 }
 
-function PropertySelect({ data }: { data: ComplianceData }) {
-  return <select name="propertyId" className={inputClass}><option value="">Portfolio-wide / no property</option>{data.properties.map((property) => <option key={property.id} value={property.id}>{property.name} — {property.city}, {property.state}</option>)}</select>;
-}
-
-function UnitSelect({ data }: { data: ComplianceData }) {
-  return <select name="unitId" className={inputClass}><option value="">Property-level / no rental</option>{data.units.map((unit) => <option key={unit.id} value={unit.id}>{unitLabel(unit)}</option>)}</select>;
+function RentalScopeSelect({ data }: { data: ComplianceData }) {
+  return <select name="unitId" className={inputClass}><option value="">Portfolio-wide</option>{data.units.map((unit) => <option key={unit.id} value={unit.id}>{unitLabel(unit)}</option>)}</select>;
 }
 
 function ApplicationSelect({ data }: { data: ComplianceData }) {
@@ -46,8 +42,7 @@ function ModuleForms({ data, actions }: { data: ComplianceData; actions: Complia
         <div className="mt-4 grid gap-3">
           <Field label="Policy type"><select name="type" className={inputClass}>{Object.values(InsurancePolicyType).map((type) => <option key={type} value={type}>{titleCase(type)}</option>)}</select></Field>
           <Field label="Status"><StatusSelect /></Field>
-          <Field label="Property"><PropertySelect data={data} /></Field>
-          <Field label="Rental"><UnitSelect data={data} /></Field>
+          <Field label="Applies to"><RentalScopeSelect data={data} /></Field>
           <Field label="Application"><ApplicationSelect data={data} /></Field>
           <Field label="Provider"><input name="providerName" className={inputClass} placeholder="State Farm, Assurant, Travelers" /></Field>
           <Field label="Policy number"><input name="policyNumber" className={inputClass} placeholder="Policy / binder number" /></Field>
@@ -65,8 +60,7 @@ function ModuleForms({ data, actions }: { data: ComplianceData; actions: Complia
         <div className="mt-4 grid gap-3">
           <Field label="Certification name"><input name="name" required className={inputClass} placeholder="Occupancy permit, fire certificate" /></Field>
           <Field label="Status"><StatusSelect /></Field>
-          <Field label="Property"><PropertySelect data={data} /></Field>
-          <Field label="Rental"><UnitSelect data={data} /></Field>
+          <Field label="Applies to"><RentalScopeSelect data={data} /></Field>
           <Field label="Issuing authority"><input name="issuingAuthority" className={inputClass} placeholder="City, county, state agency" /></Field>
           <Field label="Certificate number"><input name="certificateNumber" className={inputClass} /></Field>
           <div className="grid gap-3 sm:grid-cols-2"><Field label="Issued"><DateInput name="issuedAt" /></Field><Field label="Expires"><DateInput name="expiresAt" /></Field></div>
@@ -82,8 +76,7 @@ function ModuleForms({ data, actions }: { data: ComplianceData; actions: Complia
         <div className="mt-4 grid gap-3">
           <Field label="Requirement name"><input name="name" required className={inputClass} placeholder="Annual fire inspection, unit safety check" /></Field>
           <Field label="Status"><StatusSelect /></Field>
-          <Field label="Property"><PropertySelect data={data} /></Field>
-          <Field label="Rental"><UnitSelect data={data} /></Field>
+          <Field label="Applies to"><RentalScopeSelect data={data} /></Field>
           <Field label="Frequency months"><input name="requiredEveryMonths" type="number" min="0" step="1" className={inputClass} placeholder="12" /></Field>
           <div className="grid gap-3 sm:grid-cols-2"><Field label="Last completed"><DateInput name="lastCompletedAt" /></Field><Field label="Next due"><DateInput name="nextDueAt" /></Field></div>
           <Field label="Notes"><textarea name="notes" className={`${inputClass} min-h-24`} placeholder="Checklist, inspector, access, penalty risk, documentation needed" /></Field>

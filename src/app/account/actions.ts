@@ -91,7 +91,8 @@ export async function requestAccountAccessAction(formData: FormData) {
 const accessTypeToUserRole: Partial<Record<AccountAccessType, UserRole>> = {
   [AccountAccessType.LANDLORD]: UserRole.LANDLORD,
   [AccountAccessType.INSPECTOR]: UserRole.INSPECTOR,
-  [AccountAccessType.ADMIN]: UserRole.ADMIN
+  [AccountAccessType.ADMIN]: UserRole.ADMIN,
+  [AccountAccessType.VENDOR]: UserRole.VENDOR
 };
 
 export async function reviewAccountAccessAction(formData: FormData) {

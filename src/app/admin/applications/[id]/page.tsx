@@ -4,6 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApplicationStatus, DocumentCategory, DocumentRequestStatus, DocumentStatus, DocumentVisibility } from "@prisma/client";
 import {
+  activateTenantFromApplicationAction,
+  endAdminTenantOccupancyAction,
   addApplicationNote,
   createDocumentRequest,
   createLeaseFromApplication,
@@ -39,7 +41,8 @@ export default async function ApplicationDetailPage({ params, searchParams }: { 
       documents: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
       documentRequests: { include: { fulfilledDocument: true, requestedBy: true }, orderBy: { createdAt: "desc" } },
       leasePackets: { include: { template: true }, orderBy: { createdAt: "desc" } },
-      claimTokens: { orderBy: { createdAt: "desc" }, take: 3 }
+      claimTokens: { orderBy: { createdAt: "desc" }, take: 3 },
+      occupancies: { include: { tenant: true, unit: { include: { property: true } }, leasePacket: { include: { template: true } } }, orderBy: { createdAt: "desc" } }
     }
   });
 
@@ -254,6 +257,45 @@ export default async function ApplicationDetailPage({ params, searchParams }: { 
                   <button type="submit" className="w-full rounded-2xl bg-slate-950 px-5 py-3 font-bold text-white hover:bg-slate-800">Connect Existing Account</button>
                 </form>
               </div>
+            )}
+          </div>
+
+
+
+          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+            <h2 className="text-xl font-black text-slate-950">Relationship lifecycle</h2>
+            <p className="mt-2 text-sm leading-6 text-emerald-950">Approval now creates the tenant relationship, occupancy record, connected-renter relationship, rental assignment, and tenant dashboard access automatically.</p>
+            {application.occupancies.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {application.occupancies.map((occupancy) => {
+                  const isCurrent = occupancy.status !== "FORMER" && occupancy.status !== "CANCELLED";
+                  return (
+                    <div key={occupancy.id} className="rounded-2xl bg-white p-4 text-sm shadow-sm">
+                      <p className="font-black text-slate-950">{occupancy.tenant.name ?? occupancy.tenant.email}</p>
+                      <p className="mt-1 text-slate-600">{label(occupancy.status)} · {occupancy.unit.property.name} {occupancy.unit.unitNumber ? `#${occupancy.unit.unitNumber}` : ""}</p>
+                      <p className="mt-1 text-xs font-bold uppercase text-slate-500">Move-in {occupancy.moveInDate ? occupancy.moveInDate.toLocaleDateString() : "not set"} · Move-out {occupancy.moveOutDate ? occupancy.moveOutDate.toLocaleDateString() : "not set"}</p>
+                      {isCurrent ? (
+                        <form action={endAdminTenantOccupancyAction} className="mt-4 space-y-3 rounded-2xl border border-rose-100 bg-rose-50 p-3">
+                          <input type="hidden" name="occupancyId" value={occupancy.id} />
+                          <input type="hidden" name="applicationId" value={application.id} />
+                          <Field label="Move-out date"><input name="moveOutDate" type="date" className={inputClass} /></Field>
+                          <Field label="Reason"><input name="reason" className={inputClass} placeholder="Move-out, eviction, lease ended, transfer..." /></Field>
+                          <Field label="Notes"><textarea name="notes" className={textareaClass} rows={3} placeholder="Final balance, deposit, key return, forwarding address, or turnover notes." /></Field>
+                          <label className="flex items-start gap-3 text-xs font-bold text-rose-950"><input name="releaseRental" type="checkbox" defaultChecked className="mt-1" /> Release this rental into turnover and remove active tenant access.</label>
+                          <button className="w-full rounded-2xl bg-rose-600 px-4 py-3 font-black text-white hover:bg-rose-700">End tenancy</button>
+                        </form>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <form action={activateTenantFromApplicationAction} className="mt-5 space-y-4 rounded-2xl bg-white p-4 shadow-sm">
+                <input type="hidden" name="applicationId" value={application.id} />
+                <Field label="Move-in date"><input name="moveInDate" type="date" className={inputClass} /></Field>
+                <button type="submit" className="w-full rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700" disabled={!application.applicantUserId}>{application.applicantUserId ? "Approve + Activate Tenant" : "Connect applicant account first"}</button>
+                {!application.applicantUserId ? <p className="text-xs font-bold text-amber-800">Tenant activation requires a connected applicant portal account so the dashboard can switch modes.</p> : null}
+              </form>
             )}
           </div>
 

@@ -18,7 +18,8 @@ const roleLabels: Record<UserRole, string> = {
   LANDLORD: "Landlord",
   APPLICANT: "Applicant",
   TENANT: "Tenant",
-  INSPECTOR: "Inspector"
+  INSPECTOR: "Inspector",
+  VENDOR: "Vendor"
 };
 
 export function UserForm({ user }: UserFormProps) {

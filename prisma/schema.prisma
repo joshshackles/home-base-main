@@ -14,6 +14,7 @@ enum UserRole {
   APPLICANT
   TENANT
   INSPECTOR
+  VENDOR
 }
 
 enum AccountAccessType {
@@ -36,9 +37,14 @@ enum AccountAccessRequestStatus {
 enum ConnectionRole {
   PROPERTY_MANAGER
   CASEWORKER
+  HOUSING_COORDINATOR
   INSPECTOR
   MAINTENANCE_STAFF
+  MAINTENANCE_WORKER
   PREFERRED_VENDOR
+  VENDOR
+  EMERGENCY_CONTACT
+  SUPPORT_CONTACT
   CONNECTED_RENTER
 }
 
@@ -46,6 +52,29 @@ enum ConnectionStatus {
   PENDING
   ACTIVE
   REVOKED
+}
+
+
+enum OccupancyStatus {
+  PENDING_MOVE_IN
+  ACTIVE
+  RENEWAL_PENDING
+  NOTICE_GIVEN
+  MOVE_OUT_SCHEDULED
+  FORMER
+  CANCELLED
+}
+
+enum RelationshipLifecycleEventType {
+  APPLICATION_APPROVED
+  TENANT_ACTIVATED
+  LEASE_SIGNED
+  MOVE_IN_SCHEDULED
+  MOVE_IN_COMPLETED
+  RENEWAL_STARTED
+  NOTICE_GIVEN
+  MOVE_OUT_COMPLETED
+  RELATIONSHIP_ARCHIVED
 }
 
 enum UnitStatus {
@@ -76,6 +105,7 @@ enum RentalPropertyType {
   SINGLE_FAMILY
   DUPLEX
   APARTMENT
+  MOBILE_HOME
   CONDO
   TOWNHOME
   ROOM
@@ -780,6 +810,9 @@ model User {
   vendorProfile VendorProfile? @relation("VendorProfileUser")
   ownedVendorProfiles VendorProfile[] @relation("VendorProfileOwner")
   createdVendorProfiles VendorProfile[] @relation("VendorProfileCreatedBy")
+  ownedVendorInvitations VendorInvitation[] @relation("VendorInvitationOwner")
+  createdVendorInvitations VendorInvitation[] @relation("VendorInvitationCreatedBy")
+  acceptedVendorInvitations VendorInvitation[] @relation("VendorInvitationAcceptedBy")
   vendorWorkLogs VendorWorkLog[] @relation("VendorWorkLogVendor")
   createdVendorWorkLogs VendorWorkLog[] @relation("VendorWorkLogCreatedBy")
   vendorInvoices VendorInvoice[] @relation("VendorInvoiceVendor")
@@ -823,6 +856,8 @@ model User {
   trackedCertificationRecords CertificationRecord[] @relation("CertificationRecordOwner")
   integrationConnections IntegrationConnection[] @relation("IntegrationConnectionOwner")
   integrationEvents IntegrationEvent[] @relation("IntegrationEventActor")
+  occupancies Occupancy[] @relation("OccupancyTenant")
+  createdOccupancies Occupancy[] @relation("OccupancyCreatedBy")
 
   @@index([role, isActive])
   @@index([passwordResetTokenHash])
@@ -849,6 +884,40 @@ model ProfileConnection {
   @@index([targetUserId, status])
   @@index([unitId])
   @@index([scopeKey])
+}
+
+model Occupancy {
+  id              String          @id @default(cuid())
+  userId          String
+  unitId          String
+  applicationId   String?
+  leasePacketId   String?
+  status          OccupancyStatus @default(PENDING_MOVE_IN)
+  relationship    ConnectionRole  @default(CONNECTED_RENTER)
+  lifecycleEvent  RelationshipLifecycleEventType @default(TENANT_ACTIVATED)
+  startedAt       DateTime        @default(now())
+  moveInDate      DateTime?
+  leaseStartDate  DateTime?
+  leaseEndDate    DateTime?
+  moveOutDate     DateTime?
+  endedAt         DateTime?
+  notes           String?
+  createdById     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  tenant      User         @relation("OccupancyTenant", fields: [userId], references: [id], onDelete: Cascade)
+  unit        Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  leasePacket LeasePacket? @relation(fields: [leasePacketId], references: [id], onDelete: SetNull)
+  createdBy   User?        @relation("OccupancyCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([applicationId, userId])
+  @@index([userId, status])
+  @@index([unitId, status])
+  @@index([applicationId])
+  @@index([leasePacketId])
+  @@index([status, startedAt])
 }
 
 model AccountAccessRequest {
@@ -1025,6 +1094,7 @@ model Unit {
   paymentDisputes PaymentDispute[]
   vendorPayouts VendorPayout[]
   vendorProfiles VendorProfile[] @relation("VendorProfileUnit")
+  vendorInvitations VendorInvitation[]
   vendorInvoices VendorInvoice[] @relation("VendorInvoiceUnit")
   securityDepositAccounts SecurityDepositAccount[]
   accountingExports AccountingExport[]
@@ -1041,6 +1111,7 @@ model Unit {
   tasks TaskItem[]
   scheduleEvents ScheduleEvent[]
   notices FormalNotice[]
+  occupancies Occupancy[]
 
   applicantScreenings ApplicantScreening[]
   maintenanceAssets MaintenanceAsset[]
@@ -1144,6 +1215,7 @@ model Application {
   tenantPayments TenantPayment[]
   tasks TaskItem[]
   notices FormalNotice[]
+  occupancies Occupancy[]
 
   applicantScreenings ApplicantScreening[]
   incomeVerifications IncomeVerification[]
@@ -1151,6 +1223,7 @@ model Application {
   screeningReferences ScreeningReference[]
   backgroundCheckRequests BackgroundCheckRequest[]
   insurancePolicies InsurancePolicy[]
+  occupancies Occupancy[]
 
   @@index([unitId])
   @@index([applicantUserId])
@@ -1565,6 +1638,7 @@ model LeasePacket {
   signatureRequests SignatureRequest[]
   tasks TaskItem[]
   notices FormalNotice[]
+  occupancies Occupancy[]
 
   @@index([applicationId])
   @@index([templateId])
@@ -2156,6 +2230,43 @@ model VendorProfile {
   @@index([unitId])
   @@index([trade])
   @@index([inviteStatus])
+}
+
+
+model VendorInvitation {
+  id              String             @id @default(cuid())
+  ownerUserId     String
+  unitId          String?
+  email           String
+  companyName     String
+  contactName     String?
+  trade           String
+  phone           String?
+  licenseNumber   String?
+  insuranceExpiresAt DateTime?
+  hourlyRate      Int?
+  isPreferred     Boolean            @default(false)
+  notes           String?
+  tokenHash       String             @unique
+  status          VendorInviteStatus @default(PENDING)
+  invitedAt       DateTime           @default(now())
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  acceptedByUserId String?
+  cancelledAt     DateTime?
+  createdById     String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  owner      User  @relation("VendorInvitationOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  createdBy  User? @relation("VendorInvitationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  acceptedBy User? @relation("VendorInvitationAcceptedBy", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+  unit       Unit? @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  @@index([ownerUserId, status])
+  @@index([email, status])
+  @@index([unitId])
+  @@index([acceptedByUserId])
 }
 
 model VendorWorkLog {

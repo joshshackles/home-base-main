@@ -142,7 +142,7 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <LandlordPageHeader title={`${unit.property.name} #${unit.unitNumber}`} description={`${unit.property.addressLine}, ${unit.property.city}, ${unit.property.state} ${unit.property.zip}`} actionHref="/landlord/units" actionLabel="Back to units" />
+      <LandlordPageHeader title={`${unit.property.name} #${unit.unitNumber}`} description={`${unit.property.addressLine}, ${unit.property.city}, ${unit.property.state} ${unit.property.zip}`} actionHref="/landlord/rentals" actionLabel="Back to rentals" />
 
       <section className="mb-8 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
         <div className="grid lg:grid-cols-[360px_1fr]">
@@ -221,7 +221,7 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
             </div>
             <div className="mt-5 flex flex-wrap gap-3">
               {primaryApplication ? <Link href={`/landlord/applications/${primaryApplication.id}`} className="rounded-2xl bg-slate-950 px-4 py-2 font-bold text-white hover:bg-slate-800">Tenant Info</Link> : null}
-              <Link href={`/landlord/units/${unit.id}/edit`} className="rounded-2xl border border-slate-300 px-4 py-2 font-bold text-slate-900 hover:bg-slate-50">Edit Assignment</Link>
+              <Link href={`/landlord/rentals/${unit.id}/edit`} className="rounded-2xl border border-slate-300 px-4 py-2 font-bold text-slate-900 hover:bg-slate-50">Edit Rental</Link>
               {unit.status === "AVAILABLE" ? <Link href={`/marketplace/${unit.id}`} className="rounded-2xl border border-slate-300 px-4 py-2 font-bold text-slate-900 hover:bg-slate-50">Public Listing</Link> : null}
             </div>
             <form action={assignLandlordUnitTenant} className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-4 md:grid-cols-2">
@@ -469,7 +469,7 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
 
           <Panel title="Client Notes">
             <p className="whitespace-pre-wrap leading-7 text-slate-700">{unit.clientNotes ?? "No client notes have been saved yet."}</p>
-            <Link href={`/landlord/units/${unit.id}/edit`} className="mt-4 inline-flex rounded-2xl border border-slate-300 px-4 py-2 font-bold text-slate-900 hover:bg-slate-50">Edit Notes</Link>
+            <Link href={`/landlord/rentals/${unit.id}/edit`} className="mt-4 inline-flex rounded-2xl border border-slate-300 px-4 py-2 font-bold text-slate-900 hover:bg-slate-50">Edit Notes</Link>
           </Panel>
 
           <Panel title="Message Client">

@@ -2,8 +2,8 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { addLandlordApplicationNote } from "@/app/landlord/actions";
-import { Field, textareaClass } from "@/components/admin/FormFields";
+import { addLandlordApplicationNote, approveLandlordApplicationAsTenant, endLandlordTenantOccupancy } from "@/app/landlord/actions";
+import { Field, inputClass, textareaClass } from "@/components/admin/FormFields";
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";
 import { formatCurrency } from "@/lib/format";
 import { requireRole } from "@/lib/auth";
@@ -17,7 +17,7 @@ export default async function LandlordApplicationDetailPage({ params }: { params
   const user = await requireRole(["LANDLORD"], "/landlord");
   const application = await prisma.application.findFirst({
     where: { id: params.id, unit: { property: { ownerId: user.userId, isArchived: false } } },
-    include: { unit: { include: { property: true } }, lead: true, notes: { orderBy: { createdAt: "desc" } } }
+    include: { unit: { include: { property: true } }, lead: true, applicantUser: true, notes: { orderBy: { createdAt: "desc" } }, occupancies: { include: { tenant: true }, orderBy: { createdAt: "desc" } } }
   });
 
   if (!application) notFound();
@@ -62,7 +62,42 @@ export default async function LandlordApplicationDetailPage({ params }: { params
             <p className="mt-3 text-3xl font-black text-slate-950">{formatCurrency(application.unit.rentAmount)}</p>
             <Link href={`/marketplace/${application.unit.id}`} className="mt-4 inline-flex rounded-2xl border border-slate-300 px-4 py-2 font-bold text-slate-900 hover:bg-slate-50">View listing</Link>
           </div>
-          {application.lead ? <div className="rounded-3xl border border-brand-100 bg-brand-50 p-6 shadow-sm"><h2 className="text-xl font-black text-slate-950">Original lead</h2><p className="mt-2 text-slate-700">This application started from a marketplace inquiry.</p><Link href={`/landlord/leads/${application.lead.id}`} className="mt-4 inline-flex w-full justify-center rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700">Open Lead</Link></div> : null}
+
+          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+            <h2 className="text-xl font-black text-slate-950">Approve as tenant</h2>
+            <p className="mt-2 text-sm leading-6 text-emerald-950">This converts the approved applicant into an active tenant relationship and unlocks the tenant dashboard for rent, maintenance, inspections, notices, and lease access.</p>
+            {application.occupancies.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {application.occupancies.map((occupancy) => {
+                  const isCurrent = occupancy.status !== "FORMER" && occupancy.status !== "CANCELLED";
+                  return (
+                    <div key={occupancy.id} className="rounded-2xl bg-white p-4 text-sm shadow-sm">
+                      <p className="font-black text-slate-950">Tenant relationship</p>
+                      <p className="mt-1 text-slate-600">{occupancy.tenant.name ?? occupancy.tenant.email} · {label(occupancy.status)}</p>
+                      {isCurrent ? (
+                        <form action={endLandlordTenantOccupancy} className="mt-4 space-y-3 rounded-2xl border border-rose-100 bg-rose-50 p-3">
+                          <input type="hidden" name="occupancyId" value={occupancy.id} />
+                          <input type="hidden" name="applicationId" value={application.id} />
+                          <Field label="Move-out date"><input name="moveOutDate" type="date" className={inputClass} /></Field>
+                          <Field label="Reason"><input name="reason" className={inputClass} placeholder="Lease ended, move-out, transfer..." /></Field>
+                          <Field label="Notes"><textarea name="notes" className={textareaClass} rows={3} placeholder="Final balance, deposit, key return, forwarding address, or turnover notes." /></Field>
+                          <label className="flex items-start gap-3 text-xs font-bold text-rose-950"><input name="releaseRental" type="checkbox" defaultChecked className="mt-1" /> Release this rental into turnover and remove active tenant access.</label>
+                          <button className="w-full rounded-2xl bg-rose-600 px-4 py-3 font-black text-white hover:bg-rose-700">End tenancy</button>
+                        </form>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <form action={approveLandlordApplicationAsTenant} className="mt-5 space-y-4 rounded-2xl bg-white p-4 shadow-sm">
+                <input type="hidden" name="applicationId" value={application.id} />
+                <Field label="Move-in date"><input name="moveInDate" type="date" className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" /></Field>
+                <button type="submit" className="w-full rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700" disabled={!application.applicantUserId}>{application.applicantUserId ? "Approve + Activate Tenant" : "Connect applicant account first"}</button>
+              </form>
+            )}
+          </div>
+                    {application.lead ? <div className="rounded-3xl border border-brand-100 bg-brand-50 p-6 shadow-sm"><h2 className="text-xl font-black text-slate-950">Original lead</h2><p className="mt-2 text-slate-700">This application started from a marketplace inquiry.</p><Link href={`/landlord/leads/${application.lead.id}`} className="mt-4 inline-flex w-full justify-center rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700">Open Lead</Link></div> : null}
         </aside>
       </section>
     </main>

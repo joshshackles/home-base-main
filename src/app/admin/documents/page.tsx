@@ -37,7 +37,7 @@ export default async function AdminDocumentsPage({ searchParams }: { searchParam
       { unit: { unitNumber: { contains: query, mode: "insensitive" } } }
     ] } : {})
   };
-  const [documents, documentTotal, applications, properties, units, requests] = await Promise.all([
+  const [documents, documentTotal, applications, units, requests] = await Promise.all([
     prisma.document.findMany({
       where,
       include: {
@@ -53,15 +53,14 @@ export default async function AdminDocumentsPage({ searchParams }: { searchParam
     }),
     prisma.document.count({ where }),
     prisma.application.findMany({ include: { unit: { include: { property: true } } }, orderBy: { createdAt: "desc" } }),
-    prisma.property.findMany({ where: { isArchived: false }, orderBy: { name: "asc" } }),
     prisma.unit.findMany({ where: { NOT: { status: "ARCHIVED" } }, include: { property: true }, orderBy: [{ property: { name: "asc" } }, { unitNumber: "asc" }] }),
     prisma.documentRequest.findMany({ where: { status: { in: ["REQUESTED", "SUBMITTED", "REJECTED"] } }, include: { application: { include: { unit: { include: { property: true } } } }, fulfilledDocument: true }, orderBy: { createdAt: "desc" }, take: 12 })
   ]);
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <AdminPageHeader title="Documents" description="Upload, categorize, review, and manage files connected to applications, properties, and units." />
-      <AdminListControls searchPlaceholder="Search documents by title, filename, applicant, property, unit, or notes..." defaultQuery={query}>
+      <AdminPageHeader title="Documents" description="Upload, categorize, review, and manage files connected to applications, rentals, lease packets, and portfolio records." />
+      <AdminListControls searchPlaceholder="Search documents by title, filename, applicant, rental, or notes..." defaultQuery={query}>
         <FilterSelect name="status" label="Status" defaultValue={status ?? ""} options={[{ value: "", label: "All statuses" }, ...Object.values(DocumentStatus).map((value) => ({ value, label: label(value) }))]} />
         <FilterSelect name="category" label="Category" defaultValue={category ?? ""} options={[{ value: "", label: "All categories" }, ...Object.values(DocumentCategory).map((value) => ({ value, label: label(value) }))]} />
       </AdminListControls>
@@ -99,8 +98,7 @@ export default async function AdminDocumentsPage({ searchParams }: { searchParam
             <Field label="Category"><select name="category" className={selectClass} defaultValue="OTHER">{Object.values(DocumentCategory).map((value) => <option key={value} value={value}>{label(value)}</option>)}</select></Field>
             <Field label="Visibility"><select name="visibility" className={selectClass} defaultValue="INTERNAL">{Object.values(DocumentVisibility).map((value) => <option key={value} value={value}>{label(value)}</option>)}</select></Field>
             <Field label="Application"><select name="applicationId" className={selectClass} defaultValue=""><option value="">No application</option>{applications.map((application) => <option key={application.id} value={application.id}>{application.applicantName} · {application.unit.property.name} #{application.unit.unitNumber}</option>)}</select></Field>
-            <Field label="Property"><select name="propertyId" className={selectClass} defaultValue=""><option value="">No property</option>{properties.map((property) => <option key={property.id} value={property.id}>{property.name}</option>)}</select></Field>
-            <Field label="Unit"><select name="unitId" className={selectClass} defaultValue=""><option value="">No unit</option>{units.map((unit) => <option key={unit.id} value={unit.id}>{unit.property.name} #{unit.unitNumber}</option>)}</select></Field>
+            <Field label="Applies to"><select name="unitId" className={selectClass} defaultValue=""><option value="">Portfolio-wide</option>{units.map((unit) => <option key={unit.id} value={unit.id}>{unit.property.name} #{unit.unitNumber}</option>)}</select></Field>
             <Field label="File"><input name="file" type="file" className={inputClass} required /></Field>
             <Field label="Notes"><textarea name="notes" className={textareaClass} placeholder="Optional internal document note." /></Field>
             <button type="submit" className="w-full rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700">Upload Document</button>
@@ -118,8 +116,8 @@ export default async function AdminDocumentsPage({ searchParams }: { searchParam
                   <td className="px-5 py-4"><p className="font-black text-slate-950">{document.title}</p><p className="mt-1 text-xs text-slate-500">{label(document.category)} · {fileSize(document.sizeBytes)}</p><p className="mt-1 text-xs text-slate-500">{document.originalName}</p></td>
                   <td className="px-5 py-4 text-slate-700">
                     {document.application ? <Link className="font-bold text-brand-700 hover:underline" href={`/admin/applications/${document.application.id}`}>{document.application.applicantName}</Link> : null}
-                    {document.property ? <p>{document.property.name}</p> : null}
                     {document.unit ? <p>{document.unit.property.name} #{document.unit.unitNumber}</p> : null}
+                    {!document.unit && document.property ? <p>Portfolio: {document.property.name}</p> : null}
                     {!document.application && !document.property && !document.unit ? "Unattached" : null}
                   </td>
                   <td className="px-5 py-4"><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase text-slate-700">{label(document.status)}</span></td>

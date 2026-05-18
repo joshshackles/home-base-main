@@ -1,6 +1,7 @@
 import { TaskItemPriority, TaskItemStatus, TaskItemType, UserRole, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth";
+import { activeOccupancyStatuses } from "@/lib/relationship-lifecycle";
 
 export const openTaskStatuses: TaskItemStatus[] = [TaskItemStatus.TODO, TaskItemStatus.IN_PROGRESS, TaskItemStatus.BLOCKED, TaskItemStatus.WAITING];
 
@@ -44,7 +45,7 @@ export function getTaskScopeWhere(user: SessionPayload): Prisma.TaskItemWhereInp
     OR: [
       { createdById: user.userId },
       { assignedToId: user.userId },
-      { unit: { tenantUserId: user.userId } },
+      { unit: { OR: [{ tenantUserId: user.userId }, { occupancies: { some: { userId: user.userId, status: { in: activeOccupancyStatuses() } } } }] } },
       { application: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] } },
       { maintenanceRequest: { requesterId: user.userId } },
       { document: { uploadedById: user.userId } }

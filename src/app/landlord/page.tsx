@@ -21,9 +21,9 @@ export default async function LandlordDashboardPage() {
   ]);
 
   const tasks = [
-    propertyCount === 0 ? { title: "Create your first rental home", detail: "For a single-family rental, add the home and listing in one step.", href: "/landlord/homes/new", cta: "Add Home", tone: "urgent" as const } : null,
-    availableCount === 0 ? { title: "List an available unit", detail: "Available units automatically appear in the public rental directory.", href: "/landlord/units/new", cta: "Create", tone: "urgent" as const } : null,
-    leadCount > 0 ? { title: "Review rental leads", detail: `${leadCount} prospect lead${leadCount === 1 ? "" : "s"} are tied to your units.`, href: "/landlord/leads", cta: "Leads" } : null,
+    unitCount === 0 ? { title: "Create your first rental", detail: "Add one rental record and choose whether it is a single-family home, apartment, mobile home, townhouse, or another type.", href: "/landlord/rentals/new", cta: "Add Rental", tone: "urgent" as const } : null,
+    availableCount === 0 ? { title: "List an available rental", detail: "Available rentals automatically appear in the public rental directory.", href: "/landlord/rentals/new", cta: "Create", tone: "urgent" as const } : null,
+    leadCount > 0 ? { title: "Review rental leads", detail: `${leadCount} prospect lead${leadCount === 1 ? "" : "s"} are tied to your rentals.`, href: "/landlord/leads", cta: "Leads" } : null,
     applicationCount > 0 ? { title: "Move applications forward", detail: `${applicationCount} active application${applicationCount === 1 ? "" : "s"} need review or follow-up.`, href: "/landlord/applications", cta: "Applications" } : null,
     maintenanceCount > 0 ? { title: "Coordinate maintenance", detail: `${maintenanceCount} open maintenance request${maintenanceCount === 1 ? "" : "s"} need status, assignment, or messaging.`, href: "/landlord/maintenance", cta: "Repairs", tone: "urgent" as const } : null,
     taskCount > 0 ? { title: "Work your task queue", detail: `${taskCount} task${taskCount === 1 ? "" : "s"} are open across rentals, documents, repairs, and leasing.`, href: "/landlord/tasks", cta: "Tasks" } : null
@@ -36,15 +36,14 @@ export default async function LandlordDashboardPage() {
       headline="Your property workbench"
       summary="The dashboard keeps the renter foundation, then adds landlord tools for listings, leads, tenant records, leases, ledger activity, messaging, and repairs."
       metrics={[
-        { label: "Properties", value: propertyCount, href: "/landlord/properties", detail: "Assigned portfolio", icon: dashboardIcons.homes },
-        { label: "Units", value: unitCount, href: "/landlord/units", detail: `${availableCount} public listings`, icon: dashboardIcons.homes },
+        { label: "Rentals", value: unitCount, href: "/landlord/rentals", detail: `${availableCount} public listings`, icon: dashboardIcons.homes },
         { label: "Leads", value: leadCount, href: "/landlord/leads", detail: "Prospects and inquiries", icon: dashboardIcons.inbox },
         { label: "Maintenance", value: maintenanceCount, href: "/landlord/maintenance", detail: `${inboxCount} message threads`, icon: dashboardIcons.maintenance },
         { label: "Tasks", value: taskCount, href: "/landlord/tasks", detail: "Open work orders", icon: dashboardIcons.work }
       ]}
       tasks={tasks}
       tools={[
-        { title: "Home and unit operations", detail: "Add single-family homes, create multi-unit properties, mark availability, and open tenant records.", href: "/landlord/units", icon: dashboardIcons.homes },
+        { title: "Rental operations", detail: "Add rentals, choose property type, mark availability, and open tenant records.", href: "/landlord/units", icon: dashboardIcons.homes },
         { title: "Leads and applications", detail: "Review prospects, notes, applications, documents, and next steps.", href: "/landlord/applications", icon: dashboardIcons.applications },
         { title: "Tasks and work orders", detail: "Create, assign, and complete leasing, repair, move-in, collections, and document tasks.", href: "/landlord/tasks", icon: dashboardIcons.work },
         { title: "Maintenance queue", detail: "Assign repairs, message tenants, and track completion.", href: "/landlord/maintenance", icon: dashboardIcons.maintenance },

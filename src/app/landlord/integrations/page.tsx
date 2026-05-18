@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { requireRole } from "@/lib/auth";
 import { getIntegrationsHubModule } from "@/lib/operations/modules";
 import { IntegrationsHubModule } from "@/components/operations/IntegrationsHubModule";
-import { createLandlordIntegrationConnectionAction, createLandlordIntegrationEventAction, updateLandlordIntegrationConnectionStatusAction } from "@/app/landlord/actions";
+import { createLandlordIntegrationConnectionAction, createLandlordIntegrationEventAction, createLandlordQuickBooksConnectionAction, runLandlordIntegrationDiagnosticAction, updateLandlordIntegrationConnectionStatusAction } from "@/app/landlord/actions";
 
 export default async function Page() {
   const user = await requireRole(["LANDLORD"], "/landlord/integrations");
@@ -14,7 +14,9 @@ export default async function Page() {
       actions={{
         createConnection: createLandlordIntegrationConnectionAction,
         updateConnectionStatus: updateLandlordIntegrationConnectionStatusAction,
-        createEvent: createLandlordIntegrationEventAction
+        createEvent: createLandlordIntegrationEventAction,
+        runDiagnostic: runLandlordIntegrationDiagnosticAction,
+        createQuickBooksConnection: createLandlordQuickBooksConnectionAction
       }}
     />
   );

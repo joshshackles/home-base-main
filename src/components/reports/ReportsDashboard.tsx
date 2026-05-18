@@ -12,7 +12,7 @@ const sections: Array<{ key: ReportSection; label: string }> = [
   { key: "communications", label: "Communications" }
 ];
 
-export function ReportsDashboard({ report, basePath, options }: { report: ReportsDashboardDTO; basePath: string; options: { properties: Array<{ id: string; name: string }>; rentals: Array<{ id: string; label: string }> } }) {
+export function ReportsDashboard({ report, basePath, options }: { report: ReportsDashboardDTO; basePath: string; options: { rentals: Array<{ id: string; label: string }> } }) {
   const activeSection = report.filters.section;
   const currentTable = getActiveTable(report, activeSection);
   return (
@@ -46,17 +46,10 @@ export function ReportsDashboard({ report, basePath, options }: { report: Report
             To
             <input className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-800" type="date" name="to" defaultValue={toInputDate(report.filters.to)} />
           </label>
-          <label className="grid min-w-[180px] gap-1 text-xs font-black uppercase tracking-wide text-slate-500">
-            Property
-            <select className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-800" name="propertyId" defaultValue={report.filters.propertyId ?? ""}>
-              <option value="">All properties</option>
-              {options.properties.map((property) => <option key={property.id} value={property.id}>{property.name}</option>)}
-            </select>
-          </label>
           <label className="grid min-w-[220px] gap-1 text-xs font-black uppercase tracking-wide text-slate-500">
             Rental
             <select className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-800" name="rentalId" defaultValue={report.filters.rentalId ?? ""}>
-              <option value="">All rentals</option>
+              <option value="">Portfolio-wide</option>
               {options.rentals.map((rental) => <option key={rental.id} value={rental.id}>{rental.label}</option>)}
             </select>
           </label>

@@ -50,8 +50,8 @@ export function documentAttachmentLabel(document: DocumentCenterDocument) {
 export function documentAttachmentHref(document: DocumentCenterDocument, base: "admin" | "landlord" | "applicant") {
   if (document.application) return `/${base}/applications/${document.application.id}`;
   if (document.leasePacket) return `/${base}/leases/${document.leasePacket.id}`;
-  if (document.unit) return base === "applicant" ? "/applicant/home-tools" : `/${base}/units/${document.unit.id}`;
-  if (document.property) return base === "applicant" ? "/applicant/home-tools" : `/${base}/properties/${document.property.id}`;
+  if (document.unit) return base === "applicant" ? "/applicant/home-tools" : `/${base}/rentals/${document.unit.id}`;
+  if (document.property) return base === "applicant" ? "/applicant/home-tools" : `/${base}/rentals`;
   return `/${base}/documents`;
 }
 

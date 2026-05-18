@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { requireRole } from "@/lib/auth";
 import { getIntegrationsHubModule } from "@/lib/operations/modules";
 import { IntegrationsHubModule } from "@/components/operations/IntegrationsHubModule";
-import { createAdminIntegrationConnectionAction, createAdminIntegrationEventAction, updateAdminIntegrationConnectionStatusAction } from "@/app/admin/actions";
+import { createAdminIntegrationConnectionAction, createAdminIntegrationEventAction, createAdminQuickBooksConnectionAction, runAdminIntegrationDiagnosticAction, updateAdminIntegrationConnectionStatusAction } from "@/app/admin/actions";
 
 export default async function Page() {
   await requireRole(["ADMIN"], "/admin/integrations");
@@ -14,7 +14,9 @@ export default async function Page() {
       actions={{
         createConnection: createAdminIntegrationConnectionAction,
         updateConnectionStatus: updateAdminIntegrationConnectionStatusAction,
-        createEvent: createAdminIntegrationEventAction
+        createEvent: createAdminIntegrationEventAction,
+        runDiagnostic: runAdminIntegrationDiagnosticAction,
+        createQuickBooksConnection: createAdminQuickBooksConnectionAction
       }}
     />
   );

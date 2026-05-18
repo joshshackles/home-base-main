@@ -231,7 +231,6 @@ export async function getReportFilterOptions(scope: ReportScope) {
     select: { id: true, name: true, units: { select: { id: true, unitNumber: true }, orderBy: { unitNumber: "asc" } } }
   });
   return {
-    properties,
     rentals: properties.flatMap((property) => property.units.map((unit) => ({ id: unit.id, label: `${property.name} #${unit.unitNumber}` })))
   };
 }

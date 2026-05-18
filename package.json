@@ -1,6 +1,6 @@
 {
   "name": "homebase-mls",
-  "version": "4.12.13",
+  "version": "4.15.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -19,7 +19,7 @@
     "db:reset": "prisma migrate reset",
     "routes:check": "tsx scripts/check-routes.ts",
     "email:send-queued": "tsx scripts/send-queued-email.ts",
-    "verify": "npm run preflight && npm run routes:check && npm run storage:verify && npm run seed:verify && npm run workflow:verify && npm run security:verify && npm run authorization:verify && npm run messaging:update2:verify && npm run document-access:update3:verify && npm run esignature:update4:verify && npm run account-flow:verify && npm run property-unit:verify && npm run unit-media:verify && npm run dashboard-polish:verify && npm run landlord-unit-workflow:verify && npm run data-portability:verify && npm run product-identity:verify && npm run test:form-persistence && npm run test:sort-priority && npm run test:label-masking && npm run tenant-transition:verify && npm run pdf:verify && npm run esignature:verify && npm run session:verify && npm run email:verify && npm run observability:verify && npm run update12:verify && npm run workflow-update1:verify && npm run workflow-update2:verify && npm run workflow-update3:verify && npm run workflow-update4:verify && npm run vercel:preflight && npm run test && npm run typecheck",
+    "verify": "npm run preflight && npm run routes:check && npm run storage:verify && npm run seed:verify && npm run workflow:verify && npm run security:verify && npm run authorization:verify && npm run messaging:update2:verify && npm run document-access:update3:verify && npm run esignature:update4:verify && npm run account-flow:verify && npm run property-unit:verify && npm run unit-media:verify && npm run dashboard-polish:verify && npm run landlord-unit-workflow:verify && npm run data-portability:verify && npm run product-identity:verify && npm run test:form-persistence && npm run test:sort-priority && npm run test:label-masking && npm run tenant-transition:verify && npm run pdf:verify && npm run esignature:verify && npm run session:verify && npm run email:verify && npm run observability:verify && npm run update12:verify && npm run workflow-update1:verify && npm run workflow-update2:verify && npm run workflow-update3:verify && npm run workflow-update4:verify && npm run vercel:preflight && npm run test && npm run package:cleanliness && npm run typecheck",
     "migrations:check": "tsx scripts/check-migrations.ts",
     "storage:verify": "tsx scripts/verify-storage.ts",
     "seed:verify": "tsx scripts/verify-seed.ts",
@@ -65,7 +65,13 @@
     "updates:9-12:verify": "tsx scripts/verify-updates-9-12.ts",
     "update10:verify": "tsx scripts/verify-update10-maintenance-inventory.ts",
     "update11:verify": "tsx scripts/verify-update11-insurance-compliance.ts",
-    "update12:integrations:verify": "tsx scripts/verify-update12-integrations-hub.ts"
+    "update12:integrations:verify": "tsx scripts/verify-update12-integrations-hub.ts",
+    "integrations:update12-5:verify": "tsx scripts/verify-integrations-update12-5.ts",
+    "update13:verify": "tsx scripts/verify-update13-tenant-dashboard.ts",
+    "relationship:lifecycle:verify": "tsx scripts/verify-relationship-lifecycle-completion.ts",
+    "relationship-contacts:verify": "tsx scripts/verify-relationship-contact-network.ts",
+    "package:cleanliness": "node scripts/verify-package-cleanliness.mjs",
+    "vendor-invitations:verify": "tsx scripts/verify-vendor-invitations.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.716.0",

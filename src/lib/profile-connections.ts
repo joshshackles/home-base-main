@@ -2,6 +2,7 @@ import {
   ConnectionRole,
   ConnectionStatus,
   MaintenanceRequestStatus,
+  OccupancyStatus,
 } from "@prisma/client";
 import type {
   ConnectionRole as ConnectionRoleType,
@@ -13,7 +14,12 @@ export type LandlordContactSource =
   | "explicit"
   | "maintenance"
   | "tenant"
-  | "applicant";
+  | "applicant"
+  | "occupancy"
+  | "vendor"
+  | "unit_staff"
+  | "emergency"
+  | "relationship";
 export type ContactReviewStatus =
   | "current"
   | "needs_review"
@@ -34,8 +40,11 @@ const STALE_EXPLICIT_DAYS = 180;
 const PORTFOLIO_SCOPE_KEY = "PORTFOLIO";
 const OPERATIONAL_CONNECTION_ROLES = new Set<string>([
   ConnectionRole.PROPERTY_MANAGER,
+  ConnectionRole.HOUSING_COORDINATOR,
   ConnectionRole.MAINTENANCE_STAFF,
+  ConnectionRole.MAINTENANCE_WORKER,
   ConnectionRole.PREFERRED_VENDOR,
+  ConnectionRole.VENDOR,
 ]);
 
 export const landlordContactSourceLabels: Record<
@@ -46,6 +55,11 @@ export const landlordContactSourceLabels: Record<
   maintenance: "Live maintenance",
   tenant: "Current tenant",
   applicant: "Application workflow",
+  occupancy: "Occupancy lifecycle",
+  vendor: "Vendor workflow",
+  unit_staff: "Rental team assignment",
+  emergency: "Emergency contact",
+  relationship: "Relationship network",
 };
 
 export type LandlordContactListItem = {
@@ -56,7 +70,7 @@ export type LandlordContactListItem = {
   name: string;
   email: string;
   systemRole: UserRole;
-  assignedRole: ConnectionRoleType | "TENANT" | "APPLICANT";
+  assignedRole: ConnectionRoleType | "LANDLORD" | "TENANT" | "APPLICANT";
   scopedUnit: string;
   notes: string | null;
   unitId: string | null;
@@ -621,7 +635,7 @@ export async function syncUnitStaffConnections(input: {
 export async function getLandlordContactsList(
   landlordUserId: string,
 ): Promise<LandlordContactListItem[]> {
-  const [connections, maintenanceRequests, tenantUnits, applications] =
+  const [connections, maintenanceRequests, tenantUnits, activeOccupancies, applications, vendorProfiles] =
     await Promise.all([
       prisma.profileConnection.findMany({
         where: { landlordUserId, status: ConnectionStatus.ACTIVE },
@@ -665,6 +679,16 @@ export async function getLandlordContactsList(
           property: { select: { name: true } },
         },
       }),
+      prisma.occupancy.findMany({
+        where: {
+          status: { in: [OccupancyStatus.ACTIVE, OccupancyStatus.PENDING_MOVE_IN, OccupancyStatus.RENEWAL_PENDING, OccupancyStatus.NOTICE_GIVEN, OccupancyStatus.MOVE_OUT_SCHEDULED] },
+          unit: { property: { ownerId: landlordUserId, isArchived: false } },
+        },
+        include: {
+          tenant: { select: { id: true, name: true, email: true, role: true } },
+          unit: { select: { id: true, unitNumber: true, property: { select: { name: true } } } },
+        },
+      }),
       prisma.application.findMany({
         where: {
           unit: { property: { ownerId: landlordUserId, isArchived: false } },
@@ -678,6 +702,17 @@ export async function getLandlordContactsList(
           },
         },
         orderBy: { updatedAt: "desc" },
+        take: 100,
+      }),
+      prisma.vendorProfile.findMany({
+        where: {
+          ownerUserId: landlordUserId,
+          OR: [{ isActive: true }, { invoices: { some: {} } }, { workLogs: { some: {} } }],
+        },
+        include: {
+          user: { select: { id: true, name: true, email: true, role: true } },
+          unit: { select: { id: true, unitNumber: true, property: { select: { name: true } } } },
+        },
         take: 100,
       }),
     ]);
@@ -787,6 +822,23 @@ export async function getLandlordContactsList(
     });
   }
 
+  for (const occupancy of activeOccupancies) {
+    add({
+      connectionId: null,
+      source: "occupancy",
+      userId: occupancy.tenant.id,
+      name: displayName(occupancy.tenant),
+      email: occupancy.tenant.email,
+      systemRole: occupancy.tenant.role,
+      assignedRole: "TENANT",
+      scopedUnit: unitLabel(occupancy.unit),
+      notes: `Occupancy ${occupancy.status.replaceAll("_", " ").toLowerCase()}`,
+      unitId: occupancy.unitId,
+      createdAt: occupancy.createdAt,
+      updatedAt: occupancy.updatedAt,
+    });
+  }
+
   for (const application of applications) {
     if (!application.applicantUser) continue;
     add({
@@ -805,8 +857,301 @@ export async function getLandlordContactsList(
     });
   }
 
+  for (const vendor of vendorProfiles) {
+    if (!vendor.user) continue;
+    add({
+      connectionId: null,
+      source: "vendor",
+      userId: vendor.user.id,
+      name: displayName(vendor.user),
+      email: vendor.user.email,
+      systemRole: vendor.user.role,
+      assignedRole: vendor.trade.toLowerCase().includes("maintenance") ? ConnectionRole.MAINTENANCE_WORKER : ConnectionRole.VENDOR,
+      scopedUnit: vendor.unit ? unitLabel(vendor.unit) : "All Portfolio Properties",
+      notes: vendor.companyName ? `Vendor profile: ${vendor.companyName}` : "Vendor profile",
+      unitId: vendor.unitId ?? null,
+      createdAt: vendor.createdAt,
+      updatedAt: vendor.updatedAt,
+    });
+  }
+
   return sortLandlordContacts(
     enrichContactReviewState(Array.from(contacts.values())),
     "name",
   );
+}
+
+
+export type RelationshipContactListItem = LandlordContactListItem & {
+  direction: "incoming" | "outgoing" | "workflow";
+  relationshipContext: string;
+};
+
+function addRelationshipContact(
+  contacts: Map<string, RelationshipContactListItem>,
+  item: Omit<
+    RelationshipContactListItem,
+    | "sources"
+    | "sourceCount"
+    | "reviewStatus"
+    | "confidenceScore"
+    | "riskLevel"
+    | "attentionReason"
+    | "recommendedAction"
+    | "scopeType"
+    | "permissionFootprint"
+    | "governanceFlags"
+    | "isRevocable"
+  > & { sources?: LandlordContactSource[] },
+) {
+  const scopeKey = item.unitId ?? PORTFOLIO_SCOPE_KEY;
+  const key = `${item.userId}:${item.assignedRole}:${scopeKey}:${item.direction}`;
+  const sources = item.sources ?? [item.source];
+  const existing = contacts.get(key);
+  if (!existing) {
+    contacts.set(key, {
+      ...item,
+      sources,
+      sourceCount: sources.length,
+      reviewStatus: "current",
+      confidenceScore: 0,
+      riskLevel: "low",
+      attentionReason: "Pending review",
+      recommendedAction: "Review contact",
+      scopeType: item.unitId ? "unit" : "portfolio",
+      permissionFootprint: "Pending review",
+      governanceFlags: [],
+      isRevocable: Boolean(item.connectionId),
+    });
+    return;
+  }
+  contacts.set(key, {
+    ...existing,
+    sources: Array.from(new Set([...existing.sources, ...sources])),
+    notes: Array.from(new Set([existing.notes, item.notes].filter(Boolean))).join(" · ") || null,
+    createdAt: earlierDate(existing.createdAt, item.createdAt),
+    updatedAt: laterDate(existing.updatedAt, item.updatedAt),
+  });
+}
+
+export async function getUserRelationshipContactsList(
+  userId: string,
+): Promise<RelationshipContactListItem[]> {
+  const [incomingConnections, outgoingConnections, occupancies, assignedUnits, workOrders] = await Promise.all([
+    prisma.profileConnection.findMany({
+      where: { targetUserId: userId, status: ConnectionStatus.ACTIVE },
+      include: {
+        landlord: { select: { id: true, name: true, email: true, role: true } },
+        unit: { select: { id: true, unitNumber: true, property: { select: { name: true } } } },
+      },
+    }),
+    prisma.profileConnection.findMany({
+      where: { landlordUserId: userId, status: ConnectionStatus.ACTIVE },
+      include: {
+        target: { select: { id: true, name: true, email: true, role: true } },
+        unit: { select: { id: true, unitNumber: true, property: { select: { name: true } } } },
+      },
+    }),
+    prisma.occupancy.findMany({
+      where: { userId, status: { in: [OccupancyStatus.ACTIVE, OccupancyStatus.PENDING_MOVE_IN, OccupancyStatus.RENEWAL_PENDING, OccupancyStatus.NOTICE_GIVEN, OccupancyStatus.MOVE_OUT_SCHEDULED] } },
+      include: {
+        unit: {
+          select: {
+            id: true,
+            unitNumber: true,
+            property: { select: { name: true, owner: { select: { id: true, name: true, email: true, role: true } } } },
+            propertyManager: { select: { id: true, name: true, email: true, role: true } },
+            maintenanceUser: { select: { id: true, name: true, email: true, role: true } },
+            caseworker: { select: { id: true, name: true, email: true, role: true } },
+          },
+        },
+      },
+    }),
+    prisma.unit.findMany({
+      where: { OR: [{ propertyManagerUserId: userId }, { maintenanceUserId: userId }, { caseworkerUserId: userId }] },
+      include: {
+        property: { select: { name: true, owner: { select: { id: true, name: true, email: true, role: true } } } },
+        tenantUser: { select: { id: true, name: true, email: true, role: true } },
+      },
+      take: 100,
+    }),
+    prisma.maintenanceRequest.findMany({
+      where: { assignedToId: userId, status: { notIn: [MaintenanceRequestStatus.COMPLETED, MaintenanceRequestStatus.CANCELLED] } },
+      include: {
+        requester: { select: { id: true, name: true, email: true, role: true } },
+        unit: { select: { id: true, unitNumber: true, property: { select: { name: true, owner: { select: { id: true, name: true, email: true, role: true } } } } } },
+      },
+      take: 100,
+    }),
+  ]);
+
+  const contacts = new Map<string, RelationshipContactListItem>();
+
+  for (const connection of incomingConnections) {
+    addRelationshipContact(contacts, {
+      connectionId: connection.id,
+      source: "relationship",
+      userId: connection.landlord.id,
+      name: displayName(connection.landlord),
+      email: connection.landlord.email,
+      systemRole: connection.landlord.role,
+      assignedRole: "LANDLORD",
+      scopedUnit: unitLabel(connection.unit),
+      notes: connection.notes,
+      unitId: connection.unitId,
+      createdAt: connection.createdAt,
+      updatedAt: connection.updatedAt,
+      direction: "incoming",
+      relationshipContext: `They granted you ${String(connection.assignedRole).replaceAll("_", " ").toLowerCase()} access.`,
+    });
+  }
+
+  for (const connection of outgoingConnections) {
+    addRelationshipContact(contacts, {
+      connectionId: connection.id,
+      source: "explicit",
+      userId: connection.target.id,
+      name: displayName(connection.target),
+      email: connection.target.email,
+      systemRole: connection.target.role,
+      assignedRole: connection.assignedRole,
+      scopedUnit: unitLabel(connection.unit),
+      notes: connection.notes,
+      unitId: connection.unitId,
+      createdAt: connection.createdAt,
+      updatedAt: connection.updatedAt,
+      direction: "outgoing",
+      relationshipContext: "Relationship you manage.",
+    });
+  }
+
+  for (const occupancy of occupancies) {
+    const unit = occupancy.unit;
+    const scope = unitLabel(unit);
+    const owner = unit.property.owner;
+    if (owner) {
+      addRelationshipContact(contacts, {
+        connectionId: null,
+        source: "occupancy",
+        userId: owner.id,
+        name: displayName(owner),
+        email: owner.email,
+        systemRole: owner.role,
+        assignedRole: "LANDLORD",
+        scopedUnit: scope,
+        notes: "Rental owner for your current home",
+        unitId: unit.id,
+        createdAt: occupancy.createdAt,
+        updatedAt: occupancy.updatedAt,
+        direction: "workflow",
+        relationshipContext: "Owner connected through your active occupancy.",
+      });
+    }
+    const staff = [
+      { user: unit.propertyManager, role: ConnectionRole.PROPERTY_MANAGER, note: "Property manager" },
+      { user: unit.maintenanceUser, role: ConnectionRole.MAINTENANCE_STAFF, note: "Maintenance contact" },
+      { user: unit.caseworker, role: ConnectionRole.CASEWORKER, note: "Case worker / housing support" },
+    ];
+    for (const item of staff) {
+      if (!item.user) continue;
+      addRelationshipContact(contacts, {
+        connectionId: null,
+        source: "unit_staff",
+        userId: item.user.id,
+        name: displayName(item.user),
+        email: item.user.email,
+        systemRole: item.user.role,
+        assignedRole: item.role,
+        scopedUnit: scope,
+        notes: item.note,
+        unitId: unit.id,
+        createdAt: occupancy.createdAt,
+        updatedAt: occupancy.updatedAt,
+        direction: "workflow",
+        relationshipContext: `${item.note} for your current home.`,
+      });
+    }
+  }
+
+  for (const unit of assignedUnits) {
+    const scope = `${unit.property.name} - #${unit.unitNumber}`;
+    if (unit.property.owner) {
+      addRelationshipContact(contacts, {
+        connectionId: null,
+        source: "unit_staff",
+        userId: unit.property.owner.id,
+        name: displayName(unit.property.owner),
+        email: unit.property.owner.email,
+        systemRole: unit.property.owner.role,
+        assignedRole: "LANDLORD",
+        scopedUnit: scope,
+        notes: "Owner for an assigned rental",
+        unitId: unit.id,
+        createdAt: unit.createdAt,
+        updatedAt: unit.updatedAt,
+        direction: "workflow",
+        relationshipContext: "Owner connected through your staff assignment.",
+      });
+    }
+    if (unit.tenantUser) {
+      addRelationshipContact(contacts, {
+        connectionId: null,
+        source: "tenant",
+        userId: unit.tenantUser.id,
+        name: displayName(unit.tenantUser),
+        email: unit.tenantUser.email,
+        systemRole: unit.tenantUser.role,
+        assignedRole: "TENANT",
+        scopedUnit: scope,
+        notes: "Tenant in an assigned rental",
+        unitId: unit.id,
+        createdAt: unit.createdAt,
+        updatedAt: unit.updatedAt,
+        direction: "workflow",
+        relationshipContext: "Tenant connected through your staff assignment.",
+      });
+    }
+  }
+
+  for (const request of workOrders) {
+    if (request.requester) {
+      addRelationshipContact(contacts, {
+        connectionId: null,
+        source: "maintenance",
+        userId: request.requester.id,
+        name: displayName(request.requester),
+        email: request.requester.email,
+        systemRole: request.requester.role,
+        assignedRole: "TENANT",
+        scopedUnit: unitLabel(request.unit),
+        notes: `Open maintenance request: ${request.subject}`,
+        unitId: request.unitId,
+        createdAt: request.createdAt,
+        updatedAt: request.updatedAt,
+        direction: "workflow",
+        relationshipContext: "Connected through an active maintenance request.",
+      });
+    }
+    const owner = request.unit?.property.owner;
+    if (owner) {
+      addRelationshipContact(contacts, {
+        connectionId: null,
+        source: "maintenance",
+        userId: owner.id,
+        name: displayName(owner),
+        email: owner.email,
+        systemRole: owner.role,
+        assignedRole: "LANDLORD",
+        scopedUnit: unitLabel(request.unit),
+        notes: `Owner for work order: ${request.subject}`,
+        unitId: request.unitId,
+        createdAt: request.createdAt,
+        updatedAt: request.updatedAt,
+        direction: "workflow",
+        relationshipContext: "Owner connected through an active maintenance request.",
+      });
+    }
+  }
+
+  return sortLandlordContacts(enrichContactReviewState(Array.from(contacts.values())), "role") as RelationshipContactListItem[];
 }

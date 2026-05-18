@@ -74,12 +74,12 @@ function FilterSelect({ name, labelText, values, current }: { name: string; labe
   );
 }
 
-function OptionSelect({ name, labelText, options, defaultValue = "", multiple = false }: { name: string; labelText: string; options: Option[]; defaultValue?: string; multiple?: boolean }) {
+function OptionSelect({ name, labelText, options, defaultValue = "", emptyLabel = "None", multiple = false }: { name: string; labelText: string; options: Option[]; defaultValue?: string; emptyLabel?: string; multiple?: boolean }) {
   return (
     <label className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
       {labelText}
       <select name={name} defaultValue={multiple ? undefined : defaultValue} multiple={multiple} className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold normal-case tracking-normal text-slate-900">
-        {!multiple ? <option value="">None</option> : null}
+        {!multiple ? <option value="">{emptyLabel}</option> : null}
         {options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
       </select>
     </label>
@@ -181,8 +181,7 @@ export function CalendarCenterView({ title, description, basePath, center, searc
                 <label className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Reminder minutes<input name="reminderMinutes" type="number" min="0" max="10080" defaultValue="60" className="mt-1 w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm font-bold normal-case tracking-normal text-slate-900" /></label>
                 <OptionSelect name="assignedToId" labelText="Owner" options={users} />
                 <OptionSelect name="participantIds" labelText="Participants" options={users} multiple />
-                <OptionSelect name="propertyId" labelText="Property group" options={properties} />
-                <OptionSelect name="unitId" labelText="Rental" options={units} />
+                <OptionSelect name="unitId" labelText="Applies to" options={units} emptyLabel="Portfolio-wide" />
                 <OptionSelect name="taskItemId" labelText="Linked task" options={tasks} />
                 <button className="w-full rounded-2xl bg-brand-600 px-4 py-3 text-sm font-black text-white hover:bg-brand-700">Create event</button>
               </div>

@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { Bell, Megaphone, ClipboardCheck, ClipboardList, DollarSign, FileSignature, FileText, Heart, Home, LayoutDashboard, MessageSquare, Wrench, UserRound, CheckSquare, CalendarDays } from "lucide-react";
+import { Bell, Megaphone, ClipboardCheck, ClipboardList, DollarSign, FileSignature, FileText, Heart, Home, LayoutDashboard, MessageSquare, Wrench, UserRound, CheckSquare, CalendarDays, Users } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { DashboardShell, type ShellNavGroup } from "@/components/layout/DashboardShell";
 
@@ -8,6 +8,7 @@ const navGroups: ShellNavGroup[] = [
   { label: "Operations", items: [
     { href: "/applicant", label: "Dashboard", icon: LayoutDashboard },
     { href: "/applicant/profile", label: "Profile", icon: UserRound },
+    { href: "/applicant/contacts", label: "Contacts", icon: Users },
     { href: "/applicant/favorites", label: "Favorites", icon: Heart },
     { href: "/applicant/home-tools", label: "Home Tools", icon: Home }
   ] },

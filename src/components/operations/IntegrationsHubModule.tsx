@@ -1,6 +1,6 @@
-import { IntegrationConnectionStatus, IntegrationEventStatus } from "@prisma/client";
+import { IntegrationConnectionStatus, IntegrationEventStatus, IntegrationProvider } from "@prisma/client";
 import type { getIntegrationsHubModule } from "@/lib/operations/modules";
-import { integrationProviderOptions } from "@/lib/integrations-hub";
+import { integrationProviderOptions, QUICKBOOKS_SETUP_PROFILE } from "@/lib/integrations-hub";
 import { titleCase } from "@/lib/operations/modules";
 
 type Data = Awaited<ReturnType<typeof getIntegrationsHubModule>>;
@@ -27,9 +27,9 @@ function Submit({ children }: { children: React.ReactNode }) {
 }
 
 function statusTone(status: string) {
-  if (["ERROR", "FAILED"].includes(status)) return "border-rose-200 bg-rose-50 text-rose-700";
-  if (["CONNECTED", "SUCCESS"].includes(status)) return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (["DISABLED", "SKIPPED"].includes(status)) return "border-slate-200 bg-slate-50 text-slate-500";
+  if (status === "ERROR" || status === "FAILED") return "border-rose-200 bg-rose-50 text-rose-700";
+  if (status === "CONNECTED" || status === "SUCCESS") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "DISABLED" || status === "SKIPPED") return "border-slate-200 bg-slate-50 text-slate-500";
   return "border-blue-200 bg-blue-50 text-blue-700";
 }
 
@@ -37,30 +37,107 @@ function Metric({ label, value }: { label: string; value: number }) {
   return <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-2xl font-black text-slate-950">{value}</div><div className="mt-1 text-xs font-black uppercase tracking-wide text-slate-500">{label}</div></div>;
 }
 
-export function IntegrationsHubModule({ data, actions }: { data: Data; actions: { createConnection: Action; updateConnectionStatus: Action; createEvent: Action } }) {
+function ReadinessCard({ item }: { item: Data["readiness"][number] }) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{item.category}</p>
+          <h3 className="mt-1 text-lg font-black text-slate-950">{item.label}</h3>
+        </div>
+        <span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${item.configured ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>{item.configured ? "Ready" : "Needs env"}</span>
+      </div>
+      <p className="mt-2 text-sm font-semibold text-slate-600">{item.description}</p>
+      <div className="mt-4 grid gap-3 text-xs font-bold text-slate-600">
+        <div className="rounded-2xl bg-slate-50 p-3"><span className="font-black text-slate-950">Required env:</span> {item.requiredEnv.length ? item.requiredEnv.join(", ") : "None"}</div>
+        {item.missingRequiredEnv.length ? <div className="rounded-2xl bg-rose-50 p-3 text-rose-700"><span className="font-black">Missing:</span> {item.missingRequiredEnv.join(", ")}</div> : <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-700">All required environment variables are present.</div>}
+        {item.configuredOptionalEnv.length ? <div className="rounded-2xl bg-blue-50 p-3 text-blue-700"><span className="font-black">Optional configured:</span> {item.configuredOptionalEnv.join(", ")}</div> : null}
+        {item.webhookPath ? <div className="rounded-2xl bg-slate-950 p-3 text-white"><span className="font-black">Webhook endpoint:</span> {item.webhookPath}</div> : null}
+      </div>
+      <p className="mt-3 text-xs font-semibold text-slate-500">{item.docsHint}</p>
+    </div>
+  );
+}
+
+function QuickBooksSetupCard({ action }: { action?: Action }) {
+  const quickBooksSpec = QUICKBOOKS_SETUP_PROFILE;
+  return (
+    <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-700">QuickBooks focus</p>
+          <h2 className="mt-1 text-2xl font-black text-slate-950">QuickBooks setup wizard</h2>
+          <p className="mt-2 max-w-3xl text-sm font-semibold text-slate-600">Create the QuickBooks connection with guided company, realm, sync, callback, and webhook fields instead of freeform JSON. Secrets still belong in Vercel environment variables.</p>
+        </div>
+        <div className="rounded-2xl bg-white p-3 text-xs font-black text-emerald-700">OAuth scope: {quickBooksSpec.oauthScopes[0]}</div>
+      </div>
+      <div className="mt-5 grid gap-5 xl:grid-cols-3">
+        <form action={action} className="space-y-4 rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+          <div><h3 className="text-lg font-black text-slate-950">Add QuickBooks company</h3><p className="text-sm font-semibold text-slate-500">Use this for the first connection record before OAuth is wired to token storage.</p></div>
+          <input type="hidden" name="provider" value={IntegrationProvider.QUICKBOOKS} />
+          <Field label="Display name"><Input name="displayName" placeholder="Joplin portfolio QuickBooks" /></Field>
+          <Field label="QuickBooks company name"><Input name="quickBooksCompanyName" placeholder="Home Base Rentals LLC" required /></Field>
+          <Field label="Realm ID / company ID"><Input name="quickBooksRealmId" placeholder="Optional until OAuth callback returns it" /></Field>
+          <Field label="Environment"><Select name="quickBooksEnvironment" defaultValue="sandbox"><option value="sandbox">Sandbox</option><option value="production">Production</option></Select></Field>
+          <div className="grid gap-2 text-sm font-bold text-slate-600 sm:grid-cols-2">
+            <label className="flex items-center gap-2"><input type="checkbox" name="syncInvoices" defaultChecked /> Invoices</label>
+            <label className="flex items-center gap-2"><input type="checkbox" name="syncPayments" defaultChecked /> Payments</label>
+            <label className="flex items-center gap-2"><input type="checkbox" name="syncVendorBills" defaultChecked /> Vendor bills</label>
+            <label className="flex items-center gap-2"><input type="checkbox" name="syncOwnerPayouts" defaultChecked /> Owner payouts</label>
+          </div>
+          <Field label="Default income account"><Input name="defaultIncomeAccount" placeholder="Rental Income" /></Field>
+          <Field label="Default deposit account"><Input name="defaultDepositAccount" placeholder="Undeposited Funds" /></Field>
+          {action ? <Submit>Create QuickBooks connection</Submit> : <p className="rounded-2xl bg-amber-50 p-3 text-xs font-bold text-amber-700">QuickBooks action is not wired for this role.</p>}
+        </form>
+        <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+          <h3 className="text-lg font-black text-slate-950">Environment checklist</h3>
+          <p className="mt-1 text-sm font-semibold text-slate-500">Copy these names into Vercel. Values are intentionally blank here.</p>
+          <pre className="mt-4 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs font-bold text-white">{quickBooksSpec.envTemplate.join("\n")}</pre>
+          <div className="mt-4 grid gap-2 text-xs font-bold text-slate-600">
+            <div className="rounded-2xl bg-slate-50 p-3"><span className="font-black text-slate-950">Callback:</span> {quickBooksSpec.redirectUri}</div>
+            <div className="rounded-2xl bg-slate-50 p-3"><span className="font-black text-slate-950">Webhook:</span> {quickBooksSpec.webhookPath}</div>
+          </div>
+        </div>
+        <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+          <h3 className="text-lg font-black text-slate-950">Setup checklist</h3>
+          <ol className="mt-4 space-y-2 text-sm font-semibold text-slate-600">
+            {quickBooksSpec.connectionChecklist.map((item, index) => <li key={item} className="flex gap-2"><span className="font-black text-emerald-700">{index + 1}.</span><span>{item}</span></li>)}
+          </ol>
+          <div className="mt-4 rounded-2xl bg-emerald-50 p-3 text-xs font-bold text-emerald-800">Sync objects: {quickBooksSpec.syncObjects.join(", ")}</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function IntegrationsHubModule({ data, actions }: { data: Data; actions: { createConnection: Action; updateConnectionStatus: Action; createEvent: Action; runDiagnostic: Action; createQuickBooksConnection?: Action } }) {
   return (
     <main className="space-y-6 p-4 sm:p-6 lg:p-8">
       <section className="rounded-3xl bg-slate-950 p-6 text-white shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-200">Update 12</p>
-        <h1 className="mt-2 text-3xl font-black tracking-tight">Integrations Hub</h1>
-        <p className="mt-2 max-w-3xl text-sm font-semibold text-slate-300">Configure and track provider connections for Stripe, Plaid, Twilio, SendGrid/Postmark, S3/R2, QuickBooks, Google Calendar, maps, and screening providers.</p>
+        <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-200">Update 12.5</p>
+        <h1 className="mt-2 text-3xl font-black tracking-tight">Integrations Control Center</h1>
+        <p className="mt-2 max-w-3xl text-sm font-semibold text-slate-300">Provider readiness checks, safe configuration tracking, webhook reference, diagnostics, and audit events for Stripe, Plaid, Twilio, SendGrid/Postmark, S3/R2, QuickBooks, Google Calendar, maps, and screening providers.</p>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <QuickBooksSetupCard action={actions.createQuickBooksConnection} />
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <Metric label="Connections" value={data.counts.connections} />
         <Metric label="Connected" value={data.counts.connected} />
         <Metric label="Errors" value={data.counts.errors} />
-        <Metric label="Providers" value={data.counts.providers} />
+        <Metric label="Tracked providers" value={data.counts.providers} />
+        <Metric label="Env-ready providers" value={data.counts.readyProviders} />
+        <Metric label="Missing env vars" value={data.counts.missingEnvironment} />
       </section>
 
       <section className="grid gap-5 xl:grid-cols-3">
         <form action={actions.createConnection} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div><h2 className="text-lg font-black text-slate-950">Add provider</h2><p className="text-sm font-semibold text-slate-500">Store provider status and non-secret configuration notes. Put real API secrets in environment variables or your secret manager.</p></div>
+          <div><h2 className="text-lg font-black text-slate-950">Add provider</h2><p className="text-sm font-semibold text-slate-500">Store provider status and non-secret configuration notes. Fields that look like secrets are rejected; real credentials belong in Vercel environment variables.</p></div>
           <Field label="Provider"><Select name="provider">{integrationProviderOptions.map((provider) => <option key={provider} value={provider}>{titleCase(provider)}</option>)}</Select></Field>
           <Field label="Display name"><Input name="displayName" placeholder="Stripe production" required /></Field>
           <Field label="Status"><Select name="status" defaultValue={IntegrationConnectionStatus.CONFIGURED}>{Object.values(IntegrationConnectionStatus).map((status) => <option key={status} value={status}>{titleCase(status)}</option>)}</Select></Field>
           <Field label="Account reference"><Input name="accountReference" placeholder="acct_, realm ID, bucket, sender domain" /></Field>
-          <Field label="Config JSON"><Textarea name="configJson" placeholder={'{"webhookPath":"/api/webhooks/stripe","envKey":"STRIPE_SECRET_KEY"}'} /></Field>
+          <Field label="Safe config JSON"><Textarea name="configJson" placeholder={'{"webhookPath":"/api/webhooks/quickbooks","mode":"sandbox"}'} /></Field>
           <label className="flex items-center gap-2 text-sm font-bold text-slate-600"><input type="checkbox" name="markSynced" /> Mark synced now</label>
           <Field label="Last error"><Textarea name="lastError" placeholder="Only used when status is Error" /></Field>
           <Submit>Create connection</Submit>
@@ -75,31 +152,47 @@ export function IntegrationsHubModule({ data, actions }: { data: Data; actions: 
           <Submit>Save status</Submit>
         </form>
 
-        <form action={actions.createEvent} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <form action={actions.runDiagnostic} className="space-y-4 rounded-3xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
+          <div><h2 className="text-lg font-black text-slate-950">Run readiness diagnostic</h2><p className="text-sm font-semibold text-slate-600">Checks whether the selected provider has its required environment variables configured, updates connection status, and writes an integration event.</p></div>
+          <Field label="Connection"><Select name="connectionId" required><option value="">Select connection</option>{data.connections.map((connection) => <option key={connection.id} value={connection.id}>{connection.displayName} · {titleCase(connection.provider)}</option>)}</Select></Field>
+          <Submit>Run diagnostic</Submit>
+        </form>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div><h2 className="text-lg font-black text-slate-950">Provider readiness catalog</h2><p className="text-sm font-semibold text-slate-500">This detects environment-variable presence only. It does not expose secret values and does not call third-party APIs during page render.</p></div>
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-wide text-slate-500">{data.counts.readyProviders} of {data.readiness.length} ready</span>
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+          {data.readiness.map((item) => <ReadinessCard key={item.provider} item={item} />)}
+        </div>
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-3">
+        <form action={actions.createEvent} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-1">
           <div><h2 className="text-lg font-black text-slate-950">Log event</h2><p className="text-sm font-semibold text-slate-500">Record webhook, sync, export, import, map lookup, SMS/email, accounting, or screening activity.</p></div>
           <Field label="Connection"><Select name="connectionId"><option value="">No linked connection</option>{data.connections.map((connection) => <option key={connection.id} value={connection.id}>{connection.displayName}</option>)}</Select></Field>
           <Field label="Provider"><Select name="provider">{integrationProviderOptions.map((provider) => <option key={provider} value={provider}>{titleCase(provider)}</option>)}</Select></Field>
           <Field label="Event type"><Input name="eventType" placeholder="webhook.received" required /></Field>
           <Field label="Status"><Select name="status" defaultValue={IntegrationEventStatus.SUCCESS}>{Object.values(IntegrationEventStatus).map((status) => <option key={status} value={status}>{titleCase(status)}</option>)}</Select></Field>
           <Field label="Summary"><Textarea name="summary" placeholder="Processed Stripe payment webhook" /></Field>
-          <Field label="Payload JSON"><Textarea name="configJson" placeholder={'{"objectId":"evt_123","records":4}'} /></Field>
+          <Field label="Safe payload JSON"><Textarea name="configJson" placeholder={'{"objectId":"evt_123","records":4}'} /></Field>
           <Submit>Log event</Submit>
         </form>
-      </section>
 
-      <section className="grid gap-5 xl:grid-cols-2">
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
           <h2 className="text-lg font-black text-slate-950">Provider connections</h2>
           <div className="mt-4 divide-y divide-slate-100">
             {data.connections.length ? data.connections.map((connection) => <div key={connection.id} className="py-3"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-slate-950">{connection.displayName}</p><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{titleCase(connection.provider)}{connection.accountReference ? ` · ${connection.accountReference}` : ""}</p></div><span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${statusTone(connection.status)}`}>{titleCase(connection.status)}</span></div>{connection.lastError ? <p className="mt-2 rounded-2xl bg-rose-50 p-3 text-xs font-semibold text-rose-700">{connection.lastError}</p> : null}<p className="mt-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">{connection.lastSyncAt ? `Last sync ${connection.lastSyncAt.toLocaleString()}` : "Not synced yet"}</p></div>) : <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm font-semibold text-slate-500">No provider connections are configured yet.</p>}
           </div>
         </div>
+      </section>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-black text-slate-950">Integration events</h2>
-          <div className="mt-4 divide-y divide-slate-100">
-            {data.events.length ? data.events.map((event) => <div key={event.id} className="py-3"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-slate-950">{event.eventType}</p><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{titleCase(event.provider)}{event.connection?.displayName ? ` · ${event.connection.displayName}` : ""}</p></div><span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${statusTone(event.status)}`}>{titleCase(event.status)}</span></div>{event.summary ? <p className="mt-2 text-sm font-semibold text-slate-600">{event.summary}</p> : null}<p className="mt-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">{event.createdAt.toLocaleString()}</p></div>) : <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm font-semibold text-slate-500">No integration events have been recorded yet.</p>}
-          </div>
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-black text-slate-950">Integration events</h2>
+        <div className="mt-4 divide-y divide-slate-100">
+          {data.events.length ? data.events.map((event) => <div key={event.id} className="py-3"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-slate-950">{event.eventType}</p><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{titleCase(event.provider)}{event.connection?.displayName ? ` · ${event.connection.displayName}` : ""}</p></div><span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${statusTone(event.status)}`}>{titleCase(event.status)}</span></div>{event.summary ? <p className="mt-2 text-sm font-semibold text-slate-600">{event.summary}</p> : null}<p className="mt-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">{event.createdAt.toLocaleString()}</p></div>) : <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm font-semibold text-slate-500">No integration events have been recorded yet.</p>}
         </div>
       </section>
     </main>

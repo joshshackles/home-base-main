@@ -64,12 +64,12 @@ function FilterSelect({ name, labelText, values, current }: { name: string; labe
   );
 }
 
-function OptionSelect({ name, labelText, options, defaultValue = "" }: { name: string; labelText: string; options: Option[]; defaultValue?: string }) {
+function OptionSelect({ name, labelText, options, defaultValue = "", emptyLabel = "None" }: { name: string; labelText: string; options: Option[]; defaultValue?: string; emptyLabel?: string }) {
   return (
     <label className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
       {labelText}
       <select name={name} defaultValue={defaultValue} className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold normal-case tracking-normal text-slate-900">
-        <option value="">None</option>
+        <option value="">{emptyLabel}</option>
         {options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
       </select>
     </label>
@@ -179,8 +179,7 @@ export function TaskCenterView({ title, description, basePath, center, searchPar
                 </div>
                 <label className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Due date<input name="dueAt" type="date" className="mt-1 w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm font-bold normal-case tracking-normal text-slate-900" /></label>
                 <OptionSelect name="assignedToId" labelText="Assign to" options={users} />
-                <OptionSelect name="propertyId" labelText="Property group" options={properties} />
-                <OptionSelect name="unitId" labelText="Rental" options={units} />
+                <OptionSelect name="unitId" labelText="Applies to" options={units} emptyLabel="Portfolio-wide" />
                 <OptionSelect name="applicationId" labelText="Application" options={applications} />
                 <OptionSelect name="maintenanceRequestId" labelText="Maintenance" options={maintenanceRequests} />
                 <OptionSelect name="leasePacketId" labelText="Lease" options={leasePackets} />

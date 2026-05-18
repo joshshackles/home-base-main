@@ -54,27 +54,35 @@ function connection(field: string, id: string | null | undefined) {
   return id ? { [field]: { connect: { id } } } : {};
 }
 
-async function assertPortfolioAccess(options: { ownerId?: string; propertyId?: string | null; unitId?: string | null; applicationId?: string | null }) {
-  if (!options.ownerId) return;
-  if (options.propertyId) {
-    const property = await prisma.property.findFirst({ where: { id: options.propertyId, ownerId: options.ownerId, isArchived: false }, select: { id: true } });
-    if (!property) throw new Error("Selected property was not found in this portfolio.");
-  }
+async function resolveRentalScope(options: { ownerId?: string; unitId?: string | null; applicationId?: string | null }) {
+  let propertyId: string | null = null;
+
   if (options.unitId) {
-    const unit = await prisma.unit.findFirst({ where: { id: options.unitId, property: { ownerId: options.ownerId, isArchived: false } }, select: { id: true } });
+    const unit = await prisma.unit.findFirst({
+      where: { id: options.unitId, ...(options.ownerId ? { property: { ownerId: options.ownerId, isArchived: false } } : {}) },
+      select: { id: true, propertyId: true }
+    });
     if (!unit) throw new Error("Selected rental was not found in this portfolio.");
+    propertyId = unit.propertyId;
   }
+
   if (options.applicationId) {
-    const application = await prisma.application.findFirst({ where: { id: options.applicationId, unit: { property: { ownerId: options.ownerId, isArchived: false } } }, select: { id: true } });
+    const application = await prisma.application.findFirst({
+      where: { id: options.applicationId, ...(options.ownerId ? { unit: { property: { ownerId: options.ownerId, isArchived: false } } } : {}) },
+      select: { id: true, unitId: true, unit: { select: { propertyId: true } } }
+    });
     if (!application) throw new Error("Selected application was not found in this portfolio.");
+    if (options.unitId && application.unitId !== options.unitId) throw new Error("Selected application and rental do not match.");
+    propertyId = application.unit.propertyId;
   }
+
+  return { propertyId };
 }
 
 export async function createInsurancePolicyFromForm(formData: FormData, options: { ownerId?: string }) {
-  const propertyId = text(formData, "propertyId", 80);
   const unitId = text(formData, "unitId", 80);
   const applicationId = text(formData, "applicationId", 80);
-  await assertPortfolioAccess({ ownerId: options.ownerId, propertyId, unitId, applicationId });
+  const { propertyId } = await resolveRentalScope({ ownerId: options.ownerId, unitId, applicationId });
 
   const payload: Prisma.InsurancePolicyCreateInput = {
     type: optionalEnum(formData, "type", InsurancePolicyType, InsurancePolicyType.RENTERS),
@@ -95,9 +103,8 @@ export async function createInsurancePolicyFromForm(formData: FormData, options:
 }
 
 export async function createCertificationRecordFromForm(formData: FormData, options: { ownerId?: string }) {
-  const propertyId = text(formData, "propertyId", 80);
   const unitId = text(formData, "unitId", 80);
-  await assertPortfolioAccess({ ownerId: options.ownerId, propertyId, unitId });
+  const { propertyId } = await resolveRentalScope({ ownerId: options.ownerId, unitId });
   return prisma.certificationRecord.create({
     data: {
       name: requiredText(formData, "name", "Certification name", 180),
@@ -116,9 +123,8 @@ export async function createCertificationRecordFromForm(formData: FormData, opti
 }
 
 export async function createComplianceInspectionRequirementFromForm(formData: FormData, options: { ownerId?: string }) {
-  const propertyId = text(formData, "propertyId", 80);
   const unitId = text(formData, "unitId", 80);
-  await assertPortfolioAccess({ ownerId: options.ownerId, propertyId, unitId });
+  const { propertyId } = await resolveRentalScope({ ownerId: options.ownerId, unitId });
   return prisma.complianceInspectionRequirement.create({
     data: {
       name: requiredText(formData, "name", "Requirement name", 180),

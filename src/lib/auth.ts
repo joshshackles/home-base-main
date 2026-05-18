@@ -156,7 +156,8 @@ export async function requireUser(nextPath = "/admin") {
 
 const roleAccessTypes: Partial<Record<UserRole, AccountAccessType[]>> = {
   [UserRole.LANDLORD]: [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER],
-  [UserRole.INSPECTOR]: [AccountAccessType.INSPECTOR]
+  [UserRole.INSPECTOR]: [AccountAccessType.INSPECTOR],
+  [UserRole.VENDOR]: [AccountAccessType.VENDOR]
 };
 
 export async function requireRole(allowedRoles: UserRole[], nextPath = "/admin") {

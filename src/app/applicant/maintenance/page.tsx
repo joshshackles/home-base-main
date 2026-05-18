@@ -4,19 +4,25 @@ import { MaintenancePriority } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createMaintenanceRequest, sendWorkflowMessage } from "@/app/workflow-actions";
+import { activeOccupancyStatuses } from "@/lib/relationship-lifecycle";
 
 function label(value: string) { return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()); }
 
 export default async function ApplicantMaintenancePage() {
   const user = await requireRole(["APPLICANT", "TENANT"], "/applicant/maintenance");
-  const [applications, requests] = await Promise.all([
+  const [applications, activeUnits, requests] = await Promise.all([
     prisma.application.findMany({
       where: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] },
       include: { unit: { include: { property: true } } },
       orderBy: { createdAt: "desc" }
     }),
+    prisma.unit.findMany({
+      where: { OR: [{ tenantUserId: user.userId }, { occupancies: { some: { userId: user.userId, status: { in: activeOccupancyStatuses() } } } }] },
+      include: { property: true },
+      orderBy: [{ property: { name: "asc" } }, { unitNumber: "asc" }]
+    }),
     prisma.maintenanceRequest.findMany({
-      where: { requesterId: user.userId },
+      where: { OR: [{ requesterId: user.userId }, { unit: { OR: [{ tenantUserId: user.userId }, { occupancies: { some: { userId: user.userId, status: { in: activeOccupancyStatuses() } } } }] } }] },
       include: { unit: { include: { property: true } }, application: true, messageThreads: { include: { messages: { orderBy: { createdAt: "desc" }, take: 1 } } } },
       orderBy: { createdAt: "desc" }
     })
@@ -33,11 +39,17 @@ export default async function ApplicantMaintenancePage() {
       <section className="mt-8 grid gap-6 lg:grid-cols-[420px_1fr]">
         <form action={createMaintenanceRequest} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-slate-950">New request</h2>
-          <label className="mt-5 block text-sm font-bold text-slate-700">Application / unit</label>
+          <label className="mt-5 block text-sm font-bold text-slate-700">Active rental</label>
+          <select name="unitId" className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3">
+            <option value="">Select active rental</option>
+            {activeUnits.map((unit) => <option key={unit.id} value={unit.id}>{unit.property.name} #{unit.unitNumber}</option>)}
+          </select>
+          <label className="mt-4 block text-sm font-bold text-slate-700">Application, optional</label>
           <select name="applicationId" className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3">
-            <option value="">Select application</option>
+            <option value="">No linked application</option>
             {applications.map((application) => <option key={application.id} value={application.id}>{application.unit.property.name} #{application.unit.unitNumber}</option>)}
           </select>
+          {activeUnits.length === 0 ? <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-xs font-bold text-amber-800">Maintenance requests require an active tenancy. Former tenants can still view past requests below.</p> : null}
           <label className="mt-4 block text-sm font-bold text-slate-700">Priority</label>
           <select name="priority" defaultValue={MaintenancePriority.NORMAL} className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3">
             {Object.values(MaintenancePriority).map((priority) => <option key={priority} value={priority}>{label(priority)}</option>)}
@@ -48,7 +60,7 @@ export default async function ApplicantMaintenancePage() {
           <textarea name="description" required minLength={10} rows={5} className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="What is happening? When did it start?" />
           <label className="mt-4 block text-sm font-bold text-slate-700">Access notes</label>
           <textarea name="accessNotes" rows={3} className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="Best time to enter, pets, gate code, etc." />
-          <button className="mt-5 w-full rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700" type="submit">Submit Request</button>
+          <button className="mt-5 w-full rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60" type="submit" disabled={activeUnits.length === 0}>Submit Request</button>
         </form>
 
         <div className="space-y-4">

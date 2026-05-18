@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { MaintenanceRequestStatus, VendorInvoiceStatus, VendorWorkLogStatus } from "@prisma/client";
-import { assignVendorToMaintenance, approveVendorInvoiceForPayout, createVendorProfile, updateVendorInvoiceStatus } from "@/app/vendor-actions";
+import { assignVendorToMaintenance, approveVendorInvoiceForPayout, createVendorProfile, inviteExternalVendor, updateVendorInvoiceStatus } from "@/app/vendor-actions";
 import { AppCard, CompactTable, DataGrid, EmptyState, MetricTile, SectionHeader, StatusBadge } from "@/components/ui/system";
 import { formatCurrency } from "@/lib/format";
 import { formatVendorStatus } from "@/lib/vendors";
@@ -73,7 +73,57 @@ export function VendorCenterView({ data, scope }: { data: VendorCenterData; scop
         </AppCard>
 
         <AppCard>
-          <SectionHeader title="Vendor directory" detail="Active vendors, trades, insurance, and work history." count={data.profiles.length} />
+          <SectionHeader title="Invite a new vendor" detail="Add a vendor even if they do not have an account yet. They receive a secure email invite and become a vendor automatically after signup." />
+          <form action={inviteExternalVendor} className="mt-3 grid gap-2">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input name="companyName" required placeholder="Company name" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+              <input name="contactName" placeholder="Contact name" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input name="email" type="email" required placeholder="Invite email" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+              <input name="trade" required placeholder="Trade, e.g. HVAC" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input name="phone" placeholder="Phone" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+              <select name="unitId" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                <option value="">All rentals</option>
+                {data.units.map((unit) => <option key={unit.id} value={unit.id}>{rentalLabel(unit)}</option>)}
+              </select>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input name="licenseNumber" placeholder="License #" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+              <input name="insuranceExpiresAt" type="date" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            </div>
+            <input name="hourlyRate" inputMode="decimal" placeholder="Hourly rate" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <textarea name="notes" rows={3} placeholder="Invite note, service area, insurance requirements, dispatch instructions..." className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-600"><input type="checkbox" name="isPreferred" value="yes" /> Preferred vendor</label>
+            <button className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-black text-white hover:bg-emerald-700" type="submit">Send vendor invite</button>
+          </form>
+        </AppCard>
+
+        <AppCard>
+          <SectionHeader title="Vendor directory" detail="Active and pending vendors, trades, insurance, invite status, and work history." count={data.profiles.length + data.invitations.length} />
+          {data.invitations.length ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Pending invitations</p>
+              {data.invitations.map((invite) => (
+                <div key={invite.id} className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-black text-slate-950">{invite.companyName}</p>
+                      <p className="text-xs font-semibold text-slate-600">{invite.trade} · {invite.contactName || invite.email}</p>
+                    </div>
+                    <StatusBadge tone={invite.status === "PENDING" ? "amber" : invite.status === "ACCEPTED" ? "green" : "slate"}>{formatVendorStatus(invite.status)}</StatusBadge>
+                  </div>
+                  <div className="mt-2 grid gap-1 text-xs text-slate-600 sm:grid-cols-3">
+                    <span>{invite.email}</span>
+                    <span>{rentalLabel(invite.unit)}</span>
+                    <span>Expires {invite.expiresAt.toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <div className="mt-3 space-y-2">
             {data.profiles.length === 0 ? <EmptyState title="No vendors connected" detail="Enable a user as a vendor to start routing repair work and invoices through the portal." /> : data.profiles.map((profile) => (
               <div key={profile.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">

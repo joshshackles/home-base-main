@@ -4,6 +4,7 @@ import { requireRole, requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCalendarCenter } from "@/lib/calendar";
 import { CalendarCenterView } from "@/components/calendar/CalendarCenterView";
+import { activeOccupancyStatuses } from "@/lib/relationship-lifecycle";
 
 function getParam(searchParams: Record<string, string | string[] | undefined> | undefined, key: string) {
   const value = searchParams?.[key];
@@ -15,9 +16,9 @@ export default async function CalendarPage({ searchParams }: { searchParams?: Re
   const [center, users, properties, units, tasks] = await Promise.all([
     getCalendarCenter(user, { q: getParam(searchParams, "q"), status: getParam(searchParams, "status"), type: getParam(searchParams, "type"), range: (getParam(searchParams, "range") || "upcoming") as "upcoming" | "today" | "week" | "month" | "all", owner: getParam(searchParams, "owner") === "mine" ? "mine" : "all" }),
     Promise.resolve([] as Array<{ id: string; name: string | null; email: string; role: string }>),
-    prisma.property.findMany({ where: { units: { some: { tenantUserId: user.userId } }, isArchived: false }, orderBy: { name: "asc" }, select: { id: true, name: true, city: true, state: true }, take: 250 }),
-    prisma.unit.findMany({ where: { tenantUserId: user.userId }, include: { property: { select: { name: true } } }, orderBy: [{ property: { name: "asc" } }, { unitNumber: "asc" }], take: 300 }),
-    prisma.taskItem.findMany({ where: { OR: [{ createdById: user.userId }, { assignedToId: user.userId }, { unit: { tenantUserId: user.userId } }] }, orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }], select: { id: true, title: true, type: true, status: true }, take: 200 })
+    prisma.property.findMany({ where: { units: { some: { OR: [{ tenantUserId: user.userId }, { occupancies: { some: { userId: user.userId, status: { in: activeOccupancyStatuses() } } } }] } }, isArchived: false }, orderBy: { name: "asc" }, select: { id: true, name: true, city: true, state: true }, take: 250 }),
+    prisma.unit.findMany({ where: { OR: [{ tenantUserId: user.userId }, { occupancies: { some: { userId: user.userId, status: { in: activeOccupancyStatuses() } } } }] }, include: { property: { select: { name: true } } }, orderBy: [{ property: { name: "asc" } }, { unitNumber: "asc" }], take: 300 }),
+    prisma.taskItem.findMany({ where: { OR: [{ createdById: user.userId }, { assignedToId: user.userId }, { unit: { OR: [{ tenantUserId: user.userId }, { occupancies: { some: { userId: user.userId, status: { in: activeOccupancyStatuses() } } } }] } }] }, orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }], select: { id: true, title: true, type: true, status: true }, take: 200 })
   ]);
 
   return <CalendarCenterView title="My calendar" description="Upcoming tours, lease appointments, inspections, maintenance windows, rent reminders, and move-in milestones tied to your renter account." basePath="applicant" center={center} searchParams={searchParams}  users={users.map((u) => ({ id: u.id, label: `${u.name || u.email} · ${u.role}` }))} properties={properties.map((p) => ({ id: p.id, label: `${p.name} · ${p.city}, ${p.state}` }))} units={units.map((u) => ({ id: u.id, label: `${u.property.name} #${u.unitNumber}` }))} tasks={tasks.map((t) => ({ id: t.id, label: `${t.title} · ${t.type} · ${t.status}` }))} />;

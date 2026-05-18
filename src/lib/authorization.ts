@@ -2,6 +2,7 @@ import { AccountAccessRequestStatus, AccountAccessType, AuditAction, ConnectionS
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
+import { activeOccupancyStatuses, historicalOccupancyStatuses } from "@/lib/relationship-lifecycle";
 
 export type AuthorizedUser = {
   userId: string;
@@ -150,13 +151,14 @@ export async function canAccessUnit(user: AuthorizedUser, unitId: string) {
       id: true,
       tenantUserId: true,
       property: { select: { ownerId: true, isArchived: true } },
-      applications: { where: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] }, select: { id: true }, take: 1 }
+      applications: { where: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] }, select: { id: true }, take: 1 },
+      occupancies: { where: { userId: user.userId, status: { in: activeOccupancyStatuses() } }, select: { id: true }, take: 1 }
     }
   });
 
   if (!unit) return false;
   if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && unit.property.ownerId === user.userId && !unit.property.isArchived) return true;
-  if (isApplicantLike(user) && (unit.tenantUserId === user.userId || unit.applications.length > 0)) return true;
+  if (isApplicantLike(user) && (unit.tenantUserId === user.userId || unit.occupancies.length > 0 || unit.applications.length > 0)) return true;
   if (!unit.property.isArchived && (await hasActiveProfileConnection(user, unit.property.ownerId, unit.id))) return true;
 
   return false;
@@ -245,7 +247,7 @@ export async function visibleDocumentWhereForUser(user: AuthorizedUser): Promise
       OR: [
         { application: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] } },
         { leasePacket: { application: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] } } },
-        { unit: { OR: [{ tenantUserId: user.userId }, { applications: { some: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] } } }] } }
+        { unit: { OR: [{ tenantUserId: user.userId }, { occupancies: { some: { userId: user.userId, status: { in: [...activeOccupancyStatuses(), ...historicalOccupancyStatuses()] } } } }, { applications: { some: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] } } }] } }
       ]
     };
 
@@ -381,6 +383,7 @@ export async function canAccessLedgerEntry(user: AuthorizedUser, ledgerEntryId: 
 
   if (!entry) return false;
   if (isApplicantLike(user) && entry.tenantUserId === user.userId) return true;
+  if (isApplicantLike(user) && await prisma.occupancy.count({ where: { userId: user.userId, unitId: entry.unit.id, status: { in: activeOccupancyStatuses() } } })) return true;
   if (entry.applicationId && (await canAccessApplication(user, entry.applicationId))) return true;
   if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && entry.unit.property.ownerId === user.userId && !entry.unit.property.isArchived) return true;
   if (!entry.unit.property.isArchived && (await hasActiveProfileConnection(user, entry.unit.property.ownerId, entry.unit.id))) return true;

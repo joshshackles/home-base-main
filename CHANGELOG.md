@@ -1,4 +1,20 @@
 
+## v4.15.1 - Vendor Invitation Onboarding
+
+- Added pending vendor invitations for vendors who do not have accounts yet.
+- Added secure vendor signup links that automatically activate vendor account type and portal access.
+- Added email invite sending/logging and pending invitation display in the vendor directory.
+- Added migration and verification script for the vendor invitation workflow.
+
+
+## 4.14.3 — Package cleanup and optimization
+
+- Removed the generated TypeScript incremental cache file from the shipped package.
+- Expanded `.gitignore` for Next.js, TypeScript, dependency, coverage, local env, log, and upload artifacts.
+- Added `npm run package:cleanliness` to prevent generated/cache files from re-entering the package.
+- Documented optimization findings and future file-splitting opportunities.
+
+
 ## 4.12.6 - Applicant calendar type fix
 
 - Fixed the applicant calendar build failure caused by an untyped empty users list being inferred as `never[]`.

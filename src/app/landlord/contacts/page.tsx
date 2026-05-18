@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";
-import { revokeLandlordProfileConnection } from "@/app/landlord/actions";
+import { ConnectionRole } from "@prisma/client";
+import { createLandlordProfileConnection, revokeLandlordProfileConnection } from "@/app/landlord/actions";
 import { requireRole } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import {
   filterLandlordContacts,
   getContactGovernanceSummary,
@@ -111,6 +113,32 @@ export default async function LandlordContactsPage({
   const activeSort = (firstParam(searchParams?.sort) ??
     "review") as ContactSortMode;
   const statusMessage = firstParam(searchParams?.status);
+  const [contactUserOptions, rentalOptions] = await Promise.all([
+    prisma.user.findMany({
+      where: { id: { not: user.userId }, isActive: true },
+      select: { id: true, name: true, email: true, role: true },
+      orderBy: [{ name: "asc" }, { email: "asc" }],
+      take: 250,
+    }),
+    prisma.unit.findMany({
+      where: { property: { ownerId: user.userId, isArchived: false } },
+      select: { id: true, unitNumber: true, property: { select: { name: true } } },
+      orderBy: [{ property: { name: "asc" } }, { unitNumber: "asc" }],
+    }),
+  ]);
+  const relationshipRoles = [
+    ConnectionRole.CONNECTED_RENTER,
+    ConnectionRole.PROPERTY_MANAGER,
+    ConnectionRole.HOUSING_COORDINATOR,
+    ConnectionRole.CASEWORKER,
+    ConnectionRole.INSPECTOR,
+    ConnectionRole.MAINTENANCE_STAFF,
+    ConnectionRole.MAINTENANCE_WORKER,
+    ConnectionRole.PREFERRED_VENDOR,
+    ConnectionRole.VENDOR,
+    ConnectionRole.EMERGENCY_CONTACT,
+    ConnectionRole.SUPPORT_CONTACT,
+  ];
 
   const sourceOptions = Array.from(
     new Set(contacts.flatMap((contact) => contact.sources)),
@@ -158,6 +186,51 @@ export default async function LandlordContactsPage({
           connection is no longer active.
         </div>
       ) : null}
+      {statusMessage === "connected" ? (
+        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-900">
+          Relationship created. This person now appears in the connected people list and can be used by the relationship engine.
+        </div>
+      ) : null}
+
+      <section className="mb-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-wide text-slate-500">Relationship engine</p>
+            <h2 className="mt-1 text-lg font-black text-slate-950">Add a connected person</h2>
+            <p className="mt-1 max-w-3xl text-sm font-semibold text-slate-600">
+              Connect maintenance workers, vendors, case workers, housing coordinators, property managers, emergency contacts, tenants, and support contacts at the portfolio or rental level.
+            </p>
+          </div>
+          <Link href="/landlord/vendors" className="rounded-2xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">Vendor profiles</Link>
+        </div>
+        <form action={createLandlordProfileConnection} className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_0.9fr_0.9fr_1.2fr_auto] lg:items-end">
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500">Person</span>
+            <select name="targetUserId" required className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-900 outline-none ring-brand-500/20 transition focus:border-brand-500 focus:ring-4">
+              <option value="">Choose user</option>
+              {contactUserOptions.map((option) => <option key={option.id} value={option.id}>{option.name || option.email} · {label(option.role)}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500">Relationship</span>
+            <select name="assignedRole" required className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-900 outline-none ring-brand-500/20 transition focus:border-brand-500 focus:ring-4">
+              {relationshipRoles.map((role) => <option key={role} value={role}>{label(role)}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500">Rental scope</span>
+            <select name="unitId" defaultValue="" className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-900 outline-none ring-brand-500/20 transition focus:border-brand-500 focus:ring-4">
+              <option value="">Portfolio-wide</option>
+              {rentalOptions.map((unit) => <option key={unit.id} value={unit.id}>{unit.property.name} - #{unit.unitNumber}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500">Notes</span>
+            <input name="notes" placeholder="Example: after-hours emergency contact" className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-900 outline-none ring-brand-500/20 transition focus:border-brand-500 focus:ring-4" />
+          </label>
+          <button type="submit" className="rounded-2xl bg-brand-600 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-brand-700">Add contact</button>
+        </form>
+      </section>
 
       <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         {statCard("Total", summary.total)}

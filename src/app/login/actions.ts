@@ -24,6 +24,7 @@ function dashboardForRole(role: string) {
   if (role === "ADMIN") return "/admin";
   if (role === "LANDLORD") return "/landlord";
   if (role === "INSPECTOR") return "/admin/inspections";
+  if (role === "VENDOR") return "/vendor";
   if (role === "APPLICANT" || role === "TENANT") return "/applicant";
   return "/marketplace";
 }
@@ -33,6 +34,7 @@ function destinationForRole(next: string, role: string, forcePasswordReset?: boo
   if (next.startsWith("/admin") && role !== "ADMIN" && role !== "INSPECTOR") return dashboardForRole(role);
   if (next.startsWith("/landlord") && role !== "LANDLORD") return dashboardForRole(role);
   if (next.startsWith("/applicant") && role !== "APPLICANT" && role !== "TENANT") return dashboardForRole(role);
+  if (next.startsWith("/vendor") && role !== "VENDOR") return dashboardForRole(role);
   return next;
 }
 

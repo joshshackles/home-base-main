@@ -63,7 +63,8 @@ import { addMonthsSafe, advanceMonthlyRunDate, isScheduleDue, nextMonthlyRunDate
 import { importDataSnapshot, type DataSnapshot } from "@/lib/data-portability";
 import { createAssetServiceRecordFromForm, createAssetWarrantyFromForm, createKeyLockRecordFromForm, createMaintenanceAssetFromForm, maintenanceInventoryPaths } from "@/lib/maintenance-inventory";
 import { createCertificationRecordFromForm, createComplianceInspectionRequirementFromForm, createInsurancePolicyFromForm, insuranceCompliancePaths } from "@/lib/insurance-compliance";
-import { createIntegrationConnectionFromForm, createIntegrationEventFromForm, integrationsHubPaths, updateIntegrationConnectionStatusFromForm } from "@/lib/integrations-hub";
+import { createIntegrationConnectionFromForm, createIntegrationEventFromForm, createQuickBooksConnectionFromForm, integrationsHubPaths, runIntegrationDiagnosticFromForm, updateIntegrationConnectionStatusFromForm } from "@/lib/integrations-hub";
+import { activateTenantFromApplication, endTenantOccupancy } from "@/lib/relationship-lifecycle";
 import { captureAnalyticsSnapshot, captureSystemHealthSnapshot, ensureDefaultAutomationRules, markBackupRestoreStarted, saveBrandingSettings, syncOperationalAlertsFromReadiness } from "@/lib/admin-ops";
 
 const LOCKED_LEASE_PACKET_STATUSES: LeasePacketStatus[] = [
@@ -144,6 +145,13 @@ export async function createAdminIntegrationConnectionAction(formData: FormData)
   redirect("/admin/integrations?connection=created");
 }
 
+export async function createAdminQuickBooksConnectionAction(formData: FormData) {
+  await requireAdminAction();
+  await createQuickBooksConnectionFromForm(formData, {});
+  revalidateIntegrationsHubModule("admin");
+  redirect("/admin/integrations?quickbooks=created");
+}
+
 export async function updateAdminIntegrationConnectionStatusAction(formData: FormData) {
   await requireAdminAction();
   await updateIntegrationConnectionStatusFromForm(formData, {});
@@ -156,6 +164,13 @@ export async function createAdminIntegrationEventAction(formData: FormData) {
   await createIntegrationEventFromForm(formData, { actorId: actor.userId });
   revalidateIntegrationsHubModule("admin");
   redirect("/admin/integrations?event=logged");
+}
+
+export async function runAdminIntegrationDiagnosticAction(formData: FormData) {
+  const actor = await requireAdminAction();
+  await runIntegrationDiagnosticFromForm(formData, { actorId: actor.userId });
+  revalidateIntegrationsHubModule("admin");
+  redirect("/admin/integrations?diagnostic=complete");
 }
 
 function revalidateInsuranceComplianceModule(base: "admin" | "landlord" = "admin") {
@@ -301,19 +316,39 @@ function propertyPayload(formData: FormData) {
   return parsed.data;
 }
 
-async function unitPayload(formData: FormData) {
-  const parsed = unitSchema.safeParse(formDataToObject(formData));
-  if (!parsed.success) throw new Error(validationMessage(parsed.error));
-
-  const property = await prisma.property.findFirst({
-    where: { id: parsed.data.propertyId, isArchived: false },
-    select: { id: true }
+function unifiedRentalPropertyPayload(formData: FormData) {
+  const raw = formDataToObject(formData);
+  const parsed = propertySchema.safeParse({
+    name: raw.propertyName || raw.name || raw.addressLine,
+    addressLine: raw.addressLine,
+    city: raw.city,
+    state: raw.state,
+    zip: raw.zip,
+    description: raw.description,
+    ownerId: raw.ownerId,
+    isArchived: false
   });
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+  return parsed.data;
+}
 
-  if (!property) {
-    throw new Error("Selected property was not found or is archived.");
+async function unitPayload(formData: FormData) {
+  const raw = formDataToObject(formData);
+  let propertyId = typeof raw.propertyId === "string" && raw.propertyId.trim().length > 0 ? raw.propertyId.trim() : null;
+  const propertyData = unifiedRentalPropertyPayload(formData);
+  await ensureActiveLandlord(propertyData.ownerId);
+
+  if (propertyId) {
+    const property = await prisma.property.findFirst({ where: { id: propertyId, isArchived: false }, select: { id: true } });
+    if (!property) throw new Error("Selected rental location was not found or is archived.");
+    await prisma.property.update({ where: { id: propertyId }, data: propertyData });
+  } else {
+    const property = await prisma.property.create({ data: propertyData });
+    propertyId = property.id;
   }
 
+  const parsed = unitSchema.safeParse({ ...raw, propertyId });
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
   return parsed.data;
 }
 
@@ -705,14 +740,66 @@ export async function updateApplicationStatus(formData: FormData) {
   const parsed = applicationStatusSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) throw new Error(validationMessage(parsed.error));
 
-  await prisma.application.update({
-    where: { id: parsed.data.id },
-    data: { status: parsed.data.status }
-  });
+  if (parsed.data.status === ApplicationStatus.APPROVED) {
+    await activateTenantFromApplication({
+      applicationId: parsed.data.id,
+      actor,
+      notes: "Tenant relationship activated by admin application approval."
+    });
+  } else {
+    await prisma.application.update({
+      where: { id: parsed.data.id },
+      data: { status: parsed.data.status }
+    });
+  }
 
   await writeAuditLog({ actor, action: AuditAction.STATUS_CHANGE, entityType: "Application", entityId: parsed.data.id, message: `Changed application status to ${parsed.data.status}.` });
   revalidateInventory();
   revalidatePath(`/admin/applications/${parsed.data.id}`);
+}
+
+export async function activateTenantFromApplicationAction(formData: FormData) {
+  const actor = await requireAdminAction();
+  const applicationId = String(formData.get("applicationId") || "");
+  const moveInValue = String(formData.get("moveInDate") || "");
+  if (!applicationId) throw new Error("Application is required.");
+  await activateTenantFromApplication({
+    applicationId,
+    actor,
+    moveInDate: moveInValue ? new Date(`${moveInValue}T12:00:00`) : null,
+    notes: "Tenant relationship manually activated from the Relationship Lifecycle panel."
+  });
+  revalidateInventory();
+  revalidatePath(`/admin/applications/${applicationId}`);
+  revalidatePath("/applicant");
+  redirect(`/admin/applications/${applicationId}?tenant=activated`);
+}
+
+
+export async function endAdminTenantOccupancyAction(formData: FormData) {
+  const actor = await requireAdminAction();
+  const occupancyId = String(formData.get("occupancyId") || "");
+  const applicationId = String(formData.get("applicationId") || "");
+  const moveOutValue = String(formData.get("moveOutDate") || "");
+  const reason = optionalString(formData, "reason") ?? "Tenancy ended";
+  const notes = optionalString(formData, "notes") ?? "Ended from admin relationship lifecycle controls.";
+  const releaseRental = String(formData.get("releaseRental") || "on") !== "off";
+  if (!occupancyId) throw new Error("Occupancy is required.");
+
+  await endTenantOccupancy({
+    occupancyId,
+    actor,
+    moveOutDate: moveOutValue ? new Date(`${moveOutValue}T12:00:00`) : null,
+    reason,
+    notes,
+    releaseRental
+  });
+
+  if (applicationId) revalidatePath(`/admin/applications/${applicationId}`);
+  revalidatePath("/admin");
+  revalidatePath("/admin/reports");
+  revalidatePath("/applicant");
+  redirect(applicationId ? `/admin/applications/${applicationId}?tenant=ended` : "/admin?tenant=ended");
 }
 
 export async function addApplicationNote(formData: FormData) {
@@ -821,9 +908,7 @@ export async function uploadAdminDocument(formData: FormData) {
   const file = formData.get("file");
   if (!(file instanceof File)) throw new Error("A document file is required.");
 
-  if (!parsed.data.applicationId && !parsed.data.propertyId && !parsed.data.unitId && !parsed.data.leasePacketId) {
-    throw new Error("Attach this document to an application, property, unit, or lease packet.");
-  }
+  // Portfolio-wide documents are valid; when a rental/application/lease is selected, propertyId is derived below for compatibility.
 
   const [application, property, unit, leasePacket] = await Promise.all([
     parsed.data.applicationId
@@ -869,11 +954,13 @@ export async function uploadAdminDocument(formData: FormData) {
     throw new Error("Selected lease packet and property do not match.");
   }
 
+  const resolvedPropertyId = property?.id ?? unit?.propertyId ?? application?.unit.propertyId ?? leasePacket?.application.unit.propertyId ?? null;
   const stored = await saveUploadedDocument(file);
 
   const created = await prisma.document.create({
     data: {
       ...parsed.data,
+      propertyId: resolvedPropertyId,
       status: DocumentStatus.UPLOADED,
       uploadedById: user.userId,
       ...stored

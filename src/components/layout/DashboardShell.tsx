@@ -55,7 +55,7 @@ export function DashboardShell({ children, groups, title, accountLabel, inboxHre
               </div>
               <div className="ml-auto hidden min-w-[260px] max-w-md flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 md:flex">
                 <Search size={15} />
-                <span className="font-semibold">Search units, tenants, payments, messages</span>
+                <span className="font-semibold">Search rentals, tenants, payments, messages</span>
                 <kbd className="ml-auto rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-black">Cmd K</kbd>
               </div>
               <Link href={inboxHref} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50" aria-label="Inbox">

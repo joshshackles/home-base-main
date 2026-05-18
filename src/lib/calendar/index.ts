@@ -1,6 +1,7 @@
 import { ScheduleEventStatus, ScheduleEventType, UserRole, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth";
+import { activeOccupancyStatuses } from "@/lib/relationship-lifecycle";
 
 export type CalendarFilters = {
   q?: string;
@@ -60,8 +61,8 @@ export function getScheduleScopeWhere(user: SessionPayload): Prisma.ScheduleEven
       { createdById: user.userId },
       { assignedToId: user.userId },
       { participants: { some: { userId: user.userId } } },
-      { unit: { tenantUserId: user.userId } },
-      { taskItem: { OR: [{ createdById: user.userId }, { assignedToId: user.userId }, { unit: { tenantUserId: user.userId } }] } }
+      { unit: { OR: [{ tenantUserId: user.userId }, { occupancies: { some: { userId: user.userId, status: { in: activeOccupancyStatuses() } } } }] } },
+      { taskItem: { OR: [{ createdById: user.userId }, { assignedToId: user.userId }, { unit: { OR: [{ tenantUserId: user.userId }, { occupancies: { some: { userId: user.userId, status: { in: activeOccupancyStatuses() } } } }] } }] } }
     ]
   };
 }
