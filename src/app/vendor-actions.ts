@@ -176,10 +176,12 @@ export async function addVendorWorkLog(formData: FormData) {
       createdById: actor.userId
     }
   });
-  if (maintenanceRequestId && status === VendorWorkLogStatus.COMPLETED) {
-    await prisma.maintenanceRequest.update({ where: { id: maintenanceRequestId }, data: { status: MaintenanceRequestStatus.COMPLETED, completedAt: new Date() } });
-  } else if (maintenanceRequestId && [VendorWorkLogStatus.EN_ROUTE, VendorWorkLogStatus.ON_SITE].includes(status)) {
-    await prisma.maintenanceRequest.update({ where: { id: maintenanceRequestId }, data: { status: MaintenanceRequestStatus.IN_PROGRESS } });
+  if (maintenanceRequestId) {
+    if (status === VendorWorkLogStatus.COMPLETED) {
+      await prisma.maintenanceRequest.update({ where: { id: maintenanceRequestId }, data: { status: MaintenanceRequestStatus.COMPLETED, completedAt: new Date() } });
+    } else if (status === VendorWorkLogStatus.EN_ROUTE || status === VendorWorkLogStatus.ON_SITE) {
+      await prisma.maintenanceRequest.update({ where: { id: maintenanceRequestId }, data: { status: MaintenanceRequestStatus.IN_PROGRESS } });
+    }
   }
   await writeAuditLog({ actor, action: AuditAction.CREATE, entityType: "VendorWorkLog", entityId: log.id, message: "Vendor work log created.", metadata: { maintenanceRequestId, status } });
   await revalidateVendorPages();
