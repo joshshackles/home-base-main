@@ -1,13 +1,12 @@
 import { requireRole } from "@/lib/auth";
 import type { ReactNode } from "react";
-import { Activity, Building2, ClipboardCheck, ClipboardList, Database, DollarSign, FileSignature, Home, Inbox, LayoutDashboard, MessageSquare, ShieldCheck, Users, Wrench, CheckSquare, CalendarDays, BarChart3, Megaphone, BriefcaseBusiness, Shield, PackageSearch, PlugZap, ClipboardCheck as ScreeningCheck } from "lucide-react";
+import { Activity, ClipboardCheck, ClipboardList, Database, DollarSign, FileSignature, Home, Inbox, LayoutDashboard, MessageSquare, ShieldCheck, Users, Wrench, CheckSquare, CalendarDays, BarChart3, Megaphone, BriefcaseBusiness, Shield, PackageSearch, PlugZap, ClipboardCheck as ScreeningCheck } from "lucide-react";
 import { DashboardShell, type ShellNavGroup } from "@/components/layout/DashboardShell";
 
 const navGroups: ShellNavGroup[] = [
   { label: "Operations", items: [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/rentals", label: "Rentals", icon: Home },
-    { href: "/admin/properties", label: "Property groups", icon: Building2 },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/vendors", label: "Vendors", icon: BriefcaseBusiness }
   ] },

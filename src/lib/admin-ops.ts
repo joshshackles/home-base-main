@@ -55,6 +55,89 @@ export async function saveBrandingSettings(actor: AuthorizedUser, payload: Brand
   return settings;
 }
 
+
+export type OperationalRiskFactor = {
+  key: string;
+  label: string;
+  count: number;
+  points: number;
+  detail: string;
+};
+
+export type OperationalRiskSummary = {
+  score: number;
+  level: "LOW" | "MODERATE" | "ELEVATED" | "CRITICAL";
+  label: string;
+  detail: string;
+  factors: OperationalRiskFactor[];
+};
+
+function cappedPoints(count: number, multiplier: number, cap: number) {
+  return Math.min(cap, Math.max(0, count) * multiplier);
+}
+
+export function calculateOperationalRiskScore(input: {
+  submittedApplications: number;
+  inspectionsOpen: number;
+  maintenanceOpen: number;
+  threadsOpen: number;
+  pendingAccess: number;
+  securityEvents7: number;
+}): OperationalRiskSummary {
+  const factors: OperationalRiskFactor[] = [
+    {
+      key: "applications",
+      label: "Submitted applications",
+      count: input.submittedApplications,
+      points: cappedPoints(input.submittedApplications, 2, 20),
+      detail: "+2 each, capped at 20."
+    },
+    {
+      key: "inspections",
+      label: "Open inspections",
+      count: input.inspectionsOpen,
+      points: cappedPoints(input.inspectionsOpen, 3, 15),
+      detail: "+3 each, capped at 15."
+    },
+    {
+      key: "maintenance",
+      label: "Open maintenance",
+      count: input.maintenanceOpen,
+      points: cappedPoints(input.maintenanceOpen, 3, 20),
+      detail: "+3 each, capped at 20."
+    },
+    {
+      key: "threads",
+      label: "Open message threads",
+      count: input.threadsOpen,
+      points: cappedPoints(input.threadsOpen, 1, 10),
+      detail: "+1 each, capped at 10."
+    },
+    {
+      key: "access",
+      label: "Pending access requests",
+      count: input.pendingAccess,
+      points: cappedPoints(input.pendingAccess, 5, 15),
+      detail: "+5 each, capped at 15."
+    },
+    {
+      key: "security",
+      label: "Security events, 7 days",
+      count: input.securityEvents7,
+      points: Math.min(20, Math.ceil(Math.max(0, input.securityEvents7) / 5)),
+      detail: "+1 per five recent events, capped at 20."
+    }
+  ];
+
+  const score = Math.min(100, factors.reduce((total, factor) => total + factor.points, 0));
+  const level = score >= 75 ? "CRITICAL" : score >= 40 ? "ELEVATED" : score >= 15 ? "MODERATE" : "LOW";
+  const label = level === "LOW" ? "Low" : level === "MODERATE" ? "Moderate" : level === "ELEVATED" ? "Elevated" : "Critical";
+  const activeFactors = factors.filter((factor) => factor.points > 0).length;
+  const detail = activeFactors === 0 ? "No active workload or access/security signals are currently raising operational risk." : `${activeFactors} active signal${activeFactors === 1 ? "" : "s"} contributing to the score.`;
+
+  return { score, level, label, detail, factors };
+}
+
 export async function getAdminAnalyticsMetrics() {
   const now = new Date();
   const startOfToday = new Date(now);
@@ -108,6 +191,15 @@ export async function getAdminAnalyticsMetrics() {
   const listingAvailabilityRate = units > 0 ? Math.round((availableUnits / units) * 100) : 0;
   const applicationVelocity = leads30 > 0 ? Math.round((applications30 / leads30) * 100) : applications30 > 0 ? 100 : 0;
 
+  const operationalRisk = calculateOperationalRiskScore({
+    submittedApplications,
+    inspectionsOpen,
+    maintenanceOpen,
+    threadsOpen,
+    pendingAccess,
+    securityEvents7
+  });
+
   return {
     generatedAt: now.toISOString(),
     users,
@@ -131,7 +223,8 @@ export async function getAdminAnalyticsMetrics() {
     securityEvents7,
     auditEvents7,
     pendingAccess,
-    ledgerBalance
+    ledgerBalance,
+    operationalRisk
   };
 }
 

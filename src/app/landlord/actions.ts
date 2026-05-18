@@ -16,7 +16,7 @@ import { appUrl, createSecureToken, hashToken } from "@/lib/tokens";
 import { syncUnitStaffConnections, upsertProfileConnection } from "@/lib/profile-connections";
 import { createAssetServiceRecordFromForm, createAssetWarrantyFromForm, createKeyLockRecordFromForm, createMaintenanceAssetFromForm, maintenanceInventoryPaths } from "@/lib/maintenance-inventory";
 import { createCertificationRecordFromForm, createComplianceInspectionRequirementFromForm, createInsurancePolicyFromForm, insuranceCompliancePaths } from "@/lib/insurance-compliance";
-import { createIntegrationConnectionFromForm, createIntegrationEventFromForm, integrationsHubPaths, updateIntegrationConnectionStatusFromForm } from "@/lib/integrations-hub";
+import { createIntegrationConnectionFromForm, createIntegrationEventFromForm, createQuickBooksConnectionFromForm, integrationsHubPaths, runIntegrationDiagnosticFromForm, updateIntegrationConnectionStatusFromForm } from "@/lib/integrations-hub";
 
 async function requireLandlordAction() {
   return await requireRole(["LANDLORD"], "/landlord");
@@ -34,6 +34,13 @@ export async function createLandlordIntegrationConnectionAction(formData: FormDa
   redirect("/landlord/integrations?connection=created");
 }
 
+export async function createLandlordQuickBooksConnectionAction(formData: FormData) {
+  const actor = await requireLandlordAction();
+  await createQuickBooksConnectionFromForm(formData, { ownerId: actor.userId });
+  revalidateLandlordIntegrationsHubModule();
+  redirect("/landlord/integrations?quickbooks=created");
+}
+
 export async function updateLandlordIntegrationConnectionStatusAction(formData: FormData) {
   const actor = await requireLandlordAction();
   await updateIntegrationConnectionStatusFromForm(formData, { ownerId: actor.userId });
@@ -46,6 +53,13 @@ export async function createLandlordIntegrationEventAction(formData: FormData) {
   await createIntegrationEventFromForm(formData, { actorId: actor.userId, ownerId: actor.userId });
   revalidateLandlordIntegrationsHubModule();
   redirect("/landlord/integrations?event=logged");
+}
+
+export async function runLandlordIntegrationDiagnosticAction(formData: FormData) {
+  const actor = await requireLandlordAction();
+  await runIntegrationDiagnosticFromForm(formData, { actorId: actor.userId, ownerId: actor.userId });
+  revalidateLandlordIntegrationsHubModule();
+  redirect("/landlord/integrations?diagnostic=complete");
 }
 
 function revalidateLandlordInsuranceComplianceModule() {
@@ -300,18 +314,44 @@ function photoFilesFromFormData(formData: FormData) {
   return formData.getAll("photos").filter((value): value is File => value instanceof File && value.size > 0);
 }
 
-async function landlordUnitPayload(formData: FormData, landlordId: string, unitId?: string) {
-  const parsed = unitSchema.safeParse(formDataToObject(formData));
+function landlordUnifiedRentalPropertyPayload(formData: FormData, landlordId: string) {
+  const raw = formDataToObject(formData);
+  const parsed = propertySchema.safeParse({
+    name: raw.propertyName || raw.name || raw.addressLine,
+    addressLine: raw.addressLine,
+    city: raw.city,
+    state: raw.state,
+    zip: raw.zip,
+    description: raw.description,
+    ownerId: landlordId,
+    isArchived: false
+  });
   if (!parsed.success) throw new Error(validationMessage(parsed.error));
+  return { ...parsed.data, ownerId: landlordId, isArchived: false };
+}
 
-  if (parsed.data.status === UnitStatus.ARCHIVED) {
-    throw new Error("Landlords cannot archive units from the landlord portal.");
-  }
-
-  await assertOwnsProperty(parsed.data.propertyId, landlordId);
+async function landlordUnitPayload(formData: FormData, landlordId: string, unitId?: string) {
+  const raw = formDataToObject(formData);
+  let propertyId = typeof raw.propertyId === "string" && raw.propertyId.trim().length > 0 ? raw.propertyId.trim() : null;
+  const propertyData = landlordUnifiedRentalPropertyPayload(formData, landlordId);
 
   if (unitId) {
     await assertOwnsUnit(unitId, landlordId);
+  }
+
+  if (propertyId) {
+    await assertOwnsProperty(propertyId, landlordId);
+    await prisma.property.update({ where: { id: propertyId }, data: propertyData });
+  } else {
+    const property = await prisma.property.create({ data: propertyData });
+    propertyId = property.id;
+  }
+
+  const parsed = unitSchema.safeParse({ ...raw, propertyId });
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+
+  if (parsed.data.status === UnitStatus.ARCHIVED) {
+    throw new Error("Landlords cannot archive rentals from the landlord portal.");
   }
 
   if (parsed.data.tenantUserId) {
