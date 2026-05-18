@@ -1,3 +1,16 @@
+## v3.6.2 - Branded Public Homepage Refresh
+
+- Restyled the public homepage around the unified HomeBase Housing OS identity with a darker premium hero, electric-blue primary CTA system, and tighter slate/blue/emerald semantic palette.
+- Replaced the generic public nav logo with the shared HomeBase brand mark/wordmark so the marketing site, dashboard shell, favicon, and app identity stay aligned.
+- Upgraded the live homepage metrics into branded dark cards while preserving the v3.6.1 database-backed realtime counts and safe demo fallbacks.
+- Polished the marketplace, workflow, trust, and CTA sections to feel more enterprise-grade and consistent with the v3.5 product identity system.
+
+## v3.6.1 - Realtime Homepage Metrics
+
+- Replaced hardcoded homepage stat cards with live database-backed counts for active listings, active applications, today’s inspections, and posted rent payments.
+- Added safe demo fallbacks so fresh installs and unavailable databases still render the public homepage cleanly.
+- Kept the homepage dynamic/no-store so public-facing metrics stay current on Vercel.
+
 # 3.3.1 - Financial Automation & Recovery
 
 ## v3.5.5 - Payments Form Action Hotfix
