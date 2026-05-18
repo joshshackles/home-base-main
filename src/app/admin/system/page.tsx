@@ -52,7 +52,7 @@ export default async function SystemStatusPage({ searchParams }: { searchParams?
         <Link href="/admin/analytics" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:bg-slate-50">
           <BarChart3 className="text-brand-700" size={24} />
           <h2 className="mt-3 text-lg font-black text-slate-950">Analytics hub</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">Review operating KPIs, workflow load, transparent operational risk, and captured snapshots.</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Review operating KPIs, workflow load, risk index, and captured snapshots.</p>
         </Link>
         <Link href="/admin/operations" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:bg-slate-50">
           <Activity className="text-brand-700" size={24} />

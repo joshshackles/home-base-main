@@ -1,6 +1,6 @@
 {
   "name": "homebase-mls",
-  "version": "4.12.17",
+  "version": "4.12.13",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -65,8 +65,7 @@
     "updates:9-12:verify": "tsx scripts/verify-updates-9-12.ts",
     "update10:verify": "tsx scripts/verify-update10-maintenance-inventory.ts",
     "update11:verify": "tsx scripts/verify-update11-insurance-compliance.ts",
-    "update12:integrations:verify": "tsx scripts/verify-update12-integrations-hub.ts",
-    "integrations:update12-5:verify": "tsx scripts/verify-integrations-update12-5.ts"
+    "update12:integrations:verify": "tsx scripts/verify-update12-integrations-hub.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.716.0",

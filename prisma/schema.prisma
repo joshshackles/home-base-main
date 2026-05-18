@@ -76,7 +76,6 @@ enum RentalPropertyType {
   SINGLE_FAMILY
   DUPLEX
   APARTMENT
-  MOBILE_HOME
   CONDO
   TOWNHOME
   ROOM

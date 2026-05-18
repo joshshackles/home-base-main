@@ -1,7 +1,6 @@
 import { ComplianceRecordStatus, IntegrationConnectionStatus, MaintenanceAssetStatus, ScreeningRequestStatus } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getIntegrationReadinessCatalog } from "@/lib/integrations-hub";
 
 export function money(cents?: number | null) {
   if (!cents) return "$0";
@@ -71,8 +70,5 @@ export async function getIntegrationsHubModule(ownerId?: string) {
   ]);
   const connected = connections.filter((item) => item.status === IntegrationConnectionStatus.CONNECTED).length;
   const errors = connections.filter((item) => item.status === IntegrationConnectionStatus.ERROR).length;
-  const readiness = getIntegrationReadinessCatalog();
-  const readyProviders = readiness.filter((item) => item.configured).length;
-  const missingEnvironment = readiness.reduce((total, item) => total + item.missingRequiredEnv.length, 0);
-  return { connections, events, readiness, counts: { connections: connections.length, connected, errors, providers: new Set(connections.map((item) => item.provider)).size, readyProviders, missingEnvironment } };
+  return { connections, events, counts: { connections: connections.length, connected, errors, providers: new Set(connections.map((item) => item.provider)).size } };
 }

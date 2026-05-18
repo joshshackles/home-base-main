@@ -63,7 +63,7 @@ import { addMonthsSafe, advanceMonthlyRunDate, isScheduleDue, nextMonthlyRunDate
 import { importDataSnapshot, type DataSnapshot } from "@/lib/data-portability";
 import { createAssetServiceRecordFromForm, createAssetWarrantyFromForm, createKeyLockRecordFromForm, createMaintenanceAssetFromForm, maintenanceInventoryPaths } from "@/lib/maintenance-inventory";
 import { createCertificationRecordFromForm, createComplianceInspectionRequirementFromForm, createInsurancePolicyFromForm, insuranceCompliancePaths } from "@/lib/insurance-compliance";
-import { createIntegrationConnectionFromForm, createIntegrationEventFromForm, createQuickBooksConnectionFromForm, integrationsHubPaths, runIntegrationDiagnosticFromForm, updateIntegrationConnectionStatusFromForm } from "@/lib/integrations-hub";
+import { createIntegrationConnectionFromForm, createIntegrationEventFromForm, integrationsHubPaths, updateIntegrationConnectionStatusFromForm } from "@/lib/integrations-hub";
 import { captureAnalyticsSnapshot, captureSystemHealthSnapshot, ensureDefaultAutomationRules, markBackupRestoreStarted, saveBrandingSettings, syncOperationalAlertsFromReadiness } from "@/lib/admin-ops";
 
 const LOCKED_LEASE_PACKET_STATUSES: LeasePacketStatus[] = [
@@ -144,13 +144,6 @@ export async function createAdminIntegrationConnectionAction(formData: FormData)
   redirect("/admin/integrations?connection=created");
 }
 
-export async function createAdminQuickBooksConnectionAction(formData: FormData) {
-  await requireAdminAction();
-  await createQuickBooksConnectionFromForm(formData, {});
-  revalidateIntegrationsHubModule("admin");
-  redirect("/admin/integrations?quickbooks=created");
-}
-
 export async function updateAdminIntegrationConnectionStatusAction(formData: FormData) {
   await requireAdminAction();
   await updateIntegrationConnectionStatusFromForm(formData, {});
@@ -163,13 +156,6 @@ export async function createAdminIntegrationEventAction(formData: FormData) {
   await createIntegrationEventFromForm(formData, { actorId: actor.userId });
   revalidateIntegrationsHubModule("admin");
   redirect("/admin/integrations?event=logged");
-}
-
-export async function runAdminIntegrationDiagnosticAction(formData: FormData) {
-  const actor = await requireAdminAction();
-  await runIntegrationDiagnosticFromForm(formData, { actorId: actor.userId });
-  revalidateIntegrationsHubModule("admin");
-  redirect("/admin/integrations?diagnostic=complete");
 }
 
 function revalidateInsuranceComplianceModule(base: "admin" | "landlord" = "admin") {
@@ -315,39 +301,19 @@ function propertyPayload(formData: FormData) {
   return parsed.data;
 }
 
-function unifiedRentalPropertyPayload(formData: FormData) {
-  const raw = formDataToObject(formData);
-  const parsed = propertySchema.safeParse({
-    name: raw.propertyName || raw.name || raw.addressLine,
-    addressLine: raw.addressLine,
-    city: raw.city,
-    state: raw.state,
-    zip: raw.zip,
-    description: raw.description,
-    ownerId: raw.ownerId,
-    isArchived: false
-  });
-  if (!parsed.success) throw new Error(validationMessage(parsed.error));
-  return parsed.data;
-}
-
 async function unitPayload(formData: FormData) {
-  const raw = formDataToObject(formData);
-  let propertyId = typeof raw.propertyId === "string" && raw.propertyId.trim().length > 0 ? raw.propertyId.trim() : null;
-  const propertyData = unifiedRentalPropertyPayload(formData);
-  await ensureActiveLandlord(propertyData.ownerId);
+  const parsed = unitSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
 
-  if (propertyId) {
-    const property = await prisma.property.findFirst({ where: { id: propertyId, isArchived: false }, select: { id: true } });
-    if (!property) throw new Error("Selected rental location was not found or is archived.");
-    await prisma.property.update({ where: { id: propertyId }, data: propertyData });
-  } else {
-    const property = await prisma.property.create({ data: propertyData });
-    propertyId = property.id;
+  const property = await prisma.property.findFirst({
+    where: { id: parsed.data.propertyId, isArchived: false },
+    select: { id: true }
+  });
+
+  if (!property) {
+    throw new Error("Selected property was not found or is archived.");
   }
 
-  const parsed = unitSchema.safeParse({ ...raw, propertyId });
-  if (!parsed.success) throw new Error(validationMessage(parsed.error));
   return parsed.data;
 }
 

@@ -15,18 +15,18 @@ export default async function UnitsAdminPage() {
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader
-        title="Rentals"
-        description="Manage each rental as one record with address, type, pricing, availability, utility notes, pets, and accessibility details."
+        title="Units"
+        description="Manage individual rentable units, pricing, voucher-friendly status, availability, utility notes, pets, and accessibility details."
         actionHref="/admin/units/new"
-        actionLabel="Add Rental"
+        actionLabel="Add Unit"
       />
 
       <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full min-w-[1080px] border-collapse text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
-              <th className="px-5 py-4">Rental</th>
-              <th className="px-5 py-4">Type</th>
+              <th className="px-5 py-4">Property</th>
+              <th className="px-5 py-4">Unit</th>
               <th className="px-5 py-4">Beds/Baths</th>
               <th className="px-5 py-4">Rent</th>
               <th className="px-5 py-4">Voucher</th>
@@ -37,15 +37,15 @@ export default async function UnitsAdminPage() {
           <tbody className="divide-y divide-slate-200">
             {units.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-slate-600">No rentals have been added yet.</td>
+                <td colSpan={7} className="px-5 py-10 text-center text-slate-600">No units have been added yet.</td>
               </tr>
             ) : units.map((unit) => (
               <tr key={unit.id} className="hover:bg-slate-50">
                 <td className="px-5 py-4">
-                  <p className="font-bold text-slate-950">{unit.property.name}{unit.unitNumber !== "Main" ? ` #${unit.unitNumber}` : ""}</p>
-                  <p className="mt-1 text-xs text-slate-500">{unit.property.addressLine}, {unit.property.city}, {unit.property.state}</p>
+                  <p className="font-bold text-slate-950">{unit.property.name}</p>
+                  <p className="mt-1 text-xs text-slate-500">{unit.property.city}, {unit.property.state}</p>
                 </td>
-                <td className="px-5 py-4 font-bold text-slate-950">{unit.rentalType.replaceAll("_", " ")}</td>
+                <td className="px-5 py-4 font-bold text-slate-950">{unit.unitNumber}</td>
                 <td className="px-5 py-4 text-slate-600">{unit.bedrooms} / {unit.bathrooms}</td>
                 <td className="px-5 py-4 font-bold text-slate-950">{formatCurrency(unit.rentAmount)}</td>
                 <td className="px-5 py-4 text-slate-600">{unit.voucherFriendly ? "Yes" : "No"}</td>
