@@ -1,9 +1,34 @@
 -- Phase 1 rental financial automation: autopay, retry recovery, adjustments, owner statements.
-CREATE TYPE "AutoPayEnrollmentStatus" AS ENUM ('ACTIVE', 'PAUSED', 'CANCELLED');
-CREATE TYPE "PaymentRetryAttemptStatus" AS ENUM ('SCHEDULED', 'PROCESSING', 'SUCCEEDED', 'FAILED', 'CANCELLED');
-CREATE TYPE "FinancialAdjustmentType" AS ENUM ('CREDIT', 'WAIVER', 'REFUND', 'RENT_ADJUSTMENT', 'MANUAL_CHARGE');
-CREATE TYPE "OwnerStatementStatus" AS ENUM ('DRAFT', 'FINALIZED', 'EXPORTED');
-CREATE TYPE "FinancialPermission" AS ENUM ('VIEW_FINANCIALS', 'COLLECT_PAYMENTS', 'REFUND_PAYMENTS', 'WAIVE_FEES', 'EDIT_RENT', 'EXPORT_STATEMENTS');
+-- These guarded enum creates let Vercel recover from the earlier failed migration attempt.
+DO $$ BEGIN
+  CREATE TYPE "AutoPayEnrollmentStatus" AS ENUM ('ACTIVE', 'PAUSED', 'CANCELLED');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "PaymentRetryAttemptStatus" AS ENUM ('SCHEDULED', 'PROCESSING', 'SUCCEEDED', 'FAILED', 'CANCELLED');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "FinancialAdjustmentType" AS ENUM ('CREDIT', 'WAIVER', 'REFUND', 'RENT_ADJUSTMENT', 'MANUAL_CHARGE');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "OwnerStatementStatus" AS ENUM ('DRAFT', 'FINALIZED', 'EXPORTED');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "FinancialPermission" AS ENUM ('VIEW_FINANCIALS', 'COLLECT_PAYMENTS', 'REFUND_PAYMENTS', 'WAIVE_FEES', 'EDIT_RENT', 'EXPORT_STATEMENTS');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 ALTER TYPE "PaymentEventType" ADD VALUE IF NOT EXISTS 'PAYMENT_RETRY_SCHEDULED';
 ALTER TYPE "PaymentEventType" ADD VALUE IF NOT EXISTS 'PAYMENT_RETRY_SUCCEEDED';

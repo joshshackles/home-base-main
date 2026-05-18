@@ -1,5 +1,13 @@
 # 3.3.1 - Financial Automation & Recovery
 
+## v3.5.3 - Vercel Migration Recovery Hotfix
+
+- Added a narrow Vercel migration recovery script for the known failed `20260518000100_financial_automation_recovery` record.
+- Updated the Vercel build command so the failed migration record is rolled back before `prisma migrate deploy` runs.
+- Reintroduced the old failed migration name as a no-op compatibility migration so Prisma can resolve and pass through existing Neon migration history safely.
+- Hardened the replacement financial automation migration so already-created enum types from the failed attempt do not break the next deploy.
+- Tightened Vercel preflight to require actual `DATABASE_URL` and `DIRECT_URL` variables because the Prisma schema reads those exact names.
+
 ## v3.5.2 - Migration Order Hotfix
 
 - Moved the financial automation recovery migration after the rental payment operations migration so `PaymentEventType` exists before the migration alters it.

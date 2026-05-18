@@ -1,6 +1,6 @@
 {
   "name": "homebase-mls",
-  "version": "3.5.2",
+  "version": "3.5.3",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -40,8 +40,9 @@
     "test:watch": "vitest",
     "observability:verify": "tsx scripts/verify-observability.ts",
     "update12:verify": "tsx scripts/verify-update12.ts",
-    "vercel-build": "npm run vercel:preflight && prisma generate && prisma migrate deploy && next build",
+    "vercel-build": "npm run vercel:preflight && prisma generate && npm run vercel:migration-recovery && prisma migrate deploy && next build",
     "vercel:preflight": "tsx scripts/verify-vercel.ts",
+    "vercel:migration-recovery": "tsx scripts/resolve-vercel-migrations.ts",
     "workflow-update1:verify": "tsx scripts/verify-workflow-update1.ts",
     "workflow-update2:verify": "tsx scripts/verify-workflow-update2.ts",
     "workflow-update3:verify": "tsx scripts/verify-workflow-update3.ts",

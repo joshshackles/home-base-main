@@ -29,6 +29,14 @@ if (!scripts["vercel-build"]?.includes("prisma migrate deploy")) {
   fail('package.json must include a vercel-build script that runs "prisma migrate deploy" before next build.');
 }
 
+if (!scripts["vercel-build"]?.includes("vercel:migration-recovery")) {
+  fail('package.json must run "vercel:migration-recovery" before "prisma migrate deploy" to recover known failed Neon migrations.');
+}
+
+if (!scripts["vercel:migration-recovery"]?.includes("scripts/resolve-vercel-migrations.ts")) {
+  fail('package.json must include "vercel:migration-recovery" for known failed migration recovery.');
+}
+
 if (!scripts["vercel:preflight"]?.includes("scripts/verify-vercel.ts")) {
   fail('package.json must include "vercel:preflight" for deployment checks.');
 }
@@ -102,12 +110,12 @@ if (process.env.VERCEL === "1" || process.env.NODE_ENV === "production") {
   if (!appUrl) fail("APP_URL must be set for production links.");
   if (appUrl && !/^https:\/\//i.test(appUrl)) fail("APP_URL must use HTTPS on Vercel.");
 
-  if (!process.env.DATABASE_URL && !process.env.POSTGRES_PRISMA_URL && !process.env.POSTGRES_URL && !process.env.NEON_DATABASE_URL) {
-    fail("Set DATABASE_URL or a supported Vercel/Neon database URL alias.");
+  if (!process.env.DATABASE_URL) {
+    fail('Set DATABASE_URL in Vercel Project Settings. The Prisma schema reads env("DATABASE_URL") directly, so provider aliases are not enough.');
   }
 
-  if (!process.env.DIRECT_URL && !process.env.POSTGRES_URL_NON_POOLING && !process.env.POSTGRES_URL_NON_POOLING_DIRECT && !process.env.NEON_DIRECT_URL) {
-    fail("Set DIRECT_URL or a supported non-pooled database URL alias so Prisma migrations can run.");
+  if (!process.env.DIRECT_URL) {
+    fail('Set DIRECT_URL in Vercel Project Settings. The Prisma schema reads env("DIRECT_URL") directly for migration-safe Neon connections.');
   }
 
   if (storageProvider === "local") fail("DOCUMENT_STORAGE_PROVIDER=local is not durable on Vercel serverless functions.");
