@@ -71,7 +71,7 @@ function contextLabel(notice: NoticeCenter["notices"][number]) {
   if (notice.unit) return `${notice.unit.property.name} #${notice.unit.unitNumber}`;
   if (notice.property) return `${notice.property.name} · ${notice.property.city}, ${notice.property.state}`;
   if (notice.application) return `${notice.application.applicantName} · ${notice.application.status}`;
-  if (notice.leasePacket) return `${notice.leasePacket.title} · ${notice.leasePacket.status}`;
+  if (notice.leasePacket) return `${notice.leasePacket.template.name} · ${notice.leasePacket.status}`;
   return "General notice";
 }
 

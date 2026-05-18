@@ -79,7 +79,7 @@ export async function getTaskCenter(user: SessionPayload, filters: TaskFilters =
       unit: { select: { id: true, unitNumber: true, property: { select: { name: true, city: true, state: true } } } },
       application: { select: { id: true, applicantName: true, status: true } },
       maintenanceRequest: { select: { id: true, subject: true, status: true } },
-      leasePacket: { select: { id: true, title: true, status: true } },
+      leasePacket: { select: { id: true, status: true, template: { select: { name: true } } } },
       document: { select: { id: true, title: true, category: true } }
     },
     orderBy: [{ status: "asc" }, { priority: "desc" }, { dueAt: "asc" }, { createdAt: "desc" }],

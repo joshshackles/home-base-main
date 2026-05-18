@@ -134,7 +134,7 @@ export function TaskCenterView({ title, description, basePath, center, searchPar
               <div className="p-8 text-center"><p className="text-lg font-black text-slate-950">No tasks match this view.</p><p className="mt-1 text-sm text-slate-600">Clear filters or create a new operational task.</p></div>
             ) : center.tasks.map((task) => {
               const overdue = isTaskOverdue(task.dueAt, task.status);
-              const context = task.unit ? `${task.unit.property.name} #${task.unit.unitNumber}` : task.property?.name || task.application?.applicantName || task.maintenanceRequest?.subject || task.leasePacket?.title || task.document?.title || "General operations";
+              const context = task.unit ? `${task.unit.property.name} #${task.unit.unitNumber}` : task.property?.name || task.application?.applicantName || task.maintenanceRequest?.subject || task.leasePacket?.template.name || task.document?.title || "General operations";
               return (
                 <div key={task.id} className="grid gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0 lg:grid-cols-[1.3fr_0.75fr_0.7fr_0.75fr_0.9fr] lg:items-center">
                   <div>

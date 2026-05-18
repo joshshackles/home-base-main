@@ -82,7 +82,7 @@ export async function getNoticeCenter(user: SessionPayload, filters: NoticeFilte
       property: { select: { id: true, name: true, city: true, state: true } },
       unit: { select: { id: true, unitNumber: true, rentAmount: true, property: { select: { name: true, city: true, state: true } } } },
       application: { select: { id: true, applicantName: true, applicantEmail: true, status: true } },
-      leasePacket: { select: { id: true, title: true, status: true, leaseStartDate: true, leaseEndDate: true } }
+      leasePacket: { select: { id: true, status: true, leaseStartDate: true, leaseEndDate: true, template: { select: { name: true } } } }
     },
     orderBy: [{ status: "asc" }, { priority: "desc" }, { dueAt: "asc" }, { createdAt: "desc" }],
     take: 200
@@ -109,7 +109,7 @@ export async function getNoticeFormOptions(user: SessionPayload) {
     prisma.property.findMany({ where: ownerFilter, select: { id: true, name: true, city: true, state: true }, orderBy: { name: "asc" }, take: 200 }),
     prisma.unit.findMany({ where: { property: ownerFilter }, select: { id: true, unitNumber: true, property: { select: { name: true, city: true, state: true } } }, orderBy: [{ property: { name: "asc" } }, { unitNumber: "asc" }], take: 300 }),
     prisma.application.findMany({ where: user.role === UserRole.LANDLORD ? { unit: { property: { ownerId: user.userId, isArchived: false } } } : {}, select: { id: true, applicantName: true, applicantEmail: true, status: true, unit: { select: { unitNumber: true, property: { select: { name: true } } } } }, orderBy: { updatedAt: "desc" }, take: 200 }),
-    prisma.leasePacket.findMany({ where: user.role === UserRole.LANDLORD ? { application: { unit: { property: { ownerId: user.userId, isArchived: false } } } } : {}, select: { id: true, title: true, status: true, application: { select: { applicantName: true, unit: { select: { unitNumber: true, property: { select: { name: true } } } } } } }, orderBy: { updatedAt: "desc" }, take: 200 })
+    prisma.leasePacket.findMany({ where: user.role === UserRole.LANDLORD ? { application: { unit: { property: { ownerId: user.userId, isArchived: false } } } } : {}, select: { id: true, status: true, template: { select: { name: true } }, application: { select: { applicantName: true, unit: { select: { unitNumber: true, property: { select: { name: true } } } } } } }, orderBy: { updatedAt: "desc" }, take: 200 })
   ]);
   return { users, properties, units, applications, leasePackets };
 }
