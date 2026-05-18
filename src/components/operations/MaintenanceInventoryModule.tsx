@@ -96,7 +96,7 @@ function ModuleForms({ data, actions, scope }: { data: InventoryData; actions: I
           <Field label="Notes"><textarea name="notes" className={`${inputClass} min-h-24`} placeholder="Access rules, rekey notes, missing key follow-up" /></Field>
         </div>
         <button className="mt-4 rounded-2xl bg-slate-950 px-4 py-2 text-sm font-black text-white shadow-sm hover:bg-slate-800">Save key / lock</button>
-        {!data.assets.some((asset) => [MaintenanceAssetType.KEY, MaintenanceAssetType.LOCK].includes(asset.type)) ? <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">Create a Key or Lock asset first, then log issued keys or lock records here.</p> : null}
+        {!data.assets.some((asset) => asset.type === MaintenanceAssetType.KEY || asset.type === MaintenanceAssetType.LOCK) ? <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">Create a Key or Lock asset first, then log issued keys or lock records here.</p> : null}
       </form>
     </div>
   );
