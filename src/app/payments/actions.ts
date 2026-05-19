@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { AuditAction, AutoPayEnrollmentStatus, FinancialAdjustmentType, LedgerEntryStatus, LedgerEntryType, PaymentMethod } from "@prisma/client";
+import { AuditAction, AutoPayEnrollmentStatus, FinancialAdjustmentType, LedgerEntryStatus, LedgerEntryType, PaymentMethodVerificationStatus } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +10,23 @@ import { centsFromDollars, createFinancialAdjustment, createStripeRefundForLedge
 
 function assertStripeReady() {
   if (!stripePaymentsEnabled()) throw new Error("Stripe payments are not configured yet. Add STRIPE_SECRET_KEY and Stripe webhook settings in Vercel.");
+}
+
+async function assertOwnsSavedPaymentMethod(userId: string, stripePaymentMethodId: string, label = "payment method") {
+  const method = await prisma.renterPaymentMethod.findFirst({
+    where: { userId, stripePaymentMethodId },
+    select: { id: true, stripePaymentMethodId: true, verificationStatus: true }
+  });
+  if (!method) throw new Error(`This ${label} is not saved to your account.`);
+  if (method.verificationStatus !== PaymentMethodVerificationStatus.VERIFIED) {
+    throw new Error(`This ${label} must be verified before it can be used for scheduled payments or autopay.`);
+  }
+  return method;
+}
+
+async function assertOwnsOptionalSavedPaymentMethod(userId: string, stripePaymentMethodId: string, label = "backup payment method") {
+  if (!stripePaymentMethodId) return null;
+  return assertOwnsSavedPaymentMethod(userId, stripePaymentMethodId, label);
 }
 
 export async function createStripeConnectOnboardingLink() {
@@ -143,6 +160,7 @@ export async function scheduleTenantPayment(formData: FormData) {
   if (Number.isNaN(scheduledFor.getTime())) throw new Error("Invalid payment date.");
   const entry = await prisma.ledgerEntry.findFirst({ where: { id: ledgerEntryId, status: { not: LedgerEntryStatus.VOIDED }, OR: [{ tenantUserId: user.userId }, { application: { applicantUserId: user.userId } }] }, include: { unit: true } });
   if (!entry) throw new Error("This charge is not available for scheduling.");
+  if (paymentMethodId) await assertOwnsSavedPaymentMethod(user.userId, paymentMethodId);
   await prisma.scheduledPayment.create({ data: { userId: user.userId, unitId: entry.unitId, ledgerEntryId: entry.id, stripePaymentMethodId: paymentMethodId || undefined, amount: entry.amount, scheduledFor } });
   await prisma.paymentEvent.create({ data: { type: "SCHEDULE_CREATED", userId: user.userId, unitId: entry.unitId, ledgerEntryId: entry.id, amount: entry.amount, message: `Payment scheduled for ${scheduledFor.toLocaleDateString()}.` } });
   redirect("/applicant/payments?scheduled=1");
@@ -196,6 +214,8 @@ export async function enableTenantAutoPay(formData: FormData) {
   const amountLimit = centsFromDollars(formData.get("amountLimit"));
   const dayOfMonth = Number.parseInt(String(formData.get("dayOfMonth") || "1"), 10);
   if (!unitId || !paymentMethodId) throw new Error("Choose a unit and a saved payment method for autopay.");
+  await assertOwnsSavedPaymentMethod(user.userId, paymentMethodId);
+  await assertOwnsOptionalSavedPaymentMethod(user.userId, backupPaymentMethodId);
   await enableAutoPay({ userId: user.userId, unitId, stripePaymentMethodId: paymentMethodId, backupPaymentMethodId: backupPaymentMethodId || undefined, amountLimit: amountLimit > 0 ? amountLimit : undefined, dayOfMonth });
   redirect("/applicant/payments?autopay=enabled");
 }

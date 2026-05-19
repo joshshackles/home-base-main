@@ -3,14 +3,15 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
-import { AccountAccessType, ConnectionStatus, MaintenancePriority, MessageThreadType, UserRole } from "@prisma/client";
-import { addLandlordUnitContact, assignLandlordUnitStaff, assignLandlordUnitTenant, createLandlordMaintenanceRequest, deleteLandlordUnitPhoto, setFeaturedLandlordUnitPhoto, updateLandlordUnitTerms, uploadLandlordUnitPhotos } from "@/app/landlord/actions";
+import { AccountAccessType, ConnectionStatus, MaintenancePriority, MaintenanceRequestStatus, MessageThreadType, RentalLifecycleStatus, UserRole } from "@prisma/client";
+import { addLandlordUnitContact, assignLandlordUnitStaff, assignLandlordUnitTenant, createLandlordMaintenanceRequest, deleteLandlordUnitPhoto, setFeaturedLandlordUnitPhoto, updateLandlordUnitLifecycleStatus, updateLandlordUnitTerms, uploadLandlordUnitPhotos } from "@/app/landlord/actions";
 import { sendWorkflowMessage } from "@/app/workflow-actions";
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";
 import { formatCurrency } from "@/lib/format";
 import { requireRole } from "@/lib/auth";
 import { agingBucket, ledgerBalance, ledgerStatusLabel, ledgerTypeLabel } from "@/lib/ledger";
 import { prisma } from "@/lib/prisma";
+import { lifecycleLabel, lifecycleToUnitStatus, recommendRentalLifecycle, rentalLifecycleEngineSteps } from "@/lib/rental-lifecycle-engine";
 
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
@@ -48,7 +49,10 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
       maintenanceUser: true,
       caseworker: true,
       currentApplication: { include: { applicantUser: true } },
+      leads: { select: { id: true } },
       applications: { orderBy: { updatedAt: "desc" }, include: { applicantUser: true } },
+      occupancies: { select: { status: true }, orderBy: { updatedAt: "desc" } },
+      notices: { select: { status: true }, orderBy: { updatedAt: "desc" }, take: 5 },
       photos: { orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }] },
       profileConnections: {
         where: { status: ConnectionStatus.ACTIVE },
@@ -139,6 +143,21 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
   const propertyManagerOptions = staffUsers.filter((staff) => hasStaffAccess(staff, [AccountAccessType.PROPERTY_MANAGER, AccountAccessType.LANDLORD]));
   const maintenanceOptions = staffUsers.filter((staff) => hasStaffAccess(staff, [AccountAccessType.MAINTENANCE, AccountAccessType.VENDOR]));
   const caseworkerOptions = staffUsers.filter((staff) => hasStaffAccess(staff, [AccountAccessType.CASEWORKER]));
+  const lifecycleRecommendation = recommendRentalLifecycle({
+    unitStatus: unit.status,
+    storedLifecycleStatus: unit.lifecycleStatus,
+    tenantUserId: unit.tenantUserId,
+    currentApplicationId: unit.currentApplicationId,
+    leadCount: unit.leads.length,
+    applicationStatuses: unit.applications.map((application) => application.status),
+    leasePacketStatuses: leasePackets.map((packet) => packet.status),
+    occupancyStatuses: unit.occupancies.map((occupancy) => occupancy.status),
+    noticeStatuses: unit.notices.map((notice) => notice.status),
+    openMaintenanceCount: maintenanceRequests.filter((request) => request.status !== MaintenanceRequestStatus.COMPLETED && request.status !== MaintenanceRequestStatus.CANCELLED).length,
+    photoCount: unit.photos.length,
+    hasDescription: Boolean(unit.description || unit.marketingHeadline),
+    hasTerms: Boolean(unit.leaseTermsNote && unit.rentAmount > 0)
+  });
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -170,13 +189,54 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
 
       <section className="grid gap-4 md:grid-cols-4">
         <Stat label="Status" value={label(unit.status)} />
+        <Stat label="Lifecycle" value={lifecycleLabel(lifecycleRecommendation.status)} />
         <Stat label="Public listing" value={unit.status === "AVAILABLE" ? "Live" : "Private"} />
         <Stat label="Rent" value={formatCurrency(unit.rentAmount)} />
-        <Stat label="Balance" value={formatCurrency(balance)} />
       </section>
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="space-y-6">
+          <Panel title="Unified Rental Lifecycle">
+            {getSearchParam(searchParams, "status") === "updated" ? <p className="mb-4 rounded-2xl bg-emerald-50 p-4 font-bold text-emerald-900">Lifecycle status updated.</p> : null}
+            <div className="grid gap-4 md:grid-cols-[1fr_260px]">
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-brand-700">Engine recommendation</p>
+                <h2 className="mt-2 text-2xl font-black text-slate-950">{lifecycleLabel(lifecycleRecommendation.status)}</h2>
+                <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{lifecycleRecommendation.reason}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {lifecycleRecommendation.signals.map((signal) => <span key={signal} className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 ring-1 ring-slate-200">{signal}</span>)}
+                </div>
+              </div>
+              <div className="rounded-2xl bg-slate-950 p-4 text-white">
+                <p className="text-xs font-black uppercase tracking-wide text-brand-200">Confidence</p>
+                <p className="mt-2 text-4xl font-black">{lifecycleRecommendation.confidence}%</p>
+                <p className="mt-2 text-xs font-semibold leading-5 text-slate-300">Recommended unit status: {label(lifecycleRecommendation.unitStatus)}</p>
+              </div>
+            </div>
+            <form action={updateLandlordUnitLifecycleStatus} className="mt-5 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[1fr_auto]">
+              <input type="hidden" name="unitId" value={unit.id} />
+              <label className="block">
+                <span className="text-sm font-bold text-slate-700">Manual lifecycle override</span>
+                <select name="lifecycleStatus" defaultValue={unit.lifecycleStatus} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3">
+                  {Object.values(RentalLifecycleStatus).map((status) => (
+                    <option key={status} value={status}>{lifecycleLabel(status)} - unit becomes {label(lifecycleToUnitStatus(status))}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex items-end">
+                <button className="w-full rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700" type="submit">Update Lifecycle</button>
+              </div>
+            </form>
+            <div className="mt-4 grid gap-2 md:grid-cols-4">
+              {rentalLifecycleEngineSteps.slice(0, 12).map((step) => (
+                <div key={step.status} className={`rounded-2xl p-3 ring-1 ${step.status === lifecycleRecommendation.status ? "bg-brand-50 text-brand-900 ring-brand-200" : "bg-slate-50 text-slate-600 ring-slate-200"}`}>
+                  <p className="text-xs font-black uppercase">{step.label}</p>
+                  <p className="mt-1 line-clamp-2 text-[11px] font-semibold leading-4">{step.description}</p>
+                </div>
+              ))}
+            </div>
+          </Panel>
+
           <Panel title="Photos">
             {photoStatus ? <p className="mb-4 rounded-2xl bg-emerald-50 p-4 font-bold text-emerald-900">Photo library updated.</p> : null}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

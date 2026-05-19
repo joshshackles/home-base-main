@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { requireRole } from "@/lib/auth";
 import { getNoticeCenter } from "@/lib/notices";
 import { NoticeCenterView } from "@/components/notices/NoticeCenterView";

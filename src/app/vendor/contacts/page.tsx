@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { requireUser } from "@/lib/auth";
 import { assertVendorPortalAccess } from "@/lib/vendors";
 import { getUserRelationshipContactsList } from "@/lib/profile-connections";

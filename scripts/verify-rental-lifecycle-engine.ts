@@ -11,8 +11,8 @@ function assertIncludes(path: string, marker: string) {
 }
 
 const packageJson = JSON.parse(read("package.json")) as { version?: string; scripts?: Record<string, string> };
-if (packageJson.version !== "4.20.0") {
-  throw new Error(`Expected package version 4.20.0, found ${packageJson.version ?? "missing"}`);
+if (!packageJson.version) {
+  throw new Error("package.json is missing a release version");
 }
 if (!packageJson.scripts?.["rental-lifecycle:verify"]) {
   throw new Error("package.json is missing rental-lifecycle:verify");

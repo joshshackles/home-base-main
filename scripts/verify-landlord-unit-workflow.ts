@@ -26,10 +26,15 @@ assertContains("prisma/schema.prisma", [
   "UnitMaintenanceAssignees",
   "UnitCaseworkers"
 ]);
-assertExists("prisma/migrations/20260517162000_unit_staff_assignments/migration.sql");
+assertExists("prisma/migrations/20260518000000_squashed_operational_foundation/migration.sql");
+assertContains("prisma/migrations/20260518000000_squashed_operational_foundation/migration.sql", [
+  "propertyManagerUserId",
+  "maintenanceUserId",
+  "caseworkerUserId"
+]);
 
 assertContains("src/components/landlord/LandlordUnitForm.tsx", [
-  "Unit photos",
+  "Rental photos",
   "type=\"file\"",
   "The first photo becomes the featured marketplace photo"
 ]);

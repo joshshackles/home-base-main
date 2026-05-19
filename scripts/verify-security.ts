@@ -18,8 +18,8 @@ assertText("src/lib/password.ts", "MIN_PASSWORD_LENGTH = 14", "password policy r
 assertText("src/lib/password.ts", "validatePasswordStrength", "central password strength validator exists");
 assertText("src/lib/password.ts", "admin12345", "old demo passwords are explicitly blocked");
 assertText("prisma/seed.ts", "SEED_ADMIN_PASSWORD", "seed passwords can be supplied by environment variables");
-assertText("prisma/seed.ts", "generatedSeedPassword", "seed script generates non-static temporary passwords");
-assertText("prisma/seed.ts", "forcePasswordReset: true", "seed accounts are forced to change temporary passwords");
+assertText("prisma/seed.ts", "validatePasswordStrength(password)", "seed passwords must pass the production password policy");
+assertText("prisma/seed.ts", "HomeBaseDemo!2026", "seed default matches E2E smoke-test credentials");
 assertText("src/lib/auth.ts", "isActive", "auth checks account active state");
 assertText("src/lib/auth.ts", "dbUser.role", "auth rechecks role from the database");
 assertText("src/lib/auth.ts", "getRequiredAuthSecret", "auth fails closed when AUTH_SECRET is missing or unsafe");

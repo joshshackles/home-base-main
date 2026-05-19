@@ -20,10 +20,11 @@ export async function processDueScheduledPayments(runAt = new Date()) {
     const owner = payment.unit.property.owner;
     const destinationAccountId = owner?.stripeConnectAccountId;
     const ownerId = owner?.id;
-    if (!payment.stripePaymentMethodId || !payment.user.stripeCustomerId || !destinationAccountId || !ownerId || !owner?.stripeChargesEnabled) {
+    const savedMethod = payment.stripePaymentMethodId ? await prisma.renterPaymentMethod.findFirst({ where: { userId: payment.userId, stripePaymentMethodId: payment.stripePaymentMethodId }, select: { id: true } }) : null;
+    if (!payment.stripePaymentMethodId || !savedMethod || !payment.user.stripeCustomerId || !destinationAccountId || !ownerId || !owner?.stripeChargesEnabled) {
       skipped += 1;
-      await prisma.scheduledPayment.update({ where: { id: payment.id }, data: { status: ScheduledPaymentStatus.FAILED, failureReason: "Missing renter payment method, Stripe customer, or landlord Connect account." } });
-      await recordPaymentEvent({ type: "PAYMENT_FAILED", userId: payment.userId, unitId: payment.unitId, ledgerEntryId: payment.ledgerEntryId, amount: payment.amount, message: "Scheduled payment could not run because payment setup is incomplete." });
+      await prisma.scheduledPayment.update({ where: { id: payment.id }, data: { status: ScheduledPaymentStatus.FAILED, failureReason: "Missing owned renter payment method, Stripe customer, or landlord Connect account." } });
+      await recordPaymentEvent({ type: "PAYMENT_FAILED", userId: payment.userId, unitId: payment.unitId, ledgerEntryId: payment.ledgerEntryId, amount: payment.amount, message: "Scheduled payment could not run because payment setup is incomplete or the saved payment method no longer belongs to this renter." });
       await scheduleRetryForFailedPayment({ userId: payment.userId, unitId: payment.unitId, ledgerEntryId: payment.ledgerEntryId, scheduledPaymentId: payment.id, amount: payment.amount, stripePaymentMethodId: payment.stripePaymentMethodId, reason: "Scheduled payment setup incomplete." });
       continue;
     }
