@@ -4,7 +4,7 @@ import { DEFAULT_LEASE_TEMPLATE_BODY } from "../src/lib/lease-render";
 
 const prisma = new PrismaClient();
 
-const DEFAULT_SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || "DemoPassword123!";
+const DEFAULT_SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || "HomeBaseDemo!2026";
 
 function seedPassword(envName: string) {
   const password = process.env[envName] ?? DEFAULT_SEED_PASSWORD;

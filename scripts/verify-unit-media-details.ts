@@ -28,7 +28,12 @@ assertContains("prisma/schema.prisma", [
   "previousTenantNotes"
 ]);
 
-assertExists("prisma/migrations/20260517150000_unit_photos_and_listing_details/migration.sql");
+assertExists("prisma/migrations/20260518000000_squashed_operational_foundation/migration.sql");
+assertContains("prisma/migrations/20260518000000_squashed_operational_foundation/migration.sql", [
+  "CREATE TABLE \"UnitPhoto\"",
+  "schoolDistrict",
+  "averageUtilityBill"
+]);
 assertExists("src/app/api/unit-photos/[id]/route.ts");
 
 assertContains("src/app/landlord/actions.ts", [
@@ -55,7 +60,7 @@ assertContains("src/components/landlord/SingleFamilyHomeForm.tsx", [
 
 assertContains("src/app/landlord/units/page.tsx", [
   "photos:",
-  "Open unit workspace",
+  "Open rental workspace",
   "/api/unit-photos/"
 ]);
 
@@ -70,7 +75,7 @@ assertContains("src/app/landlord/units/[id]/page.tsx", [
 assertContains("src/components/UnitCard.tsx", [
   "unit.photos",
   "/api/unit-photos/",
-  "Avg. utilities"
+  "utils"
 ]);
 
 assertContains("src/app/marketplace/[unitId]/page.tsx", [

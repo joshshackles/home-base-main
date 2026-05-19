@@ -18,7 +18,8 @@ const requiredDashboardContent = [
   "upcomingInspections",
   "attentionNotices",
   "ApplicantSearchDashboard",
-  "tenantUnitCount > 0"
+  "getTenantDashboardMode",
+  "primaryUnit"
 ];
 
 const missingContent = requiredDashboardContent.filter((needle) => !dashboard.includes(needle));
@@ -29,8 +30,19 @@ if (dashboard.includes("<TenantHomeDashboard") || dashboard.includes("<Applicant
 }
 
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
-if (packageJson.version !== "4.13.0") throw new Error(`Expected package version 4.13.0, found ${packageJson.version}`);
+function semverAtLeast(version: string, minimum: string) {
+  const parts = version.split(".").map((part) => Number(part));
+  const minParts = minimum.split(".").map((part) => Number(part));
+  for (let index = 0; index < minParts.length; index += 1) {
+    if ((parts[index] ?? 0) > minParts[index]) return true;
+    if ((parts[index] ?? 0) < minParts[index]) return false;
+  }
+  return true;
+}
+
+if (!semverAtLeast(packageJson.version, "4.13.0")) throw new Error(`Expected package version 4.13.0 or newer, found ${packageJson.version}`);
 const appVersion = readFileSync("src/lib/app-version.ts", "utf8");
-if (!appVersion.includes('APP_VERSION = "4.13.0"')) throw new Error("APP_VERSION must be 4.13.0.");
+const appVersionMatch = /APP_VERSION = "([^"]+)"/.exec(appVersion);
+if (!appVersionMatch || !semverAtLeast(appVersionMatch[1], "4.13.0")) throw new Error("APP_VERSION must be 4.13.0 or newer.");
 
 console.log("Update 13 tenant home dashboard verification passed.");

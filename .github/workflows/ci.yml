@@ -8,21 +8,45 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: homebase_mls
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d homebase_mls"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/homebase_mls?schema=public
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/homebase_mls?schema=public
       AUTH_SECRET: ci-only-secret-value-that-is-longer-than-thirty-two-characters
+      APP_URL: http://127.0.0.1:3000
       DOCUMENT_STORAGE_PROVIDER: database
       EMAIL_PROVIDER: disabled
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+          cache: npm
+      - run: npm ci
       - run: npm run prisma:generate
       - run: npm run migrations:check
+      - run: npm run prisma:deploy
+      - run: npm run seed
+      - run: npm run clean-install:verify
       - run: npm run routes:check
       - run: npm run security:verify
+      - run: npm run operational-coherence:verify
+      - run: npm run test
       - run: npm run typecheck
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e:smoke -- --project=chromium

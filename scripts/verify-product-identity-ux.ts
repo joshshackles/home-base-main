@@ -40,7 +40,7 @@ for (const component of ["AppCard", "MetricTile", "CompactTable", "StatusBadge",
 }
 
 const shell = read("src/components/layout/DashboardShell.tsx");
-for (const feature of ["CommandPalette", "Operations", "Cmd K", "Search units, tenants, payments, messages"]) {
+for (const feature of ["CommandPalette", "groups.map", "Cmd K", "Search rentals, tenants, payments, messages"]) {
   check(shell.includes(feature), `DashboardShell is missing ${feature}.`);
 }
 

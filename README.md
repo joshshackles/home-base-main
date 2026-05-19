@@ -2,12 +2,13 @@
 
 Premium housing operations platform for properties, units, leads, applications, documents, inspections, lease packets, e-signature evidence, notifications, communication, payments, and ledgers.
 
-Current package version: **3.5.5**
+Current package version: **4.17.1**
 
 ## What is included
 
 - Admin, landlord, applicant, and marketplace portals.
 - Unified housing OS brand system with geometric HomeBase mark, favicon/app icon, grouped dashboard shell, and shared UI primitives.
+- Operational coherence cockpit that standardizes next-best work, inbox, records, money, and activity across dashboards.
 - Property/unit inventory management.
 - Public lead capture with anti-spam protections.
 - Applications, documents, inspections, leases, signatures, and ledger workflows.
@@ -51,6 +52,7 @@ npm run qa:smoke
 - Configure `CRON_SECRET` before enabling queued email cron delivery.
 - Review Privacy, Terms, Fair Housing, and Accessibility pages with counsel before public launch.
 - Replace any scaffolded authentication with the production auth plan before exposing this as a public SaaS.
+- This clean-foundation package is intended for fresh installs. It ships one squashed baseline migration plus newer product migrations, not the historical development chain.
 
 ## Documentation
 

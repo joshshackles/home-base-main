@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";
 import { ConnectionRole } from "@prisma/client";
@@ -208,7 +210,7 @@ export default async function LandlordContactsPage({
             <span className="text-xs font-black uppercase tracking-wide text-slate-500">Person</span>
             <select name="targetUserId" required className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-900 outline-none ring-brand-500/20 transition focus:border-brand-500 focus:ring-4">
               <option value="">Choose user</option>
-              {contactUserOptions.map((option) => <option key={option.id} value={option.id}>{option.name || option.email} · {label(option.role)}</option>)}
+              {contactUserOptions.map((option) => <option key={option.id} value={option.id}>{option.name || option.email} - {label(option.role)}</option>)}
             </select>
           </label>
           <label className="block">
@@ -502,8 +504,8 @@ export default async function LandlordContactsPage({
                     {contact.email}
                   </a>
                   <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                    System: {label(contact.systemRole)} · Confidence{" "}
-                    {contact.confidenceScore}% · {label(contact.scopeType)}
+              System: {label(contact.systemRole)} - Confidence{" "}
+              {contact.confidenceScore}% - {label(contact.scopeType)}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-slate-600">
                     {contact.attentionReason}
@@ -552,9 +554,9 @@ export default async function LandlordContactsPage({
                   {contact.governanceFlags.length > 0 ? (
                     <p
                       className="mt-0.5 max-w-xs truncate text-xs font-semibold text-amber-700"
-                      title={contact.governanceFlags.join(" · ")}
+                  title={contact.governanceFlags.join(" - ")}
                     >
-                      {contact.governanceFlags.join(" · ")}
+                  {contact.governanceFlags.join(" - ")}
                     </p>
                   ) : null}
                   {contact.notes ? (

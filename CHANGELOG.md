@@ -1,3 +1,26 @@
+## v4.17.1 - Clean Foundation Hardening
+
+- Replaced the mixed historical migration chain with a clean baseline migration plus post-baseline migrations for fresh installs.
+- Updated Vercel and clean-install verification to match the no-legacy-data deployment strategy.
+- Synchronized package, lockfile, README, and runtime app version metadata.
+- Hardened landlord unit photo validation before record creation to avoid partial listings after failed uploads.
+- Added payment-method verification checks before scheduled payments and autopay enrollment.
+- Strengthened CI to use lockfile installs and run verification/build gates.
+
+## v4.16.0 - Operational Coherence
+
+- Added a shared dashboard coherence DTO/builder so dashboards consistently surface today's work, inbox, rental records, money, and recent activity.
+- Added the operating cockpit and next-best-action panel to the Workhorse dashboard used across account types.
+- Made message thread context links workspace-aware for admin, landlord, and applicant users.
+- Added rental-record links to the messaging surface when a thread is tied to a rental.
+- Added operational coherence documentation and verification coverage wired into Vercel build scripts.
+
+## v4.15.4 - Clean Install Hardening
+
+- Removed legacy migration-recovery build steps and the no-op compatibility migration because this package targets fresh installs only.
+- Added a clean-install verification script for release metadata, dynamic database pages, migration shape, and text encoding checks.
+- Fixed the README version, tightened exact `DATABASE_URL` / `DIRECT_URL` guidance, and updated Vercel deployment docs.
+- Marked all newly detected database-backed notice/contact pages as force-dynamic and normalized visible option separators.
 
 ## 4.15.3 — Prisma Occupancy Unit Relation Fix
 
