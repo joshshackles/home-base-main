@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   AlertTriangle,
@@ -65,7 +65,7 @@ type Thread = {
     subject: string;
     status?: string;
     priority?: string;
-    unit?: { id?: string; unitNumber: string; property: { id?: string; name: string } };
+    unit?: { id?: string; unitNumber: string; property: { id?: string; name: string } } | null;
   } | null;
   messages: Message[];
 };

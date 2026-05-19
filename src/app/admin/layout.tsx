@@ -1,12 +1,13 @@
 import { requireRole } from "@/lib/auth";
 import type { ReactNode } from "react";
-import { Activity, ClipboardCheck, ClipboardList, Database, DollarSign, FileSignature, Home, Inbox, LayoutDashboard, MessageSquare, ShieldCheck, Users, Wrench, CheckSquare, CalendarDays, BarChart3, Megaphone, BriefcaseBusiness, Shield, PackageSearch, PlugZap, ClipboardCheck as ScreeningCheck } from "lucide-react";
+import { Activity, ClipboardCheck, ClipboardList, Database, DollarSign, FileSignature, Home, Inbox, LayoutDashboard, MessageSquare, ShieldCheck, Users, Wrench, CheckSquare, CalendarDays, BarChart3, Megaphone, BriefcaseBusiness, Shield, PackageSearch, PlugZap, ClipboardCheck as ScreeningCheck, TestTube2, Route } from "lucide-react";
 import { DashboardShell, type ShellNavGroup } from "@/components/layout/DashboardShell";
 
 const navGroups: ShellNavGroup[] = [
   { label: "Operations", items: [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/rentals", label: "Rentals", icon: Home },
+    { href: "/admin/lifecycle", label: "Lifecycle", icon: Route },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/vendors", label: "Vendors", icon: BriefcaseBusiness }
   ] },
@@ -37,6 +38,7 @@ const navGroups: ShellNavGroup[] = [
   ] },
   { label: "Administration", items: [
     { href: "/admin/operations", label: "Operations", icon: Activity },
+    { href: "/admin/workflows", label: "Workflow readiness", icon: TestTube2 },
     { href: "/admin/security", label: "Security", icon: ShieldCheck },
     { href: "/admin/system", label: "System", icon: Database },
     { href: "/admin/integrations", label: "Integrations", icon: PlugZap }

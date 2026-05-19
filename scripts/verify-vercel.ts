@@ -26,7 +26,7 @@ const scripts = packageJson.scripts || {};
 const deps = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
 
 if (scripts["vercel-build"]?.includes("prisma migrate deploy")) {
-  fail('package.json vercel-build must not run "prisma migrate deploy". Run production migrations as an explicit release step before deployment.');
+  fail('Clean-foundation Vercel builds must not run "prisma migrate deploy"; run migrations as an explicit release operation instead.');
 }
 
 if (scripts["vercel-build"]?.includes("vercel:migration-recovery") || scripts["vercel:migration-recovery"]) {
@@ -140,4 +140,4 @@ if (process.env.VERCEL === "1" || process.env.NODE_ENV === "production") {
 }
 
 if (failed) process.exit(1);
-console.log("Vercel preflight passed: deterministic install, no build-time migrations, cron route, security headers, environment contract, and serverless storage settings are Vercel-ready.");
+console.log("Vercel preflight passed: build command, clean migration strategy, cron route, security headers, environment contract, and serverless storage settings are Vercel-ready.");

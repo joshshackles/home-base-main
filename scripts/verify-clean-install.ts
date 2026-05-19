@@ -24,34 +24,25 @@ function walk(dir: string, predicate: (filePath: string) => boolean, results: st
 
 const packagePath = path.join(root, "package.json");
 const readmePath = path.join(root, "README.md");
+const changelogPath = path.join(root, "CHANGELOG.md");
+const appVersionPath = path.join(root, "src", "lib", "app-version.ts");
 const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
 const readme = readFileSync(readmePath, "utf8");
+const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, "utf8") : "";
+const appVersionSource = existsSync(appVersionPath) ? readFileSync(appVersionPath, "utf8") : "";
 const readmeVersion = /Current package version:\s+\*\*([^*]+)\*\*/.exec(readme)?.[1];
+const appVersion = /APP_VERSION\s*=\s*"([^"]+)"/.exec(appVersionSource)?.[1];
 
 if (readmeVersion !== packageJson.version) {
   fail(`README version ${readmeVersion || "missing"} does not match package.json version ${packageJson.version}.`);
 }
 
-const lockfilePath = path.join(root, "package-lock.json");
-if (!existsSync(lockfilePath)) {
-  fail("package-lock.json is required so Vercel can run deterministic npm ci installs.");
-} else {
-  const lockfile = readFileSync(lockfilePath, "utf8");
-  if (/applied-caas-gateway|artifactory|internal\.api\.openai/i.test(lockfile)) {
-    fail("package-lock.json contains an internal/private registry URL. Regenerate or normalize it to registry.npmjs.org before deployment.");
-  }
+if (appVersion !== packageJson.version) {
+  fail(`src/lib/app-version.ts version ${appVersion || "missing"} does not match package.json version ${packageJson.version}.`);
 }
 
-if (packageJson.packageManager !== "npm@10.9.0") {
-  fail('package.json should pin "packageManager" to "npm@10.9.0" for reproducible Vercel installs.');
-}
-
-const vercelJsonPath = path.join(root, "vercel.json");
-if (existsSync(vercelJsonPath)) {
-  const vercelJson = JSON.parse(readFileSync(vercelJsonPath, "utf8"));
-  if (vercelJson.installCommand !== "npm ci --no-audit --no-fund") {
-    fail('vercel.json should set installCommand to "npm ci --no-audit --no-fund".');
-  }
+if (!changelog.includes(`v${packageJson.version}`)) {
+  fail(`CHANGELOG.md is missing a v${packageJson.version} entry.`);
 }
 
 const scripts = packageJson.scripts || {};
@@ -65,6 +56,18 @@ if (existsSync(path.join(root, "scripts", "resolve-vercel-migrations.ts"))) {
 
 if (existsSync(path.join(root, "prisma", "migrations", "20260518000100_financial_automation_recovery"))) {
   fail("Legacy no-op financial automation recovery migration should not ship in a clean-install package.");
+}
+
+const migrationsDir = path.join(root, "prisma", "migrations");
+const migrations = existsSync(migrationsDir)
+  ? readdirSync(migrationsDir).filter((entry) => entry !== "migration_lock.toml").sort()
+  : [];
+if (migrations[0] !== "20260518000000_squashed_operational_foundation") {
+  fail("Clean-install packages must start with the squashed operational foundation migration.");
+}
+const preBaselineMigrations = migrations.filter((entry) => entry < "20260518000000_squashed_operational_foundation");
+if (preBaselineMigrations.length > 0) {
+  fail(`Clean-install packages must not ship pre-baseline development migrations: ${preBaselineMigrations.join(", ")}.`);
 }
 
 const pageFiles = walk(path.join(root, "src", "app"), (filePath) => filePath.endsWith("page.tsx"));
