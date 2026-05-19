@@ -1,10 +1,37 @@
-import { ApplicationStatus, DocumentCategory, DocumentRequestStatus, DocumentVisibility, InspectionChecklistStatus, InspectionStatus, LedgerEntryType, PaymentMethod, PaymentPlanInstallmentStatus, PaymentPlanStatus, RecurringChargeFrequency, LeadStatus, LeasePacketStatus, PrismaClient, SignatureNotificationType, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
+import {
+  ApplicationStatus,
+  DocumentCategory,
+  DocumentRequestStatus,
+  DocumentVisibility,
+  InspectionChecklistStatus,
+  InspectionStatus,
+  LedgerEntryType,
+  LeadStatus,
+  LeasePacketStatus,
+  MaintenancePriority,
+  MaintenanceRequestStatus,
+  MessageThreadStatus,
+  MessageThreadType,
+  PaymentMethod,
+  PaymentPlanInstallmentStatus,
+  PaymentPlanStatus,
+  PrismaClient,
+  RecurringChargeFrequency,
+  SignatureNotificationType,
+  SignatureRole,
+  SignatureStatus,
+  TaskItemPriority,
+  TaskItemStatus,
+  TaskItemType,
+  UnitStatus,
+  UserRole
+} from "@prisma/client";
 import { hashPassword, validatePasswordStrength } from "../src/lib/password";
 import { DEFAULT_LEASE_TEMPLATE_BODY } from "../src/lib/lease-render";
 
 const prisma = new PrismaClient();
 
-const DEFAULT_SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || "DemoPassword123!";
+const DEFAULT_SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || "HomeBaseDemo!2026";
 
 function seedPassword(envName: string) {
   const password = process.env[envName] ?? DEFAULT_SEED_PASSWORD;
@@ -181,6 +208,47 @@ async function main() {
       utilitiesNote: "Tenant pays electric and gas.",
       status: UnitStatus.PENDING,
       description: "Second-floor unit currently under review."
+    }
+  });
+
+  const tenantUnit = await prisma.unit.upsert({
+    where: { propertyId_unitNumber: { propertyId: property.id, unitNumber: "102" } },
+    update: {
+      tenantUserId: applicant.id,
+      status: UnitStatus.OCCUPIED,
+      maintenanceUserId: inspector.id
+    },
+    create: {
+      id: "seed-unit-102-tenant",
+      propertyId: property.id,
+      unitNumber: "102",
+      bedrooms: 2,
+      bathrooms: 1,
+      rentAmount: 733,
+      deposit: 500,
+      squareFeet: 825,
+      voucherFriendly: true,
+      utilitiesNote: "Tenant pays electric. Water, sewer, and trash are included.",
+      petPolicy: "One approved pet allowed with written approval.",
+      accessibility: "Ground-level route from parking to front door.",
+      schoolDistrict: "Joplin Schools",
+      neighborhood: "East Town",
+      nearbyFeatures: "Bus stop, grocery, library, and urgent care within 2 miles.",
+      yearBuilt: 1998,
+      roofAgeYears: 6,
+      averageUtilityBill: 145,
+      parkingInfo: "One assigned surface space plus guest parking.",
+      laundryInfo: "Shared laundry room on the first floor.",
+      appliancesIncluded: "Range, refrigerator, dishwasher",
+      flooringInfo: "Luxury vinyl plank in living areas, carpet in bedrooms.",
+      yardInfo: "Shared green space maintained by property owner.",
+      smokingPolicy: "No smoking inside unit.",
+      rentDueDay: 1,
+      lateFeePolicy: "Grace period through the 5th; late fee posts on the 6th.",
+      tenantUserId: applicant.id,
+      maintenanceUserId: inspector.id,
+      status: UnitStatus.OCCUPIED,
+      description: "Seeded occupied unit used for tenant, maintenance, messaging, and ledger QA."
     }
   });
 
@@ -549,6 +617,90 @@ async function main() {
       }
     });
   }
+
+  const maintenanceRequest = await prisma.maintenanceRequest.upsert({
+    where: { id: "seed-maintenance-leak-102" },
+    update: {
+      unitId: tenantUnit.id,
+      applicationId: application.id,
+      requesterId: applicant.id,
+      assignedToId: inspector.id,
+      status: MaintenanceRequestStatus.NEW,
+      priority: MaintenancePriority.NORMAL
+    },
+    create: {
+      id: "seed-maintenance-leak-102",
+      unitId: tenantUnit.id,
+      applicationId: application.id,
+      requesterId: applicant.id,
+      assignedToId: inspector.id,
+      status: MaintenanceRequestStatus.NEW,
+      priority: MaintenancePriority.NORMAL,
+      subject: "Seeded sink leak in Unit 102",
+      description: "Kitchen sink has a slow leak under the cabinet. Seeded record for maintenance workflow QA.",
+      accessNotes: "Tenant is available after 4 PM and gives permission to enter with notice."
+    }
+  });
+
+  const maintenanceThread = await prisma.messageThread.upsert({
+    where: { id: "seed-thread-maintenance-102" },
+    update: {
+      maintenanceRequestId: maintenanceRequest.id,
+      status: MessageThreadStatus.WAITING_ON_STAFF,
+      lastMessageAt: new Date()
+    },
+    create: {
+      id: "seed-thread-maintenance-102",
+      type: MessageThreadType.MAINTENANCE,
+      status: MessageThreadStatus.WAITING_ON_STAFF,
+      subject: "Seeded sink leak in Unit 102",
+      maintenanceRequestId: maintenanceRequest.id,
+      createdById: applicant.id,
+      lastMessageAt: new Date()
+    }
+  });
+
+  await prisma.message.upsert({
+    where: { id: "seed-message-maintenance-102" },
+    update: {},
+    create: {
+      id: "seed-message-maintenance-102",
+      threadId: maintenanceThread.id,
+      senderId: applicant.id,
+      body: "The bucket is catching the drip for now. Please let me know the repair window."
+    }
+  });
+
+  await prisma.taskItem.upsert({
+    where: { id: "seed-task-maintenance-102" },
+    update: {
+      unitId: tenantUnit.id,
+      maintenanceRequestId: maintenanceRequest.id,
+      assignedToId: inspector.id,
+      status: TaskItemStatus.TODO,
+      priority: TaskItemPriority.HIGH
+    },
+    create: {
+      id: "seed-task-maintenance-102",
+      title: "Follow up on Unit 102 sink leak",
+      description: "Seeded task that ties the tenant maintenance request to the operations queue.",
+      type: TaskItemType.MAINTENANCE,
+      status: TaskItemStatus.TODO,
+      priority: TaskItemPriority.HIGH,
+      dueAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2),
+      propertyId: property.id,
+      unitId: tenantUnit.id,
+      applicationId: application.id,
+      maintenanceRequestId: maintenanceRequest.id,
+      createdById: admin.id,
+      assignedToId: inspector.id,
+      source: "seed-workflow-qa",
+      metadata: {
+        qaRelease: "v4.18.0",
+        workflow: "maintenance-message-task"
+      }
+    }
+  });
 
   console.log(`Seeded admin ${admin.email}, landlord ${landlord.email}, and applicant ${applicant.email}.`);
 }

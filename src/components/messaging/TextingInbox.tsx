@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   AlertTriangle,
@@ -65,7 +65,7 @@ type Thread = {
     subject: string;
     status?: string;
     priority?: string;
-    unit?: { id?: string; unitNumber: string; property: { id?: string; name: string } } | null;
+    unit?: { id?: string; unitNumber: string; property: { id?: string; name: string } };
   } | null;
   messages: Message[];
 };
@@ -134,8 +134,7 @@ function initials(sender: Sender) {
 }
 
 function threadContext(thread: Thread) {
-  if (thread.application?.unit) return `${thread.application.unit.property.name} #${thread.application.unit.unitNumber}`;
-  if (thread.application) return thread.application.applicantName || thread.application.applicantEmail || thread.subject;
+  if (thread.application) return `${thread.application.unit.property.name} #${thread.application.unit.unitNumber}`;
   if (thread.maintenanceRequest?.unit) return `${thread.maintenanceRequest.unit.property.name} #${thread.maintenanceRequest.unit.unitNumber}`;
   if (thread.maintenanceRequest) return thread.maintenanceRequest.subject;
   return label(String(thread.type));
@@ -349,7 +348,7 @@ function workflowHrefForThread(thread: Thread, basePath: string) {
 
 function recordHrefForThread(thread: Thread, basePath: string) {
   const workspace = workspaceFromBasePath(basePath);
-  const unitId = thread.application?.unit?.id ?? thread.maintenanceRequest?.unit?.id;
+  const unitId = thread.application?.unit.id ?? thread.maintenanceRequest?.unit?.id;
   if (!unitId) return null;
   if (workspace === "admin") return `/admin/rentals/${unitId}`;
   if (workspace === "landlord") return `/landlord/rentals/${unitId}`;
