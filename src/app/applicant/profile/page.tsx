@@ -11,6 +11,10 @@ function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function dateValue(value: Date | null | undefined) {
+  return value ? value.toISOString().slice(0, 10) : "";
+}
+
 export default async function ApplicantProfilePage() {
   const user = await requireRole(["APPLICANT", "TENANT"], "/applicant/profile");
   const profile = await prisma.applicantProfile.findUnique({
@@ -55,6 +59,122 @@ export default async function ApplicantProfilePage() {
             <Field label="Landlord references"><textarea name="landlordReferences" defaultValue={profile?.landlordReferences ?? ""} className={textareaClass} placeholder="Previous landlord names, phone/email, dates, or notes." /></Field>
             <Field label="Employment summary"><textarea name="employmentSummary" defaultValue={profile?.employmentSummary ?? ""} className={textareaClass} placeholder="Employer, job stability, pay schedule, or benefit income context." /></Field>
             <div className="md:col-span-2"><Field label="Renter profile bio"><textarea name="renterBio" defaultValue={profile?.renterBio ?? ""} className={textareaClass} placeholder="A short, landlord-friendly summary of your household, rental goals, and strengths as a renter." /></Field></div>
+          </div>
+
+          <div className="mt-8 border-t border-slate-200 pt-6">
+            <p className="text-sm font-bold uppercase tracking-wide text-brand-700">Reusable application packet</p>
+            <h2 className="mt-1 text-2xl font-black text-slate-950">Applicant details and acknowledgements</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              Save the screening, housing review, disclosure, and certification details once so future applications can be started from a listing with only authorization to share.
+            </p>
+            {profile?.applicantPacketSignedAt ? (
+              <span className="mt-4 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase text-emerald-800">
+                Packet signed {profile.applicantPacketSignedAt.toLocaleDateString()}
+              </span>
+            ) : (
+              <span className="mt-4 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase text-amber-900">
+                Signature needed
+              </span>
+            )}
+          </div>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <Field label="Date of birth">
+              <input name="dateOfBirth" type="date" defaultValue={dateValue(profile?.dateOfBirth)} className={inputClass} />
+            </Field>
+            <Field label="Government ID type">
+              <input name="governmentIdType" defaultValue={profile?.governmentIdType ?? ""} className={inputClass} placeholder="Driver license, state ID, passport, etc." />
+            </Field>
+            <Field label="Emergency contact name">
+              <input name="emergencyContactName" defaultValue={profile?.emergencyContactName ?? ""} className={inputClass} />
+            </Field>
+            <Field label="Emergency contact phone">
+              <input name="emergencyContactPhone" defaultValue={profile?.emergencyContactPhone ?? ""} className={inputClass} />
+            </Field>
+            <Field label="Emergency contact relationship">
+              <input name="emergencyContactRelation" defaultValue={profile?.emergencyContactRelation ?? ""} className={inputClass} />
+            </Field>
+            <Field label="Current housing start date">
+              <input name="currentHousingStartDate" type="date" defaultValue={dateValue(profile?.currentHousingStartDate)} className={inputClass} />
+            </Field>
+            <div className="md:col-span-2">
+              <Field label="Previous address">
+                <input name="previousAddress" defaultValue={profile?.previousAddress ?? ""} className={inputClass} placeholder="Street, city, state, ZIP" />
+              </Field>
+            </div>
+            <Field label="Previous landlord name">
+              <input name="previousLandlordName" defaultValue={profile?.previousLandlordName ?? ""} className={inputClass} />
+            </Field>
+            <Field label="Previous landlord phone or email">
+              <input name="previousLandlordPhone" defaultValue={profile?.previousLandlordPhone ?? ""} className={inputClass} />
+            </Field>
+            <div className="md:col-span-2">
+              <Field label="Reason for moving">
+                <textarea name="reasonForMoving" defaultValue={profile?.reasonForMoving ?? ""} className={textareaClass} placeholder="Briefly explain why you are moving or what kind of housing you are looking for." />
+              </Field>
+            </div>
+            <Field label="Voucher or subsidy program">
+              <input name="voucherProgram" defaultValue={profile?.voucherProgram ?? ""} className={inputClass} placeholder="Section 8, RAP, SPC, VASH, etc." />
+            </Field>
+            <Field label="Voucher case worker">
+              <input name="voucherCaseWorker" defaultValue={profile?.voucherCaseWorker ?? ""} className={inputClass} />
+            </Field>
+            <Field label="Case worker contact">
+              <input name="voucherCaseWorkerContact" defaultValue={profile?.voucherCaseWorkerContact ?? ""} className={inputClass} />
+            </Field>
+            <div className="md:col-span-2">
+              <Field label="Vehicle information">
+                <textarea name="vehicleInfo" defaultValue={profile?.vehicleInfo ?? ""} className={textareaClass} placeholder="Vehicle make/model, plate, parking needs, or no vehicle." />
+              </Field>
+            </div>
+            <div className="md:col-span-2">
+              <Field label="Service animal or accommodation details">
+                <textarea name="serviceAnimalAccommodation" defaultValue={profile?.serviceAnimalAccommodation ?? ""} className={textareaClass} placeholder="Optional accessibility or accommodation notes." />
+              </Field>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <label className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-800">
+              <input type="checkbox" name="hasPriorEviction" defaultChecked={profile?.hasPriorEviction ?? false} className="mr-2 h-4 w-4 rounded border-slate-300" />
+              Prior eviction history
+            </label>
+            <label className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-800">
+              <input type="checkbox" name="hasCriminalHistory" defaultChecked={profile?.hasCriminalHistory ?? false} className="mr-2 h-4 w-4 rounded border-slate-300" />
+              Criminal history to explain
+            </label>
+            <label className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-800">
+              <input type="checkbox" name="hasOutstandingUtilities" defaultChecked={profile?.hasOutstandingUtilities ?? false} className="mr-2 h-4 w-4 rounded border-slate-300" />
+              Outstanding utility balance
+            </label>
+          </div>
+          <div className="mt-4 grid gap-5 md:grid-cols-3">
+            <Field label="Eviction explanation">
+              <textarea name="priorEvictionExplanation" defaultValue={profile?.priorEvictionExplanation ?? ""} className={textareaClass} />
+            </Field>
+            <Field label="Criminal history explanation">
+              <textarea name="criminalHistoryExplanation" defaultValue={profile?.criminalHistoryExplanation ?? ""} className={textareaClass} />
+            </Field>
+            <Field label="Utility balance explanation">
+              <textarea name="outstandingUtilitiesExplanation" defaultValue={profile?.outstandingUtilitiesExplanation ?? ""} className={textareaClass} />
+            </Field>
+          </div>
+
+          <div className="mt-6 rounded-3xl border border-brand-100 bg-brand-50 p-5">
+            <h3 className="text-lg font-black text-slate-950">Reusable applicant certification</h3>
+            <div className="mt-4 space-y-3 text-sm leading-6 text-brand-950">
+              <label className="flex gap-3">
+                <input type="checkbox" name="consentToScreening" defaultChecked={profile?.consentToScreening ?? false} className="mt-1 h-4 w-4 rounded border-slate-300" />
+                <span>I authorize the housing team or property representative to review my application information, contact references, and request screening information allowed by law and program policy when I apply to a home.</span>
+              </label>
+              <label className="flex gap-3">
+                <input type="checkbox" name="informationCertified" defaultChecked={profile?.informationCertified ?? false} className="mt-1 h-4 w-4 rounded border-slate-300" />
+                <span>I certify that the reusable profile information I provided is accurate to the best of my knowledge and understand that incomplete or inaccurate information may delay review.</span>
+              </label>
+            </div>
+            <Field label="Type your full legal name as your reusable packet signature">
+              <input name="applicantSignature" defaultValue={profile?.applicantSignature ?? ""} className={inputClass} />
+            </Field>
           </div>
           <button type="submit" className="mt-6 rounded-2xl bg-brand-600 px-6 py-3 font-bold text-white hover:bg-brand-700">Save Profile</button>
         </form>

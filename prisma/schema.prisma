@@ -1321,6 +1321,31 @@ model ApplicantProfile {
   landlordReferences String?
   employmentSummary String?
   renterBio        String?
+  dateOfBirth                DateTime?
+  governmentIdType           String?
+  emergencyContactName       String?
+  emergencyContactPhone      String?
+  emergencyContactRelation   String?
+  currentHousingStartDate    DateTime?
+  previousAddress            String?
+  previousLandlordName       String?
+  previousLandlordPhone      String?
+  reasonForMoving            String?
+  voucherProgram             String?
+  voucherCaseWorker          String?
+  voucherCaseWorkerContact   String?
+  vehicleInfo                String?
+  serviceAnimalAccommodation String?
+  hasPriorEviction           Boolean  @default(false)
+  priorEvictionExplanation   String?
+  hasCriminalHistory         Boolean  @default(false)
+  criminalHistoryExplanation String?
+  hasOutstandingUtilities    Boolean  @default(false)
+  outstandingUtilitiesExplanation String?
+  consentToScreening         Boolean  @default(false)
+  informationCertified       Boolean  @default(false)
+  applicantSignature         String?
+  applicantPacketSignedAt    DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

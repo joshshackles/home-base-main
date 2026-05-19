@@ -1,0 +1,28 @@
+ALTER TABLE "ApplicantProfile"
+  ADD COLUMN IF NOT EXISTS "dateOfBirth" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "governmentIdType" TEXT,
+  ADD COLUMN IF NOT EXISTS "emergencyContactName" TEXT,
+  ADD COLUMN IF NOT EXISTS "emergencyContactPhone" TEXT,
+  ADD COLUMN IF NOT EXISTS "emergencyContactRelation" TEXT,
+  ADD COLUMN IF NOT EXISTS "currentHousingStartDate" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "previousAddress" TEXT,
+  ADD COLUMN IF NOT EXISTS "previousLandlordName" TEXT,
+  ADD COLUMN IF NOT EXISTS "previousLandlordPhone" TEXT,
+  ADD COLUMN IF NOT EXISTS "reasonForMoving" TEXT,
+  ADD COLUMN IF NOT EXISTS "voucherProgram" TEXT,
+  ADD COLUMN IF NOT EXISTS "voucherCaseWorker" TEXT,
+  ADD COLUMN IF NOT EXISTS "voucherCaseWorkerContact" TEXT,
+  ADD COLUMN IF NOT EXISTS "vehicleInfo" TEXT,
+  ADD COLUMN IF NOT EXISTS "serviceAnimalAccommodation" TEXT,
+  ADD COLUMN IF NOT EXISTS "hasPriorEviction" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "priorEvictionExplanation" TEXT,
+  ADD COLUMN IF NOT EXISTS "hasCriminalHistory" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "criminalHistoryExplanation" TEXT,
+  ADD COLUMN IF NOT EXISTS "hasOutstandingUtilities" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "outstandingUtilitiesExplanation" TEXT,
+  ADD COLUMN IF NOT EXISTS "consentToScreening" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "informationCertified" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "applicantSignature" TEXT,
+  ADD COLUMN IF NOT EXISTS "applicantPacketSignedAt" TIMESTAMP(3);
+
+CREATE INDEX IF NOT EXISTS "ApplicantProfile_applicantPacketSignedAt_idx" ON "ApplicantProfile"("applicantPacketSignedAt");

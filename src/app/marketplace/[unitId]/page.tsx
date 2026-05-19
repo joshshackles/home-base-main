@@ -366,7 +366,7 @@ export default async function UnitDetailPage({
                 <h2 className="mt-1 text-xl font-black text-blue-950">
                   Apply with your saved renter packet
                 </h2>
-                <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[11px] font-black text-blue-950">
+                <div className="mt-3 grid grid-cols-2 gap-2 text-center text-[11px] font-black text-blue-950 sm:grid-cols-4">
                   <span className="rounded-xl bg-white px-2 py-2">
                     {applicantProfile ? "Profile" : "Start profile"}
                   </span>
@@ -377,6 +377,9 @@ export default async function UnitDetailPage({
                   </span>
                   <span className="rounded-xl bg-white px-2 py-2">
                     {reusableDocuments} docs
+                  </span>
+                  <span className="rounded-xl bg-white px-2 py-2">
+                    {applicantProfile?.applicantPacketSignedAt ? "Signed" : "Needs signature"}
                   </span>
                 </div>
                 {existingApplication ? (
@@ -397,9 +400,10 @@ export default async function UnitDetailPage({
                         required
                         className="mt-1 h-4 w-4 rounded border-blue-300"
                       />
-                      I authorize HomeBase to share my saved renter profile,
-                      contact details, household, income, and reusable documents
-                      with this rental team.
+                      I authorize HomeBase to share my saved renter packet,
+                      including profile, application details, acknowledgements,
+                      household, income, and reusable documents, with this
+                      rental team.
                     </label>
                     <textarea
                       name="message"

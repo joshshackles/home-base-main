@@ -232,7 +232,31 @@ export const applicantProfileSchema = z.object({
   accessibilityNeeds: optionalText,
   landlordReferences: optionalText,
   employmentSummary: optionalText,
-  renterBio: optionalText
+  renterBio: optionalText,
+  dateOfBirth: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.date().nullable()),
+  governmentIdType: optionalText,
+  emergencyContactName: optionalText,
+  emergencyContactPhone: optionalText,
+  emergencyContactRelation: optionalText,
+  currentHousingStartDate: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.date().nullable()),
+  previousAddress: optionalText,
+  previousLandlordName: optionalText,
+  previousLandlordPhone: optionalText,
+  reasonForMoving: optionalText,
+  voucherProgram: optionalText,
+  voucherCaseWorker: optionalText,
+  voucherCaseWorkerContact: optionalText,
+  vehicleInfo: optionalText,
+  serviceAnimalAccommodation: optionalText,
+  hasPriorEviction: z.coerce.boolean().default(false),
+  priorEvictionExplanation: optionalText,
+  hasCriminalHistory: z.coerce.boolean().default(false),
+  criminalHistoryExplanation: optionalText,
+  hasOutstandingUtilities: z.coerce.boolean().default(false),
+  outstandingUtilitiesExplanation: optionalText,
+  consentToScreening: z.coerce.boolean().default(false),
+  informationCertified: z.coerce.boolean().default(false),
+  applicantSignature: optionalText
 });
 
 export const favoriteRentalSchema = z.object({

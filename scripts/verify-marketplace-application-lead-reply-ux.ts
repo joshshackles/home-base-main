@@ -14,7 +14,22 @@ const checks: Check[] = [
       "startMarketplaceApplication",
       "MessageThreadType.APPLICATION",
       "MessageThreadStatus.WAITING_ON_STAFF",
+      "applicantPacketSignedAt",
+      "dateOfBirth: profile.dateOfBirth",
+      "voucherCaseWorker: profile.voucherCaseWorker",
+      "serviceAnimalAccommodation: profile.serviceAnimalAccommodation",
       "returnTo?.startsWith(\"/marketplace/\")"
+    ]
+  },
+  {
+    file: "src/app/applicant/profile/page.tsx",
+    markers: [
+      "Reusable application packet",
+      "Applicant details and acknowledgements",
+      "applicantPacketSignedAt",
+      "consentToScreening",
+      "informationCertified",
+      "applicantSignature"
     ]
   },
   {
@@ -23,6 +38,7 @@ const checks: Check[] = [
       "Apply with your saved renter packet",
       "startMarketplaceApplication",
       "shareAuthorization",
+      "Needs signature",
       "Ask a question instead",
       "messagePotentialLandlord",
       "/login?next=/marketplace/"
@@ -52,24 +68,44 @@ const checks: Check[] = [
   {
     file: "docs/MARKETPLACE_APPLICATION_LEAD_REPLY_UX.md",
     markers: [
-      "Version: 4.31.0",
+      "Version: 4.32.0",
       "Fast apply",
       "Landlord Reply Changes"
     ]
   },
   {
     file: "CHANGELOG.md",
-    markers: ["v4.31.0 - Marketplace Application & Lead Reply UX"]
+    markers: [
+      "v4.32.0 - Reusable Auto-Apply Profile Packet",
+      "v4.31.0 - Marketplace Application & Lead Reply UX"
+    ]
   },
   {
     file: "src/lib/app-version.ts",
-    markers: ["4.31.0"]
+    markers: ["4.32.0"]
   },
   {
     file: "package.json",
     markers: [
-      "\"version\": \"4.31.0\"",
+      "\"version\": \"4.32.0\"",
       "marketplace-application-ux:verify"
+    ]
+  },
+  {
+    file: "prisma/schema.prisma",
+    markers: [
+      "model ApplicantProfile",
+      "dateOfBirth",
+      "consentToScreening",
+      "applicantPacketSignedAt"
+    ]
+  },
+  {
+    file: "prisma/migrations/20260519192000_reusable_application_packet_profile/migration.sql",
+    markers: [
+      "ALTER TABLE \"ApplicantProfile\"",
+      "\"dateOfBirth\"",
+      "\"applicantPacketSignedAt\""
     ]
   }
 ];

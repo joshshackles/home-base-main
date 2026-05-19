@@ -1,3 +1,12 @@
+## v4.32.0 - Reusable Auto-Apply Profile Packet
+
+- Expanded the applicant reusable profile to store Phase 2 application details, emergency contact, housing history, voucher/caseworker, vehicle, accommodation, disclosure, and certification fields.
+- Added the reusable application packet section to the applicant profile page with saved signature status.
+- Updated marketplace fast apply to share the full saved renter packet and show whether the reusable packet is signed.
+- Updated auto-apply creation so new applications inherit the saved Phase 2 details and acknowledgements from the applicant profile.
+- Synced application detail saves back into the reusable profile so applicants only need to complete the structured details once.
+- Added a Prisma migration for the reusable application packet profile fields.
+
 ## v4.31.0 - Marketplace Application & Lead Reply UX
 
 - Added signed-in marketplace fast apply so applicants can authorize sharing their saved renter packet from the listing page.

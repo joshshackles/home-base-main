@@ -167,10 +167,18 @@ export async function saveApplicantProfile(formData: FormData) {
   const parsed = applicantProfileSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) throw new Error(validationMessage(parsed.error));
 
+  const applicantPacketSignedAt =
+    parsed.data.consentToScreening &&
+    parsed.data.informationCertified &&
+    parsed.data.applicantSignature &&
+    parsed.data.applicantSignature.trim().length > 0
+      ? new Date()
+      : null;
+
   await prisma.applicantProfile.upsert({
     where: { userId: user.userId },
-    update: parsed.data,
-    create: { ...parsed.data, userId: user.userId },
+    update: { ...parsed.data, applicantPacketSignedAt },
+    create: { ...parsed.data, applicantPacketSignedAt, userId: user.userId },
   });
 
   revalidateApplicant();
@@ -325,10 +333,32 @@ export async function startMarketplaceApplication(formData: FormData) {
             applicationDetail: {
               create: {
                 requestedMoveInDate: profile.desiredMoveInDate,
-                previousAddress: [profile.currentAddress, profile.city, profile.state, profile.zip].filter(Boolean).join(", ") || null,
+                dateOfBirth: profile.dateOfBirth,
+                governmentIdType: profile.governmentIdType,
+                emergencyContactName: profile.emergencyContactName,
+                emergencyContactPhone: profile.emergencyContactPhone,
+                emergencyContactRelation: profile.emergencyContactRelation,
+                currentHousingStartDate: profile.currentHousingStartDate,
+                previousAddress: profile.previousAddress || [profile.currentAddress, profile.city, profile.state, profile.zip].filter(Boolean).join(", ") || null,
+                previousLandlordName: profile.previousLandlordName,
+                previousLandlordPhone: profile.previousLandlordPhone,
                 petDetails: profile.pets,
-                voucherProgram: profile.voucherHolder ? "Voucher holder" : null,
-                reasonForMoving: profile.renterBio,
+                voucherProgram: profile.voucherProgram || (profile.voucherHolder ? "Voucher holder" : null),
+                voucherCaseWorker: profile.voucherCaseWorker,
+                voucherCaseWorkerContact: profile.voucherCaseWorkerContact,
+                reasonForMoving: profile.reasonForMoving || profile.renterBio,
+                vehicleInfo: profile.vehicleInfo,
+                serviceAnimalAccommodation: profile.serviceAnimalAccommodation || profile.accessibilityNeeds,
+                hasPriorEviction: profile.hasPriorEviction,
+                priorEvictionExplanation: profile.priorEvictionExplanation,
+                hasCriminalHistory: profile.hasCriminalHistory,
+                criminalHistoryExplanation: profile.criminalHistoryExplanation,
+                hasOutstandingUtilities: profile.hasOutstandingUtilities,
+                outstandingUtilitiesExplanation: profile.outstandingUtilitiesExplanation,
+                consentToScreening: profile.consentToScreening,
+                informationCertified: profile.informationCertified,
+                applicantSignature: profile.applicantSignature,
+                signedAt: profile.applicantPacketSignedAt,
               },
             },
             notes: {
@@ -581,6 +611,39 @@ export async function saveApplicationDetail(formData: FormData) {
     where: { applicationId },
     update: { ...payload, applicantSignature, signedAt },
     create: { applicationId, ...payload, applicantSignature, signedAt },
+  });
+
+  await prisma.applicantProfile.updateMany({
+    where: { userId: user.userId },
+    data: {
+      dateOfBirth: payload.dateOfBirth,
+      governmentIdType: payload.governmentIdType,
+      emergencyContactName: payload.emergencyContactName,
+      emergencyContactPhone: payload.emergencyContactPhone,
+      emergencyContactRelation: payload.emergencyContactRelation,
+      currentHousingStartDate: payload.currentHousingStartDate,
+      previousAddress: payload.previousAddress,
+      previousLandlordName: payload.previousLandlordName,
+      previousLandlordPhone: payload.previousLandlordPhone,
+      reasonForMoving: payload.reasonForMoving,
+      desiredMoveInDate: payload.requestedMoveInDate,
+      voucherProgram: payload.voucherProgram,
+      voucherCaseWorker: payload.voucherCaseWorker,
+      voucherCaseWorkerContact: payload.voucherCaseWorkerContact,
+      vehicleInfo: payload.vehicleInfo,
+      pets: payload.petDetails,
+      serviceAnimalAccommodation: payload.serviceAnimalAccommodation,
+      hasPriorEviction: payload.hasPriorEviction,
+      priorEvictionExplanation: payload.priorEvictionExplanation,
+      hasCriminalHistory: payload.hasCriminalHistory,
+      criminalHistoryExplanation: payload.criminalHistoryExplanation,
+      hasOutstandingUtilities: payload.hasOutstandingUtilities,
+      outstandingUtilitiesExplanation: payload.outstandingUtilitiesExplanation,
+      consentToScreening: payload.consentToScreening,
+      informationCertified: payload.informationCertified,
+      applicantSignature,
+      applicantPacketSignedAt: signedAt,
+    },
   });
 
   await prisma.applicationNote.create({
