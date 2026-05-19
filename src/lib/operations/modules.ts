@@ -74,7 +74,7 @@ export async function getIntegrationsHubModule(ownerId?: string) {
   const readiness = getIntegrationReadinessCatalog();
   const readyProviders = readiness.filter((item) => item.configured).length;
   const missingEnvironment = readiness.reduce((total, item) => total + item.missingRequiredEnv.length, 0);
-  const realProviders = new Set([IntegrationProvider.STRIPE, IntegrationProvider.SENDGRID, IntegrationProvider.POSTMARK, IntegrationProvider.QUICKBOOKS]);
+  const realProviders = new Set<IntegrationProvider>([IntegrationProvider.STRIPE, IntegrationProvider.SENDGRID, IntegrationProvider.POSTMARK, IntegrationProvider.QUICKBOOKS]);
   const realConnections = connections.filter((item) => realProviders.has(item.provider));
   const retryableEvents = events.filter((event) => {
     const payload = event.payloadJson;
