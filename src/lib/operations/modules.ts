@@ -1,4 +1,4 @@
-import { ComplianceRecordStatus, IntegrationConnectionStatus, MaintenanceAssetStatus, ScreeningRequestStatus } from "@prisma/client";
+import { ComplianceRecordStatus, IntegrationConnectionStatus, IntegrationProvider, MaintenanceAssetStatus, ScreeningRequestStatus } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getIntegrationReadinessCatalog } from "@/lib/integrations-hub";
@@ -74,5 +74,14 @@ export async function getIntegrationsHubModule(ownerId?: string) {
   const readiness = getIntegrationReadinessCatalog();
   const readyProviders = readiness.filter((item) => item.configured).length;
   const missingEnvironment = readiness.reduce((total, item) => total + item.missingRequiredEnv.length, 0);
-  return { connections, events, readiness, counts: { connections: connections.length, connected, errors, providers: new Set(connections.map((item) => item.provider)).size, readyProviders, missingEnvironment } };
+  const realProviders = new Set([IntegrationProvider.STRIPE, IntegrationProvider.SENDGRID, IntegrationProvider.POSTMARK, IntegrationProvider.QUICKBOOKS]);
+  const realConnections = connections.filter((item) => realProviders.has(item.provider));
+  const retryableEvents = events.filter((event) => {
+    const payload = event.payloadJson;
+    return Boolean(payload && typeof payload === "object" && !Array.isArray(payload) && "retryable" in payload && (payload as Record<string, unknown>).retryable);
+  }).length;
+  const webhookEvents = events.filter((event) => event.eventType.startsWith("webhook.")).length;
+  const oauthEvents = events.filter((event) => event.eventType.startsWith("oauth.")).length;
+  const syncEvents = events.filter((event) => event.eventType.includes("sync") || event.eventType.includes("diagnostic")).length;
+  return { connections, realConnections, events, readiness, counts: { connections: connections.length, connected, errors, providers: new Set(connections.map((item) => item.provider)).size, readyProviders, missingEnvironment, retryableEvents, webhookEvents, oauthEvents, syncEvents } };
 }

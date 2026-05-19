@@ -1,10 +1,23 @@
-import { ApplicationStatus, LedgerEntryStatus, LedgerEntryType, MaintenanceRequestStatus, MessageThreadStatus, Prisma, UnitStatus } from "@prisma/client";
+import { ApplicationStatus, ComplianceRecordStatus, InspectionStatus, LeadStatus, LedgerEntryStatus, LedgerEntryType, MaintenanceRequestStatus, MessageThreadStatus, Prisma, UnitStatus, VendorInvoiceStatus, VendorPayoutStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { toCsv } from "@/lib/csv";
 import { ledgerSignedAmount } from "@/lib/ledger";
 
 export type ReportScope = { role: "admin" } | { role: "landlord"; ownerUserId: string };
-export type ReportSection = "overview" | "financial" | "occupancy" | "leasing" | "maintenance" | "communications";
+export type ReportSection =
+  | "overview"
+  | "financial"
+  | "occupancy"
+  | "delinquency"
+  | "cash_flow"
+  | "leasing"
+  | "lead_conversion"
+  | "application_funnel"
+  | "maintenance"
+  | "maintenance_cost"
+  | "vendor_performance"
+  | "inspection_compliance"
+  | "communications";
 
 export type ReportFilters = {
   from: Date;
@@ -52,6 +65,18 @@ export type ReportsDashboardDTO = {
     occupancyRate: number;
     rows: ReportTable;
   };
+  delinquency: {
+    overdueBalance: number;
+    overdueCount: number;
+    delinquencyRate: number;
+    rows: ReportTable;
+  };
+  cashFlow: {
+    inflow: number;
+    outflow: number;
+    net: number;
+    rows: ReportTable;
+  };
   leasing: {
     leads: number;
     applications: number;
@@ -61,6 +86,23 @@ export type ReportsDashboardDTO = {
     statusRows: ReportChartPoint[];
     recentRows: ReportTable;
   };
+  leadConversion: {
+    leads: number;
+    contacted: number;
+    applicationStarted: number;
+    closed: number;
+    conversionRate: number;
+    rows: ReportTable;
+  };
+  applicationFunnel: {
+    started: number;
+    submitted: number;
+    underReview: number;
+    approved: number;
+    denied: number;
+    withdrawn: number;
+    rows: ReportTable;
+  };
   maintenance: {
     open: number;
     completed: number;
@@ -68,6 +110,26 @@ export type ReportsDashboardDTO = {
     averageResolutionDays: number | null;
     statusRows: ReportChartPoint[];
     recentRows: ReportTable;
+  };
+  maintenanceCost: {
+    invoiceTotal: number;
+    payoutTotal: number;
+    averageCost: number;
+    rows: ReportTable;
+  };
+  vendorPerformance: {
+    activeVendors: number;
+    submittedInvoices: number;
+    paidPayouts: number;
+    averageInvoice: number;
+    rows: ReportTable;
+  };
+  inspectionCompliance: {
+    inspectionsDue: number;
+    inspectionsPassed: number;
+    inspectionsFailed: number;
+    complianceRisk: number;
+    rows: ReportTable;
   };
   communications: {
     openThreads: number;
@@ -84,7 +146,20 @@ const DAY = 24 * 60 * 60 * 1000;
 
 export function parseReportSection(value?: string | string[] | null): ReportSection {
   const raw = Array.isArray(value) ? value[0] : value;
-  if (raw === "financial" || raw === "occupancy" || raw === "leasing" || raw === "maintenance" || raw === "communications") return raw;
+  if (
+    raw === "financial" ||
+    raw === "occupancy" ||
+    raw === "delinquency" ||
+    raw === "cash_flow" ||
+    raw === "leasing" ||
+    raw === "lead_conversion" ||
+    raw === "application_funnel" ||
+    raw === "maintenance" ||
+    raw === "maintenance_cost" ||
+    raw === "vendor_performance" ||
+    raw === "inspection_compliance" ||
+    raw === "communications"
+  ) return raw;
   return "overview";
 }
 
@@ -194,6 +269,41 @@ function maintenanceWhere(scope: ReportScope, filters: ReportFilters): Prisma.Ma
   };
 }
 
+function vendorInvoiceWhere(scope: ReportScope, filters: ReportFilters): Prisma.VendorInvoiceWhereInput {
+  return {
+    createdAt: { gte: filters.from, lte: filters.to },
+    ...(scope.role === "landlord" ? { ownerUserId: scope.ownerUserId } : {}),
+    ...(filters.rentalId ? { unitId: filters.rentalId } : {}),
+    ...(filters.propertyId ? { unit: { propertyId: filters.propertyId } } : {})
+  };
+}
+
+function vendorPayoutWhere(scope: ReportScope, filters: ReportFilters): Prisma.VendorPayoutWhereInput {
+  return {
+    createdAt: { gte: filters.from, lte: filters.to },
+    ...(scope.role === "landlord" ? { ownerUserId: scope.ownerUserId } : {}),
+    ...(filters.rentalId ? { unitId: filters.rentalId } : {}),
+    ...(filters.propertyId ? { unit: { propertyId: filters.propertyId } } : {})
+  };
+}
+
+function inspectionWhere(scope: ReportScope, filters: ReportFilters): Prisma.InspectionWhereInput {
+  return {
+    createdAt: { gte: filters.from, lte: filters.to },
+    ...(scope.role === "landlord" ? { unit: { property: { ownerId: scope.ownerUserId } } } : {}),
+    ...(filters.rentalId ? { unitId: filters.rentalId } : {}),
+    ...(filters.propertyId ? { unit: { propertyId: filters.propertyId } } : {})
+  };
+}
+
+function complianceRequirementWhere(scope: ReportScope, filters: ReportFilters): Prisma.ComplianceInspectionRequirementWhereInput {
+  const and: Prisma.ComplianceInspectionRequirementWhereInput[] = [];
+  if (scope.role === "landlord") and.push({ OR: [{ unit: { property: { ownerId: scope.ownerUserId } } }, { property: { ownerId: scope.ownerUserId } }] });
+  if (filters.rentalId) and.push({ unitId: filters.rentalId });
+  if (filters.propertyId) and.push({ OR: [{ propertyId: filters.propertyId }, { unit: { propertyId: filters.propertyId } }] });
+  return and.length ? { AND: and } : {};
+}
+
 function threadWhere(scope: ReportScope, filters: ReportFilters): Prisma.MessageThreadWhereInput {
   const and: Prisma.MessageThreadWhereInput[] = [{ createdAt: { gte: filters.from, lte: filters.to } }];
   if (scope.role === "landlord") {
@@ -231,6 +341,7 @@ export async function getReportFilterOptions(scope: ReportScope) {
     select: { id: true, name: true, units: { select: { id: true, unitNumber: true }, orderBy: { unitNumber: "asc" } } }
   });
   return {
+    properties: properties.map((property) => ({ id: property.id, label: property.name })),
     rentals: properties.flatMap((property) => property.units.map((unit) => ({ id: unit.id, label: `${property.name} #${unit.unitNumber}` })))
   };
 }
@@ -240,6 +351,10 @@ export async function getReportsDashboard(scope: ReportScope, filters: ReportFil
   const ledgerScope = ledgerWhere(scope, filters);
   const appScope = applicationWhere(scope, filters);
   const maintScope = maintenanceWhere(scope, filters);
+  const vendorInvoiceScope = vendorInvoiceWhere(scope, filters);
+  const vendorPayoutScope = vendorPayoutWhere(scope, filters);
+  const inspectionScope = inspectionWhere(scope, filters);
+  const complianceScope = complianceRequirementWhere(scope, filters);
   const msgThreadScope = threadWhere(scope, filters);
   const msgScope = messageWhere(scope, filters);
   const leadsScope = leadWhere(scope, filters);
@@ -270,7 +385,15 @@ export async function getReportsDashboard(scope: ReportScope, filters: ReportFil
     internalMessageCount,
     recentThreads,
     ledgerRows,
-    propertyRows
+    propertyRows,
+    leadRows,
+    applicationRows,
+    delinquencyRows,
+    vendorInvoiceRows,
+    vendorPayoutRows,
+    activeVendors,
+    inspectionRows,
+    complianceRows
   ] = await Promise.all([
     prisma.unit.count({ where: unitScope }),
     prisma.unit.count({ where: { ...unitScope, status: UnitStatus.OCCUPIED } }),
@@ -297,7 +420,15 @@ export async function getReportsDashboard(scope: ReportScope, filters: ReportFil
     prisma.message.count({ where: { ...msgScope, isInternal: true } }),
     prisma.messageThread.findMany({ where: msgThreadScope, orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }], take: 8, include: { application: { include: { unit: { include: { property: true } } } }, maintenanceRequest: { include: { unit: { include: { property: true } } } }, messages: { select: { id: true }, take: 1 } } }),
     prisma.ledgerEntry.findMany({ where: ledgerScope, orderBy: { postedAt: "desc" }, take: 500, include: { unit: { include: { property: true } }, tenantUser: true, application: true } }),
-    prisma.property.findMany({ where: scope.role === "landlord" ? { ownerId: scope.ownerUserId } : {}, orderBy: { name: "asc" }, include: { units: true } })
+    prisma.property.findMany({ where: scope.role === "landlord" ? { ownerId: scope.ownerUserId } : {}, orderBy: { name: "asc" }, include: { units: true } }),
+    prisma.lead.findMany({ where: leadsScope, orderBy: { createdAt: "desc" }, take: 500, include: { unit: { include: { property: true } }, application: { select: { id: true, status: true } } } }),
+    prisma.application.findMany({ where: appScope, orderBy: { createdAt: "desc" }, take: 500, include: { unit: { include: { property: true } }, lead: { select: { id: true, status: true } } } }),
+    prisma.ledgerEntry.findMany({ where: { ...ledgerScope, status: LedgerEntryStatus.POSTED, type: { in: [LedgerEntryType.CHARGE, LedgerEntryType.ADJUSTMENT] }, dueDate: { lt: new Date() } }, orderBy: { dueDate: "asc" }, take: 200, include: { unit: { include: { property: true } }, tenantUser: true, application: true } }),
+    prisma.vendorInvoice.findMany({ where: vendorInvoiceScope, orderBy: { createdAt: "desc" }, take: 300, include: { vendor: true, vendorProfile: true, unit: { include: { property: true } }, maintenanceRequest: true } }),
+    prisma.vendorPayout.findMany({ where: vendorPayoutScope, orderBy: { createdAt: "desc" }, take: 300, include: { vendor: true, unit: { include: { property: true } }, maintenanceRequest: true } }),
+    prisma.vendorProfile.count({ where: scope.role === "landlord" ? { ownerUserId: scope.ownerUserId, isActive: true } : { isActive: true } }),
+    prisma.inspection.findMany({ where: inspectionScope, orderBy: [{ scheduledFor: "asc" }, { createdAt: "desc" }], take: 300, include: { unit: { include: { property: true } }, assignedTo: true } }),
+    prisma.complianceInspectionRequirement.findMany({ where: complianceScope, orderBy: [{ nextDueAt: "asc" }, { updatedAt: "desc" }], take: 300, include: { property: true, unit: { include: { property: true } } } })
   ]);
 
   const chargeTotal = charges.reduce((sum, entry) => sum + Math.max(0, ledgerSignedAmount(entry)), 0);
@@ -312,6 +443,24 @@ export async function getReportsDashboard(scope: ReportScope, filters: ReportFil
     : null;
 
   const trend = buildMonthlyTrend(ledgerRows.map((entry) => ({ date: entry.postedAt, value: Math.abs(ledgerSignedAmount(entry)), type: entry.type })));
+  const delinquencyBalance = delinquencyRows.reduce((sum, entry) => sum + Math.max(0, ledgerSignedAmount(entry)), 0);
+  const delinquencyRate = chargeTotal > 0 ? Math.round((delinquencyBalance / chargeTotal) * 100) : 0;
+  const cashInflow = paymentTotal;
+  const invoiceTotal = vendorInvoiceRows.filter((invoice) => invoice.status !== VendorInvoiceStatus.CANCELLED && invoice.status !== VendorInvoiceStatus.REJECTED).reduce((sum, invoice) => sum + invoice.amount, 0);
+  const payoutTotal = vendorPayoutRows.filter((payout) => payout.status !== VendorPayoutStatus.CANCELLED && payout.status !== VendorPayoutStatus.FAILED).reduce((sum, payout) => sum + payout.amount, 0);
+  const cashOutflow = invoiceTotal + payoutTotal;
+  const cashNet = cashInflow - cashOutflow;
+  const contactedLeads = leadRows.filter((lead) => lead.status === LeadStatus.CONTACTED || lead.status === LeadStatus.APPLICATION_STARTED || Boolean(lead.application)).length;
+  const applicationStartedLeads = leadRows.filter((lead) => lead.status === LeadStatus.APPLICATION_STARTED || Boolean(lead.application)).length;
+  const closedLeads = leadRows.filter((lead) => lead.status === LeadStatus.CLOSED).length;
+  const funnelCounts = Object.values(ApplicationStatus).reduce((accumulator, status) => ({ ...accumulator, [status]: applicationRows.filter((application) => application.status === status).length }), {} as Record<ApplicationStatus, number>);
+  const averageMaintenanceCost = vendorInvoiceRows.length > 0 ? Math.round(invoiceTotal / vendorInvoiceRows.length) : 0;
+  const paidPayouts = vendorPayoutRows.filter((payout) => payout.status === VendorPayoutStatus.PAID).length;
+  const submittedInvoices = vendorInvoiceRows.filter((invoice) => invoice.status === VendorInvoiceStatus.SUBMITTED || invoice.status === VendorInvoiceStatus.APPROVED || invoice.status === VendorInvoiceStatus.PAID).length;
+  const averageInvoice = vendorInvoiceRows.length > 0 ? Math.round(invoiceTotal / vendorInvoiceRows.length) : 0;
+  const inspectionsPassed = inspectionRows.filter((inspection) => inspection.status === InspectionStatus.PASSED).length;
+  const inspectionsFailed = inspectionRows.filter((inspection) => inspection.status === InspectionStatus.FAILED || inspection.status === InspectionStatus.NEEDS_REINSPECTION).length;
+  const complianceRiskRows = complianceRows.filter((row) => row.status === ComplianceRecordStatus.MISSING || row.status === ComplianceRecordStatus.EXPIRED || row.status === ComplianceRecordStatus.EXPIRING_SOON || (row.nextDueAt && row.nextDueAt < new Date()));
 
   return {
     scopeLabel: scope.role === "landlord" ? "Landlord portfolio" : "Platform portfolio",
@@ -321,7 +470,10 @@ export async function getReportsDashboard(scope: ReportScope, filters: ReportFil
       { label: "Outstanding", value: currency(outstanding), detail: `${currency(overdue)} overdue`, tone: outstanding > 0 ? "amber" : "green" },
       { label: "Occupancy", value: pct(occupancyRate), detail: `${occupied}/${totalRentals} occupied`, tone: occupancyRate >= 90 ? "green" : occupancyRate >= 75 ? "amber" : "red" },
       { label: "Applications", value: applications, detail: `${conversionRate}% lead-to-approval`, tone: "blue" },
+      { label: "Cash flow", value: currency(cashNet), detail: `${currency(cashInflow)} in / ${currency(cashOutflow)} out`, tone: cashNet >= 0 ? "green" : "red" },
       { label: "Open maintenance", value: openMaintenance, detail: `${urgentMaintenance} urgent`, tone: urgentMaintenance > 0 ? "red" : openMaintenance > 0 ? "amber" : "green" },
+      { label: "Vendor spend", value: currency(invoiceTotal), detail: `${submittedInvoices} submitted invoices`, tone: invoiceTotal > 0 ? "amber" : "slate" },
+      { label: "Compliance risk", value: complianceRiskRows.length, detail: `${inspectionsFailed} failed inspections`, tone: complianceRiskRows.length > 0 || inspectionsFailed > 0 ? "red" : "green" },
       { label: "Open threads", value: openThreads, detail: `${messageCount} messages`, tone: openThreads > 0 ? "blue" : "slate" }
     ],
     financial: { collected: paymentTotal, charges: chargeTotal, outstanding, overdue, collectionRate, trend },
@@ -345,6 +497,33 @@ export async function getReportsDashboard(scope: ReportScope, filters: ReportFil
         })
       }
     },
+    delinquency: {
+      overdueBalance: delinquencyBalance,
+      overdueCount: delinquencyRows.length,
+      delinquencyRate,
+      rows: {
+        title: "Delinquency drilldown",
+        description: "Posted charges and adjustments past due in the selected reporting window.",
+        headers: ["Rental", "Tenant/applicant", "Due", "Description", "Balance"],
+        rows: delinquencyRows.map((entry) => [rentalLabel(entry.unit), entry.tenantUser?.name ?? entry.application?.applicantName ?? "Unassigned", entry.dueDate?.toLocaleDateString() ?? "No due date", entry.description, currency(Math.max(0, ledgerSignedAmount(entry)))])
+      }
+    },
+    cashFlow: {
+      inflow: cashInflow,
+      outflow: cashOutflow,
+      net: cashNet,
+      rows: {
+        title: "Cash flow drilldown",
+        description: "Cash movement from tenant payments, credits, vendor invoices, and vendor payouts.",
+        headers: ["Source", "Inflow", "Outflow", "Net", "Detail"],
+        rows: [
+          ["Tenant payments and credits", currency(cashInflow), "$0", currency(cashInflow), `${payments.length} ledger payment rows`],
+          ["Vendor invoices", "$0", currency(invoiceTotal), currency(-invoiceTotal), `${vendorInvoiceRows.length} invoice rows`],
+          ["Vendor payouts", "$0", currency(payoutTotal), currency(-payoutTotal), `${vendorPayoutRows.length} payout rows`],
+          ["Net cash flow", currency(cashInflow), currency(cashOutflow), currency(cashNet), cashNet >= 0 ? "Positive period" : "Negative period"]
+        ]
+      }
+    },
     leasing: {
       leads,
       applications,
@@ -359,6 +538,33 @@ export async function getReportsDashboard(scope: ReportScope, filters: ReportFil
         rows: recentApplications.map((application) => [application.applicantName, rentalLabel(application.unit), humanize(application.status), application.createdAt.toLocaleDateString()])
       }
     },
+    leadConversion: {
+      leads,
+      contacted: contactedLeads,
+      applicationStarted: applicationStartedLeads,
+      closed: closedLeads,
+      conversionRate,
+      rows: {
+        title: "Lead conversion drilldown",
+        description: "Lead status, application linkage, and approval conversion by rental.",
+        headers: ["Lead", "Rental", "Lead status", "Application", "Created"],
+        rows: leadRows.map((lead) => [lead.name, rentalLabel(lead.unit), humanize(lead.status), lead.application ? humanize(lead.application.status) : "No application", lead.createdAt.toLocaleDateString()])
+      }
+    },
+    applicationFunnel: {
+      started: funnelCounts.STARTED ?? 0,
+      submitted: funnelCounts.SUBMITTED ?? 0,
+      underReview: funnelCounts.UNDER_REVIEW ?? 0,
+      approved: funnelCounts.APPROVED ?? 0,
+      denied: funnelCounts.DENIED ?? 0,
+      withdrawn: funnelCounts.WITHDRAWN ?? 0,
+      rows: {
+        title: "Application funnel drilldown",
+        description: "Application stage movement and source lead status.",
+        headers: ["Applicant", "Rental", "Application status", "Lead status", "Updated"],
+        rows: applicationRows.map((application) => [application.applicantName, rentalLabel(application.unit), humanize(application.status), application.lead ? humanize(application.lead.status) : "Direct application", application.updatedAt.toLocaleDateString()])
+      }
+    },
     maintenance: {
       open: openMaintenance,
       completed: completedMaintenance,
@@ -370,6 +576,44 @@ export async function getReportsDashboard(scope: ReportScope, filters: ReportFil
         description: "Recent work orders and repair requests.",
         headers: ["Subject", "Rental", "Priority", "Status"],
         rows: recentMaintenance.map((request) => [request.subject, request.unit ? rentalLabel(request.unit) : "Portfolio", humanize(request.priority), humanize(request.status)])
+      }
+    },
+    maintenanceCost: {
+      invoiceTotal,
+      payoutTotal,
+      averageCost: averageMaintenanceCost,
+      rows: {
+        title: "Maintenance cost drilldown",
+        description: "Vendor invoice costs tied to maintenance work and rentals.",
+        headers: ["Invoice", "Vendor", "Rental", "Status", "Amount"],
+        rows: vendorInvoiceRows.map((invoice) => [invoice.invoiceNumber ?? invoice.title, invoice.vendorProfile?.companyName ?? invoice.vendor.name ?? invoice.vendor.email, invoice.unit ? rentalLabel(invoice.unit) : "Portfolio", humanize(invoice.status), currency(invoice.amount)])
+      }
+    },
+    vendorPerformance: {
+      activeVendors,
+      submittedInvoices,
+      paidPayouts,
+      averageInvoice,
+      rows: {
+        title: "Vendor performance drilldown",
+        description: "Vendor invoice throughput, payout state, and recent job context.",
+        headers: ["Vendor", "Trade/context", "Invoices", "Paid payouts", "Total spend"],
+        rows: buildVendorPerformanceRows(vendorInvoiceRows, vendorPayoutRows)
+      }
+    },
+    inspectionCompliance: {
+      inspectionsDue: complianceRows.length,
+      inspectionsPassed,
+      inspectionsFailed,
+      complianceRisk: complianceRiskRows.length,
+      rows: {
+        title: "Inspection compliance drilldown",
+        description: "Inspection outcomes and recurring compliance requirements with due-date risk.",
+        headers: ["Item", "Rental/property", "Status", "Due/completed", "Notes"],
+        rows: [
+          ...inspectionRows.map((inspection) => [inspection.inspectorName || "Inspection", rentalLabel(inspection.unit), humanize(inspection.status), (inspection.completedAt ?? inspection.scheduledFor ?? inspection.createdAt).toLocaleDateString(), inspection.resultSummary ?? inspection.notes ?? ""]),
+          ...complianceRows.map((requirement) => [requirement.name, requirement.unit ? rentalLabel(requirement.unit) : requirement.property?.name ?? "Portfolio", humanize(requirement.status), requirement.nextDueAt?.toLocaleDateString() ?? requirement.lastCompletedAt?.toLocaleDateString() ?? "No due date", requirement.notes ?? ""])
+        ]
       }
     },
     communications: {
@@ -404,6 +648,26 @@ function threadContext(thread: { application?: { unit: { unitNumber: string; pro
   return "General";
 }
 
+function buildVendorPerformanceRows(invoices: Array<{ vendorUserId: string; amount: number; status: VendorInvoiceStatus; vendor: { name: string | null; email: string }; vendorProfile: { companyName: string; trade: string } | null }>, payouts: Array<{ vendorUserId: string | null; status: VendorPayoutStatus; vendor: { name: string | null; email: string } | null }>) {
+  const vendors = new Map<string, { label: string; trade: string; invoices: number; paidPayouts: number; spend: number }>();
+  for (const invoice of invoices) {
+    const key = invoice.vendorUserId;
+    const existing = vendors.get(key) ?? { label: invoice.vendorProfile?.companyName ?? invoice.vendor.name ?? invoice.vendor.email, trade: invoice.vendorProfile?.trade ?? "Vendor", invoices: 0, paidPayouts: 0, spend: 0 };
+    existing.invoices += 1;
+    if (invoice.status !== VendorInvoiceStatus.CANCELLED && invoice.status !== VendorInvoiceStatus.REJECTED) existing.spend += invoice.amount;
+    vendors.set(key, existing);
+  }
+  for (const payout of payouts) {
+    if (!payout.vendorUserId) continue;
+    const existing = vendors.get(payout.vendorUserId) ?? { label: payout.vendor?.name ?? payout.vendor?.email ?? "Unassigned vendor", trade: "Payout", invoices: 0, paidPayouts: 0, spend: 0 };
+    if (payout.status === VendorPayoutStatus.PAID) existing.paidPayouts += 1;
+    vendors.set(payout.vendorUserId, existing);
+  }
+  return Array.from(vendors.values())
+    .sort((a, b) => b.spend - a.spend)
+    .map((vendor) => [vendor.label, vendor.trade, vendor.invoices, vendor.paidPayouts, currency(vendor.spend)]);
+}
+
 function humanize(value: string) {
   return value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
@@ -426,8 +690,15 @@ function buildMonthlyTrend(entries: Array<{ date: Date; value: number; type: Led
 
 export function reportTableForSection(report: ReportsDashboardDTO, section: ReportSection): ReportTable {
   if (section === "occupancy") return report.occupancy.rows;
+  if (section === "delinquency") return report.delinquency.rows;
+  if (section === "cash_flow") return report.cashFlow.rows;
   if (section === "leasing") return report.leasing.recentRows;
+  if (section === "lead_conversion") return report.leadConversion.rows;
+  if (section === "application_funnel") return report.applicationFunnel.rows;
   if (section === "maintenance") return report.maintenance.recentRows;
+  if (section === "maintenance_cost") return report.maintenanceCost.rows;
+  if (section === "vendor_performance") return report.vendorPerformance.rows;
+  if (section === "inspection_compliance") return report.inspectionCompliance.rows;
   if (section === "communications") return report.communications.recentRows;
   return {
     title: "Financial activity",

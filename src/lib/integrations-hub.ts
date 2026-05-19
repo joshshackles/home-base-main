@@ -1,6 +1,7 @@
 import { IntegrationConnectionStatus, IntegrationEventStatus, IntegrationProvider } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { logIntegrationEvent, runRealConnectionDiagnostic } from "@/lib/integrations-real";
 
 export type IntegrationReadiness = {
   provider: IntegrationProvider;
@@ -16,6 +17,7 @@ export type IntegrationReadiness = {
   configuredRequiredEnv: string[];
   configuredOptionalEnv: string[];
   quickBooks?: QuickBooksSetupProfile;
+  realConnectionV1?: boolean;
 };
 
 export type QuickBooksSetupProfile = {
@@ -71,8 +73,9 @@ const PROVIDER_SPECS: Record<IntegrationProvider, ProviderSpec> = {
     description: "Card and ACH payment processing, payment webhooks, deposits, and reconciliation events.",
     requiredEnv: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
     optionalEnv: ["NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "STRIPE_ACCOUNT_ID"],
-    webhookPath: "/api/webhooks/stripe",
-    docsHint: "Use live keys in production and add the webhook signing secret in Vercel."
+    webhookPath: "/api/stripe/webhook",
+    docsHint: "Use live keys in production and add the webhook signing secret in Vercel.",
+    realConnectionV1: true
   },
   [IntegrationProvider.PLAID]: {
     provider: IntegrationProvider.PLAID,
@@ -101,8 +104,9 @@ const PROVIDER_SPECS: Record<IntegrationProvider, ProviderSpec> = {
     description: "Transactional email delivery for notices, applications, leases, and workflow messages.",
     requiredEnv: ["SENDGRID_API_KEY", "EMAIL_FROM"],
     optionalEnv: ["SENDGRID_WEBHOOK_PUBLIC_KEY"],
-    webhookPath: "/api/webhooks/sendgrid",
-    docsHint: "Verify the sender domain before switching production email traffic to SendGrid."
+    webhookPath: "/api/webhooks/email",
+    docsHint: "Verify the sender domain before switching production email traffic to SendGrid.",
+    realConnectionV1: true
   },
   [IntegrationProvider.POSTMARK]: {
     provider: IntegrationProvider.POSTMARK,
@@ -111,8 +115,9 @@ const PROVIDER_SPECS: Record<IntegrationProvider, ProviderSpec> = {
     description: "Transactional email delivery with delivery/bounce event tracking.",
     requiredEnv: ["POSTMARK_SERVER_TOKEN", "EMAIL_FROM"],
     optionalEnv: ["POSTMARK_WEBHOOK_SECRET"],
-    webhookPath: "/api/webhooks/postmark",
-    docsHint: "Use a production server token and configure bounce webhooks for deliverability monitoring."
+    webhookPath: "/api/webhooks/email",
+    docsHint: "Use a production server token and configure bounce webhooks for deliverability monitoring.",
+    realConnectionV1: true
   },
   [IntegrationProvider.S3]: {
     provider: IntegrationProvider.S3,
@@ -143,7 +148,8 @@ const PROVIDER_SPECS: Record<IntegrationProvider, ProviderSpec> = {
     optionalEnv: ["QUICKBOOKS_WEBHOOK_VERIFIER_TOKEN", "QUICKBOOKS_ENV", "QUICKBOOKS_MINOR_VERSION"],
     webhookPath: QUICKBOOKS_SETUP_PROFILE.webhookPath,
     docsHint: "Use this hub to store company/realm mapping only. OAuth access and refresh tokens must live in the secure token store, never in config JSON.",
-    quickBooks: QUICKBOOKS_SETUP_PROFILE
+    quickBooks: QUICKBOOKS_SETUP_PROFILE,
+    realConnectionV1: true
   },
   [IntegrationProvider.GOOGLE_CALENDAR]: {
     provider: IntegrationProvider.GOOGLE_CALENDAR,
@@ -425,7 +431,7 @@ export async function runIntegrationDiagnosticFromForm(formData: FormData, optio
     }
   });
 
-  return prisma.integrationEvent.create({
+  const readinessEvent = await prisma.integrationEvent.create({
     data: {
       connection: { connect: { id: connection.id } },
       ...(options.actorId ? { actor: { connect: { id: options.actorId } } } : {}),
@@ -443,6 +449,27 @@ export async function runIntegrationDiagnosticFromForm(formData: FormData, optio
       }
     }
   });
+
+  if ([IntegrationProvider.STRIPE, IntegrationProvider.SENDGRID, IntegrationProvider.POSTMARK, IntegrationProvider.QUICKBOOKS].includes(connection.provider)) {
+    try {
+      return await runRealConnectionDiagnostic(connection.id, options.actorId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Real connection diagnostic failed.";
+      await prisma.integrationConnection.update({ where: { id: connection.id }, data: { status: IntegrationConnectionStatus.ERROR, lastError: message.slice(0, 1000) } });
+      return logIntegrationEvent({
+        provider: connection.provider,
+        connectionId: connection.id,
+        actorId: options.actorId,
+        eventType: "diagnostic.real_connection",
+        status: IntegrationEventStatus.FAILED,
+        summary: message,
+        payload: { source: "real_connection_v1" },
+        retryAttempt: 1
+      });
+    }
+  }
+
+  return readinessEvent;
 }
 
 export const integrationProviderOptions = [

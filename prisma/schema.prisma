@@ -531,6 +531,22 @@ enum PaymentEventType {
   REFUND_REQUESTED
   LATE_FEE_APPLIED
   RENT_ADJUSTED
+  DISPUTE_OPENED
+  DISPUTE_UPDATED
+  DISPUTE_CLOSED
+  PAYOUT_PROCESSING
+  PAYOUT_PAID
+  PAYOUT_FAILED
+  RECEIPT_AVAILABLE
+  WEBHOOK_PROCESSED
+}
+
+enum PaymentWebhookProcessingStatus {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  SKIPPED
+  FAILED
 }
 
 enum AutoPayEnrollmentStatus {
@@ -2014,6 +2030,28 @@ model PaymentEvent {
   @@index([type])
 }
 
+model PaymentWebhookEvent {
+  id                  String                         @id @default(cuid())
+  stripeEventId       String                         @unique
+  type                String
+  livemode            Boolean                        @default(false)
+  apiVersion          String?
+  idempotencyKey      String?
+  status              PaymentWebhookProcessingStatus @default(RECEIVED)
+  attempts            Int                            @default(1)
+  receivedAt          DateTime                       @default(now())
+  processingStartedAt DateTime?
+  processedAt         DateTime?
+  failedAt            DateTime?
+  errorMessage        String?
+  payload             Json?
+  createdAt           DateTime                       @default(now())
+  updatedAt           DateTime                       @updatedAt
+
+  @@index([status, receivedAt])
+  @@index([type])
+}
+
 model AutoPayEnrollment {
   id                    String                  @id @default(cuid())
   userId                String
@@ -2443,6 +2481,9 @@ model LedgerEntry {
   stripePaymentIntentId String? @unique
   stripePaymentStatus String?
   stripePaidAt DateTime?
+  stripeReceiptUrl String?
+  stripeReceiptNumber String?
+  stripeRefundStatus String?
   scheduledPayments ScheduledPayment[]
   paymentEvents PaymentEvent[]
   autoPayEnrollments AutoPayEnrollment[]

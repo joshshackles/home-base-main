@@ -2,7 +2,7 @@
 
 Premium housing operations platform for properties, units, leads, applications, documents, inspections, lease packets, e-signature evidence, notifications, communication, payments, and ledgers.
 
-Current package version: **4.20.1**
+Current package version: **4.26.0**
 
 ## What is included
 
@@ -17,7 +17,7 @@ Current package version: **4.20.1**
 - E-signature consent/evidence hashing.
 - Security headers, password policy hardening, durable rate limiting, and DB-verified session checks.
 - Email queue hardening and cron-compatible sending route.
-- Stripe Connect, tenant checkout, scheduled payments, autopay, retry recovery, refunds, and enterprise finance records.
+- Stripe Connect, tenant checkout, scheduled payments, autopay, retry recovery, refunds, disputes, payout events, webhook idempotency logs, receipts, and landlord reconciliation views.
 - Vitest test scaffolding, structured logging, and verification scripts.
 - End-to-end workflow QA matrix for discovery, applicant, landlord, maintenance, messaging, admin, and finance paths.
 - Admin workflow readiness center that scores core product promises as proven, covered, basic, or underdeveloped.

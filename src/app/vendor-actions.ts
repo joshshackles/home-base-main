@@ -6,9 +6,15 @@ import {
   AuditAction,
   ConnectionRole,
   ConnectionStatus,
+  DocumentCategory,
+  DocumentStatus,
+  DocumentVisibility,
   MaintenanceRequestStatus,
   NotificationDeliveryStatus,
   NotificationTemplateKey,
+  TaskItemPriority,
+  TaskItemStatus,
+  TaskItemType,
   VendorInvoiceStatus,
   VendorPayoutStatus,
   VendorWorkLogStatus,
@@ -20,6 +26,7 @@ import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { assertVendorPortalAccess } from "@/lib/vendors";
 import { createVendorInvitation } from "@/lib/vendor-invitations";
+import { saveUploadedDocument } from "@/lib/storage";
 
 function text(formData: FormData, key: string) {
   const raw = formData.get(key);
@@ -111,6 +118,16 @@ const vendorProfileSchema = z.object({
   hourlyRate: z.number().int().min(0).nullable(),
   isPreferred: z.boolean(),
   notes: z.string().max(2000).nullable(),
+});
+
+const recurringMaintenanceSchema = z.object({
+  unitId: z.string().min(1),
+  title: z.string().min(3).max(160),
+  description: z.string().max(2000).nullable(),
+  dueAt: z.date().nullable(),
+  cadence: z.string().max(80).nullable(),
+  assignedToId: z.string().nullable(),
+  priority: z.nativeEnum(TaskItemPriority).default(TaskItemPriority.NORMAL),
 });
 
 export async function inviteExternalVendor(formData: FormData) {
@@ -319,6 +336,41 @@ export async function assignVendorToMaintenance(formData: FormData) {
   await revalidateVendorPages();
 }
 
+export async function acceptVendorMaintenanceJob(formData: FormData) {
+  const actor = await requireUser("/vendor/jobs");
+  await assertVendorPortalAccess(actor);
+  const requestId = text(formData, "maintenanceRequestId");
+  const request = await prisma.maintenanceRequest.findUnique({
+    where: { id: requestId },
+    select: { id: true, assignedToId: true, subject: true, status: true },
+  });
+  if (!request || request.assignedToId !== actor.userId) throw new Error("You can only accept assigned vendor jobs.");
+  await prisma.$transaction([
+    prisma.maintenanceRequest.update({
+      where: { id: request.id },
+      data: { status: MaintenanceRequestStatus.IN_PROGRESS },
+    }),
+    prisma.vendorWorkLog.create({
+      data: {
+        vendorUserId: actor.userId,
+        maintenanceRequestId: request.id,
+        status: VendorWorkLogStatus.ON_SITE,
+        title: "Vendor accepted job",
+        notes: optionalText(formData, "notes") ?? "Accepted from mobile field mode.",
+        createdById: actor.userId,
+      },
+    }),
+  ]);
+  await writeAuditLog({
+    actor,
+    action: AuditAction.UPDATE,
+    entityType: "MaintenanceRequest",
+    entityId: request.id,
+    message: `Vendor accepted job: ${request.subject}.`,
+  });
+  await revalidateVendorPages();
+}
+
 export async function addVendorWorkLog(formData: FormData) {
   const actor = await requireUser("/vendor/jobs");
   await assertVendorPortalAccess(actor);
@@ -379,6 +431,107 @@ export async function addVendorWorkLog(formData: FormData) {
     entityId: log.id,
     message: "Vendor work log created.",
     metadata: { maintenanceRequestId, status },
+  });
+  await revalidateVendorPages();
+}
+
+export async function uploadVendorMaintenancePhoto(formData: FormData) {
+  const actor = await requireUser("/vendor/jobs");
+  await assertVendorPortalAccess(actor);
+  const maintenanceRequestId = text(formData, "maintenanceRequestId");
+  const file = formData.get("photo");
+  if (!(file instanceof File) || file.size === 0) throw new Error("A field photo is required.");
+  if (!file.type.startsWith("image/")) throw new Error("Field updates only accept image files.");
+  const request = await prisma.maintenanceRequest.findUnique({
+    where: { id: maintenanceRequestId },
+    include: { unit: { select: { id: true, property: { select: { ownerId: true } } } } },
+  });
+  if (!request || request.assignedToId !== actor.userId) throw new Error("You can only upload photos for assigned vendor jobs.");
+  const stored = await saveUploadedDocument(file);
+  const document = await prisma.document.create({
+    data: {
+      title: text(formData, "title") || `Field photo - ${request.subject}`,
+      category: DocumentCategory.OTHER,
+      status: DocumentStatus.UPLOADED,
+      visibility: DocumentVisibility.LANDLORD,
+      ...stored,
+      unitId: request.unitId,
+      applicationId: request.applicationId,
+      uploadedById: actor.userId,
+      notes: optionalText(formData, "notes") ?? `Maintenance photo for ${request.subject}.`,
+    },
+  });
+  await prisma.vendorWorkLog.create({
+    data: {
+      vendorUserId: actor.userId,
+      maintenanceRequestId: request.id,
+      status: VendorWorkLogStatus.NOTE,
+      title: "Field photo uploaded",
+      notes: document.title,
+      createdById: actor.userId,
+    },
+  });
+  await writeAuditLog({
+    actor,
+    action: AuditAction.UPLOAD,
+    entityType: "Document",
+    entityId: document.id,
+    message: "Vendor uploaded maintenance field photo.",
+    metadata: { maintenanceRequestId },
+  });
+  await revalidateVendorPages();
+}
+
+export async function createVendorEstimate(formData: FormData) {
+  const actor = await requireUser("/vendor/jobs");
+  await assertVendorPortalAccess(actor);
+  const maintenanceRequestId = text(formData, "maintenanceRequestId");
+  const amount = dollarsToCents(text(formData, "amount"));
+  if (amount <= 0) throw new Error("Estimate amount must be greater than zero.");
+  const request = await prisma.maintenanceRequest.findUnique({
+    where: { id: maintenanceRequestId },
+    select: {
+      id: true,
+      subject: true,
+      assignedToId: true,
+      unitId: true,
+      unit: { select: { property: { select: { ownerId: true } } } },
+    },
+  });
+  if (!request || request.assignedToId !== actor.userId) throw new Error("You can only estimate assigned vendor jobs.");
+  const ownerUserId = request.unit?.property.ownerId;
+  if (!ownerUserId) throw new Error("Estimate needs a landlord owner.");
+  const estimate = await prisma.vendorInvoice.create({
+    data: {
+      vendorUserId: actor.userId,
+      ownerUserId,
+      unitId: request.unitId,
+      maintenanceRequestId: request.id,
+      title: text(formData, "title") || `Estimate: ${request.subject}`,
+      description: optionalText(formData, "description"),
+      amount,
+      status: VendorInvoiceStatus.SUBMITTED,
+      submittedAt: new Date(),
+      createdById: actor.userId,
+    },
+  });
+  await prisma.vendorWorkLog.create({
+    data: {
+      vendorUserId: actor.userId,
+      maintenanceRequestId: request.id,
+      status: VendorWorkLogStatus.NOTE,
+      title: "Estimate submitted",
+      notes: `${estimate.title} for ${amount} cents.`,
+      createdById: actor.userId,
+    },
+  });
+  await writeAuditLog({
+    actor,
+    action: AuditAction.SEND,
+    entityType: "VendorInvoice",
+    entityId: estimate.id,
+    message: "Vendor estimate submitted for approval.",
+    metadata: { maintenanceRequestId, amount },
   });
   await revalidateVendorPages();
 }
@@ -544,4 +697,44 @@ export async function approveVendorInvoiceForPayout(formData: FormData) {
     metadata: { invoiceId: id, amount: invoice.amount },
   });
   await revalidateVendorPages();
+}
+
+export async function createRecurringMaintenanceTask(formData: FormData) {
+  const actor = await requireRole(["ADMIN", "LANDLORD"], "/landlord/maintenance");
+  const parsed = recurringMaintenanceSchema.parse({
+    unitId: text(formData, "unitId"),
+    title: text(formData, "title"),
+    description: optionalText(formData, "description"),
+    dueAt: parseNullableDate(text(formData, "dueAt")),
+    cadence: optionalText(formData, "cadence"),
+    assignedToId: optionalText(formData, "assignedToId"),
+    priority: (text(formData, "priority") as TaskItemPriority) || TaskItemPriority.NORMAL,
+  });
+  await assertOwnerCanUseUnit(actor, parsed.unitId);
+  const task = await prisma.taskItem.create({
+    data: {
+      unitId: parsed.unitId,
+      title: parsed.title,
+      description: parsed.description,
+      type: TaskItemType.MAINTENANCE,
+      status: TaskItemStatus.TODO,
+      priority: parsed.priority,
+      dueAt: parsed.dueAt,
+      assignedToId: parsed.assignedToId,
+      createdById: actor.userId,
+      source: "recurring_maintenance",
+      metadata: { cadence: parsed.cadence ?? "one-time", mobileFieldMode: true },
+    },
+  });
+  await writeAuditLog({
+    actor,
+    action: AuditAction.CREATE,
+    entityType: "TaskItem",
+    entityId: task.id,
+    message: "Recurring maintenance task created.",
+    metadata: { cadence: parsed.cadence, unitId: parsed.unitId },
+  });
+  revalidatePath("/landlord/maintenance");
+  revalidatePath("/admin/maintenance");
+  revalidatePath("/landlord/tasks");
 }

@@ -7,12 +7,19 @@ const sections: Array<{ key: ReportSection; label: string }> = [
   { key: "overview", label: "Overview" },
   { key: "financial", label: "Financial" },
   { key: "occupancy", label: "Occupancy" },
+  { key: "delinquency", label: "Delinquency" },
+  { key: "cash_flow", label: "Cash flow" },
   { key: "leasing", label: "Leasing" },
+  { key: "lead_conversion", label: "Lead conversion" },
+  { key: "application_funnel", label: "Application funnel" },
   { key: "maintenance", label: "Maintenance" },
+  { key: "maintenance_cost", label: "Maintenance cost" },
+  { key: "vendor_performance", label: "Vendor performance" },
+  { key: "inspection_compliance", label: "Inspection compliance" },
   { key: "communications", label: "Communications" }
 ];
 
-export function ReportsDashboard({ report, basePath, options }: { report: ReportsDashboardDTO; basePath: string; options: { rentals: Array<{ id: string; label: string }> } }) {
+export function ReportsDashboard({ report, basePath, options }: { report: ReportsDashboardDTO; basePath: string; options: { properties: Array<{ id: string; label: string }>; rentals: Array<{ id: string; label: string }> } }) {
   const activeSection = report.filters.section;
   const currentTable = getActiveTable(report, activeSection);
   return (
@@ -29,6 +36,7 @@ export function ReportsDashboard({ report, basePath, options }: { report: Report
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Real operational, financial, leasing, maintenance, occupancy, and communication reporting with scoped exports and Vercel-safe aggregate queries.</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Link className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-black text-blue-700 hover:bg-blue-100" href={`${basePath}/drilldown?${reportQueryString(report.filters, { section: activeSection })}`}><BarChart3 size={14} /> Drilldown</Link>
             <Link className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-800 hover:bg-slate-50" href={`${basePath}/export?${reportQueryString(report.filters, { section: activeSection, format: "csv" })}`}><Download size={14} /> CSV</Link>
             <Link className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-800 hover:bg-slate-50" href={`${basePath}/export?${reportQueryString(report.filters, { section: activeSection, format: "json" })}`}><FileJson size={14} /> JSON</Link>
           </div>
@@ -45,6 +53,13 @@ export function ReportsDashboard({ report, basePath, options }: { report: Report
           <label className="grid gap-1 text-xs font-black uppercase tracking-wide text-slate-500">
             To
             <input className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-800" type="date" name="to" defaultValue={toInputDate(report.filters.to)} />
+          </label>
+          <label className="grid min-w-[220px] gap-1 text-xs font-black uppercase tracking-wide text-slate-500">
+            Property
+            <select className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-800" name="propertyId" defaultValue={report.filters.propertyId ?? ""}>
+              <option value="">All properties</option>
+              {options.properties.map((property) => <option key={property.id} value={property.id}>{property.label}</option>)}
+            </select>
           </label>
           <label className="grid min-w-[220px] gap-1 text-xs font-black uppercase tracking-wide text-slate-500">
             Rental
@@ -124,8 +139,15 @@ function TrendBar({ point, max }: { point: { label: string; value: number }; max
 
 function getActiveTable(report: ReportsDashboardDTO, section: ReportSection) {
   if (section === "occupancy") return report.occupancy.rows;
+  if (section === "delinquency") return report.delinquency.rows;
+  if (section === "cash_flow") return report.cashFlow.rows;
   if (section === "leasing") return report.leasing.recentRows;
+  if (section === "lead_conversion") return report.leadConversion.rows;
+  if (section === "application_funnel") return report.applicationFunnel.rows;
   if (section === "maintenance") return report.maintenance.recentRows;
+  if (section === "maintenance_cost") return report.maintenanceCost.rows;
+  if (section === "vendor_performance") return report.vendorPerformance.rows;
+  if (section === "inspection_compliance") return report.inspectionCompliance.rows;
   if (section === "communications") return report.communications.recentRows;
   return {
     title: "Financial summary",
@@ -147,8 +169,49 @@ function getActiveBreakdown(report: ReportsDashboardDTO, section: ReportSection)
     { label: "Pending", value: report.occupancy.pending },
     { label: "Unavailable", value: report.occupancy.unavailable }
   ];
+  if (section === "delinquency") return [
+    { label: "Overdue entries", value: report.delinquency.overdueCount },
+    { label: "Delinquency rate", value: report.delinquency.delinquencyRate },
+    { label: "Overdue balance", value: Math.round(report.delinquency.overdueBalance / 1000) }
+  ];
+  if (section === "cash_flow") return [
+    { label: "Inflow", value: Math.round(report.cashFlow.inflow / 1000) },
+    { label: "Outflow", value: Math.round(report.cashFlow.outflow / 1000) },
+    { label: "Net", value: Math.round(report.cashFlow.net / 1000) }
+  ];
   if (section === "leasing") return report.leasing.statusRows;
+  if (section === "lead_conversion") return [
+    { label: "Leads", value: report.leadConversion.leads },
+    { label: "Contacted", value: report.leadConversion.contacted },
+    { label: "Application started", value: report.leadConversion.applicationStarted },
+    { label: "Closed", value: report.leadConversion.closed }
+  ];
+  if (section === "application_funnel") return [
+    { label: "Started", value: report.applicationFunnel.started },
+    { label: "Submitted", value: report.applicationFunnel.submitted },
+    { label: "Under review", value: report.applicationFunnel.underReview },
+    { label: "Approved", value: report.applicationFunnel.approved },
+    { label: "Denied", value: report.applicationFunnel.denied },
+    { label: "Withdrawn", value: report.applicationFunnel.withdrawn }
+  ];
   if (section === "maintenance") return report.maintenance.statusRows;
+  if (section === "maintenance_cost") return [
+    { label: "Invoice total", value: Math.round(report.maintenanceCost.invoiceTotal / 1000) },
+    { label: "Payout total", value: Math.round(report.maintenanceCost.payoutTotal / 1000) },
+    { label: "Average cost", value: Math.round(report.maintenanceCost.averageCost / 100) }
+  ];
+  if (section === "vendor_performance") return [
+    { label: "Active vendors", value: report.vendorPerformance.activeVendors },
+    { label: "Submitted invoices", value: report.vendorPerformance.submittedInvoices },
+    { label: "Paid payouts", value: report.vendorPerformance.paidPayouts },
+    { label: "Average invoice", value: Math.round(report.vendorPerformance.averageInvoice / 100) }
+  ];
+  if (section === "inspection_compliance") return [
+    { label: "Requirements", value: report.inspectionCompliance.inspectionsDue },
+    { label: "Passed", value: report.inspectionCompliance.inspectionsPassed },
+    { label: "Failed/reinspect", value: report.inspectionCompliance.inspectionsFailed },
+    { label: "Compliance risk", value: report.inspectionCompliance.complianceRisk }
+  ];
   if (section === "communications") return report.communications.statusRows;
   return [
     { label: "Collection rate", value: report.financial.collectionRate },

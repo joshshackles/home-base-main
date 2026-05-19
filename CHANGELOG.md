@@ -1,3 +1,49 @@
+## v4.26.0 - Reporting & Analytics v1
+
+- Expanded the reports suite into first-class analytics sections for occupancy, delinquency, cash flow, lead conversion, application funnel, maintenance cost, vendor performance, and inspection compliance.
+- Added scoped drilldown pages for admin and landlord reports that render the same table data used by CSV/JSON exports.
+- Added property filtering, report drilldown actions, and export-ready tables for finance, leasing, maintenance, vendor, and compliance operations.
+- Extended the Prisma-backed reports service with delinquency ledgers, cash movement, lead/application funnel rows, vendor invoice/payout analytics, and inspection compliance risk.
+- Added release documentation and focused verification for Reporting & Analytics v1.
+
+## v4.25.0 - Integrations v1 Real Connections
+
+- Added the first real connection layer for Stripe, SendGrid/Postmark email, and QuickBooks with OAuth, webhook, token lifecycle metadata, retryable events, and diagnostics.
+- Added QuickBooks OAuth start/callback routes with state validation, owner-aware start access, realm capture, and external-token lifecycle metadata.
+- Added provider webhook endpoints for QuickBooks and email delivery events, plus Stripe webhook integration event logging around the existing payment processor.
+- Extended the integrations control center with Real v1 badges, live connection cards, webhook paths, OAuth actions, retry counts, webhook/OAuth/sync log counters, and real provider diagnostics.
+- Added release documentation and focused verification for Integrations v1 Real Connections.
+
+## v4.24.0 - Real Maintenance/Vendor Operations
+
+- Added maintenance assignment queues, vendor acceptance, SLA risk tracking, and recurring maintenance scheduling to landlord/vendor operations.
+- Added mobile field mode for vendors with job acceptance, work logs, photo uploads, estimates, invoices, and payout eligibility visibility.
+- Added landlord maintenance metrics for unassigned work, vendor acceptance, SLA risk, submitted estimates, and preventive maintenance tasks.
+- Extended vendor data helpers and server actions for field photos, estimates, accepted jobs, payout-ready invoices, and recurring maintenance tasks.
+- Added release documentation and focused verification for the real maintenance/vendor operations workflow.
+
+## v4.23.0 - Landlord Operating Console
+
+- Turned each landlord rental detail page into a true operating console with listing health, command links, attention items, lead/application pipeline, tenant state, lease/rent/deposit, ledger, maintenance, contacts, inspections, documents, notes, and timeline.
+- Added listing-health scoring for photos, marketing copy, pricing, terms, location context, and contacts.
+- Added rental timeline synthesis across leads, applications, lease packets, ledger entries, maintenance requests, inspections, and documents.
+- Added release documentation and focused verification for the landlord operating console surface.
+
+## v4.22.0 - Applicant/Tenant Experience Upgrade
+
+- Rebuilt the applicant dashboard as a guided housing journey with profile completeness, saved searches, application packet reuse, move-in readiness, rent setup, utilities, maintenance, documents, and messages.
+- Added tenant journey rails for move-in checklist progress, rent calendar, utilities, maintenance, document, and messaging workflows above the existing tenant home dashboard.
+- Added focused release documentation and verification coverage for the applicant/tenant experience upgrade.
+
+## v4.21.0 - Payments Production Hardening
+
+- Added durable Stripe webhook idempotency logs with replay-safe processing status tracking.
+- Centralized payment reconciliation for Checkout Sessions, PaymentIntents, refunds, disputes, transfers, payouts, and Stripe account updates.
+- Added Stripe receipt URL/number and refund status tracking on ledger entries.
+- Hardened failed-payment recovery by pausing autopay after exhausted retry cycles.
+- Added a landlord payment reconciliation view for receipts, failed payments, autopay health, disputes, refunds, payout status, and ledger gaps.
+- Added `payments-production:verify`, documentation, migration coverage, and workflow matrix coverage for the new reconciliation surface.
+
 ## v4.20.1 - Vercel Lockfile Fix
 
 - Rewrote package-lock tarball URLs to the public npm registry so Vercel can install dependencies outside the local build mirror.

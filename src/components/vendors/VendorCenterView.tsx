@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { MaintenanceRequestStatus, VendorInvoiceStatus, VendorWorkLogStatus } from "@prisma/client";
-import { assignVendorToMaintenance, approveVendorInvoiceForPayout, createVendorProfile, inviteExternalVendor, updateVendorInvoiceStatus } from "@/app/vendor-actions";
+import { MaintenanceRequestStatus, TaskItemPriority, VendorInvoiceStatus, VendorWorkLogStatus } from "@prisma/client";
+import { assignVendorToMaintenance, approveVendorInvoiceForPayout, createRecurringMaintenanceTask, createVendorProfile, inviteExternalVendor, updateVendorInvoiceStatus } from "@/app/vendor-actions";
 import { AppCard, CompactTable, DataGrid, EmptyState, MetricTile, SectionHeader, StatusBadge } from "@/components/ui/system";
 import { formatCurrency } from "@/lib/format";
 import { formatVendorStatus } from "@/lib/vendors";
@@ -19,8 +19,22 @@ function toneForInvoice(status: VendorInvoiceStatus) {
   return "slate" as const;
 }
 
+function slaDueAt(createdAt: Date, priority: string) {
+  const hours = priority === "URGENT" ? 24 : priority === "HIGH" ? 48 : priority === "LOW" ? 168 : 96;
+  return new Date(createdAt.getTime() + hours * 60 * 60 * 1000);
+}
+
+function isOpenStatus(status: MaintenanceRequestStatus) {
+  return status !== MaintenanceRequestStatus.COMPLETED && status !== MaintenanceRequestStatus.CANCELLED;
+}
+
 export function VendorCenterView({ data, scope }: { data: VendorCenterData; scope: "admin" | "landlord" }) {
   const baseHref = scope === "admin" ? "/admin" : "/landlord";
+  const assignmentQueue = data.jobs.filter((job) => isOpenStatus(job.status));
+  const unassignedQueue = assignmentQueue.filter((job) => !job.assignedTo);
+  const acceptanceQueue = assignmentQueue.filter((job) => job.status === MaintenanceRequestStatus.WAITING_ON_VENDOR);
+  const slaRiskQueue = assignmentQueue.filter((job) => slaDueAt(job.createdAt, job.priority).getTime() < Date.now());
+  const payoutEligibleInvoices = data.invoices.filter((invoice) => invoice.status === VendorInvoiceStatus.APPROVED && !invoice.vendorPayoutId);
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -35,9 +49,57 @@ export function VendorCenterView({ data, scope }: { data: VendorCenterData; scop
       <DataGrid>
         <MetricTile label="Active vendors" value={data.metrics.vendorCount} detail="Preferred + connected" />
         <MetricTile label="Open vendor jobs" value={data.metrics.openJobs} detail="Maintenance assignments" tone={data.metrics.openJobs ? "amber" : "green"} />
+        <MetricTile label="Unassigned" value={data.metrics.unassignedJobs} detail="Need vendor routing" tone={data.metrics.unassignedJobs ? "red" : "green"} />
+        <MetricTile label="SLA risk" value={data.metrics.slaBreaches} detail="Past target response" tone={data.metrics.slaBreaches ? "red" : "green"} />
         <MetricTile label="Submitted invoices" value={data.metrics.submittedInvoices} detail="Awaiting review" tone={data.metrics.submittedInvoices ? "amber" : "green"} />
-        <MetricTile label="Pending payout exposure" value={formatCurrency(data.metrics.pendingPayoutAmount / 100)} detail={`${formatCurrency(data.metrics.unpaidInvoiceAmount / 100)} unpaid invoices`} tone="green" />
+        <MetricTile label="Payout eligible" value={data.metrics.payoutEligibleInvoices} detail={`${formatCurrency(data.metrics.unpaidInvoiceAmount / 100)} unpaid invoices`} tone="green" />
       </DataGrid>
+
+      <AppCard className="mt-4">
+        <SectionHeader title="Assignment queues and SLA tracking" detail="Route unassigned repairs, watch vendor acceptance, and catch jobs that have crossed response targets." count={assignmentQueue.length} />
+        <div className="mt-3 grid gap-3 xl:grid-cols-3">
+          <QueueColumn title="Needs assignment" jobs={unassignedQueue} data={data} />
+          <QueueColumn title="Awaiting vendor acceptance" jobs={acceptanceQueue} data={data} />
+          <QueueColumn title="SLA risk" jobs={slaRiskQueue} data={data} />
+        </div>
+      </AppCard>
+
+      <AppCard className="mt-4">
+        <SectionHeader title="Recurring maintenance" detail="Create preventive maintenance tasks for filters, seasonal service, inspections, locks, smoke detectors, and appliance checks." count={data.recurringTasks.length} />
+        <div className="mt-3 grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
+          <form action={createRecurringMaintenanceTask} className="grid gap-2 rounded-xl bg-slate-50 p-3">
+            <select name="unitId" required className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <option value="">Select rental</option>
+              {data.units.map((unit) => <option key={unit.id} value={unit.id}>{rentalLabel(unit)}</option>)}
+            </select>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input name="title" required placeholder="Task title, e.g. HVAC filter change" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+              <input name="cadence" placeholder="Cadence, e.g. Quarterly" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <input name="dueAt" type="date" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+              <select name="priority" defaultValue={TaskItemPriority.NORMAL} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                {Object.values(TaskItemPriority).map((priority) => <option key={priority} value={priority}>{formatVendorStatus(priority)}</option>)}
+              </select>
+              <select name="assignedToId" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                <option value="">Unassigned</option>
+                {data.vendorUsers.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.vendorProfile?.companyName ?? vendor.name ?? vendor.email}</option>)}
+              </select>
+            </div>
+            <textarea name="description" rows={3} placeholder="Checklist, parts, access notes, mobile field instructions" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <button className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-black text-white hover:bg-slate-800" type="submit">Create recurring task</button>
+          </form>
+          <div className="grid gap-2 md:grid-cols-2">
+            {data.recurringTasks.length === 0 ? <EmptyState title="No recurring maintenance tasks" detail="Create the first preventive maintenance item for this portfolio." /> : data.recurringTasks.slice(0, 8).map((task) => (
+              <div key={task.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                <p className="font-black text-slate-950">{task.title}</p>
+                <p className="mt-1 text-xs text-slate-600">{rentalLabel(task.unit)} - due {task.dueAt ? task.dueAt.toLocaleDateString() : "not set"}</p>
+                <p className="mt-2 text-xs font-bold text-slate-500">{task.assignedTo?.name || task.assignedTo?.email || "Unassigned"} - {formatVendorStatus(task.priority)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </AppCard>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
         <AppCard>
@@ -173,7 +235,7 @@ export function VendorCenterView({ data, scope }: { data: VendorCenterData; scop
         </AppCard>
 
         <AppCard>
-          <SectionHeader title="Invoice review" detail="Approve, reject, or convert vendor invoices into payout records." count={data.invoices.length} />
+          <SectionHeader title="Invoice review" detail={`${payoutEligibleInvoices.length} approved invoice${payoutEligibleInvoices.length === 1 ? "" : "s"} are payout eligible.`} count={data.invoices.length} />
           <div className="mt-3 space-y-2">
             {data.invoices.length === 0 ? <EmptyState title="No vendor invoices" detail="Submitted vendor invoices will appear here for review and payout preparation." /> : data.invoices.map((invoice) => (
               <div key={invoice.id} className="rounded-xl border border-slate-200 bg-white p-3">
@@ -221,3 +283,35 @@ export function VendorCenterView({ data, scope }: { data: VendorCenterData; scop
 }
 
 export { VendorWorkLogStatus };
+
+function QueueColumn({ title, jobs, data }: { title: string; jobs: VendorCenterData["jobs"]; data: VendorCenterData }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-black text-slate-950">{title}</h2>
+        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-slate-600">{jobs.length}</span>
+      </div>
+      <div className="mt-3 space-y-2">
+        {jobs.length === 0 ? <p className="rounded-xl bg-white p-3 text-sm text-slate-500">Nothing in this queue.</p> : jobs.slice(0, 6).map((job) => (
+          <div key={job.id} className="rounded-xl bg-white p-3 ring-1 ring-slate-200">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="font-black text-slate-950">{job.subject}</p>
+                <p className="text-xs text-slate-600">{rentalLabel(job.unit)} - SLA {slaDueAt(job.createdAt, job.priority).toLocaleDateString()}</p>
+              </div>
+              <StatusBadge tone={job.status === MaintenanceRequestStatus.WAITING_ON_VENDOR ? "amber" : "blue"}>{formatVendorStatus(job.status)}</StatusBadge>
+            </div>
+            <form action={assignVendorToMaintenance} className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+              <input type="hidden" name="maintenanceRequestId" value={job.id} />
+              <select name="vendorUserId" defaultValue={job.assignedTo?.id ?? ""} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                <option value="">Unassigned</option>
+                {data.vendorUsers.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.vendorProfile?.companyName ?? vendor.name ?? vendor.email}</option>)}
+              </select>
+              <button className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-black text-white hover:bg-slate-800" type="submit">Assign</button>
+            </form>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

@@ -45,6 +45,7 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
           <div className="flex flex-wrap gap-2">
             <StatusBadge active={enabled} label={paymentFeatureLabel()} />
             <StatusBadge active={Boolean(account?.stripeOnboardingComplete)} label={account?.stripeOnboardingComplete ? "Onboarding complete" : "Onboarding needed"} />
+            <Link href="/landlord/payments/reconciliation" className="rounded-xl border border-white/20 px-4 py-2 text-sm font-black text-white">Reconciliation</Link>
             <Link href="/landlord/payments/enterprise" className="rounded-xl bg-white px-4 py-2 text-sm font-black text-slate-950">Enterprise finance</Link>
           </div>
         </div>

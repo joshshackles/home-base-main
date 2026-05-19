@@ -59,7 +59,8 @@ test.describe("end-to-end workflow QA matrix", () => {
       ["/landlord/maintenance", /maintenance|request|status/i],
       ["/landlord/tasks", /task|queue|priority/i],
       ["/landlord/inbox", /inbox|message|thread/i],
-      ["/landlord/payments", /stripe|connect|payment/i]
+      ["/landlord/payments", /stripe|connect|payment/i],
+      ["/landlord/payments/reconciliation", /reconciliation|failed payment|dispute|payout/i]
     ] as const;
 
     for (const [route, text] of landlordRoutes) {

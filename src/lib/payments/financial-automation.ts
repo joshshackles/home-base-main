@@ -15,6 +15,7 @@ import { getPlatformApplicationFeeAmount, getStripe, stripePaymentsEnabled } fro
 import { recordPaymentEvent } from "@/lib/payments/rental-finance";
 
 export const RETRY_DELAYS_DAYS = [2, 5, 10] as const;
+export const MAX_AUTOPAY_FAILURES_BEFORE_PAUSE = 3;
 
 export function centsFromDollars(value: FormDataEntryValue | null) {
   const amount = Number(String(value ?? "0"));
@@ -128,7 +129,24 @@ export async function generateMonthlyRentCharges(runAt = new Date(), landlordUse
 export async function scheduleRetryForFailedPayment(input: { userId: string; unitId: string; amount: number; ledgerEntryId?: string | null; scheduledPaymentId?: string | null; stripePaymentMethodId?: string | null; backupPaymentMethodId?: string | null; reason?: string }) {
   const existingCount = input.ledgerEntryId ? await prisma.paymentRetryAttempt.count({ where: { ledgerEntryId: input.ledgerEntryId } }) : 0;
   const attemptNumber = existingCount + 1;
-  if (attemptNumber > RETRY_DELAYS_DAYS.length) return null;
+  if (attemptNumber > RETRY_DELAYS_DAYS.length) {
+    const enrollment = await prisma.autoPayEnrollment.findUnique({ where: { userId_unitId: { userId: input.userId, unitId: input.unitId } } });
+    if (enrollment) {
+      const nextFailureCount = enrollment.failureCount + 1;
+      await prisma.autoPayEnrollment.update({
+        where: { id: enrollment.id },
+        data: {
+          failureCount: nextFailureCount,
+          status: nextFailureCount >= MAX_AUTOPAY_FAILURES_BEFORE_PAUSE ? AutoPayEnrollmentStatus.PAUSED : enrollment.status,
+          pausedAt: nextFailureCount >= MAX_AUTOPAY_FAILURES_BEFORE_PAUSE ? new Date() : enrollment.pausedAt
+        }
+      });
+      if (nextFailureCount >= MAX_AUTOPAY_FAILURES_BEFORE_PAUSE) {
+        await recordPaymentEvent({ type: PaymentEventType.AUTOPAY_PAUSED, userId: input.userId, unitId: input.unitId, ledgerEntryId: input.ledgerEntryId, amount: input.amount, message: "Autopay paused after repeated failed payment recovery attempts.", metadata: { maxRetryAttempts: RETRY_DELAYS_DAYS.length, maxAutopayFailures: MAX_AUTOPAY_FAILURES_BEFORE_PAUSE, reason: input.reason ?? null } });
+      }
+    }
+    return null;
+  }
   const nextAttemptAt = new Date(Date.now() + RETRY_DELAYS_DAYS[attemptNumber - 1] * 86400000);
   const retry = await prisma.paymentRetryAttempt.create({
     data: {

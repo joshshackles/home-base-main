@@ -4,6 +4,7 @@ import {
   ConnectionRole,
   ConnectionStatus,
   MaintenanceRequestStatus,
+  TaskItemStatus,
   UserRole,
   VendorInvoiceStatus,
   VendorPayoutStatus,
@@ -18,6 +19,22 @@ export function formatVendorStatus(value: string) {
     .replaceAll("_", " ")
     .toLowerCase()
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+const SLA_HOURS_BY_PRIORITY = {
+  URGENT: 24,
+  HIGH: 48,
+  NORMAL: 96,
+  LOW: 168,
+} as const;
+
+function slaDueAt(createdAt: Date, priority: string) {
+  const hours = SLA_HOURS_BY_PRIORITY[priority as keyof typeof SLA_HOURS_BY_PRIORITY] ?? SLA_HOURS_BY_PRIORITY.NORMAL;
+  return new Date(createdAt.getTime() + hours * 60 * 60 * 1000);
+}
+
+function isOpenMaintenance(status: MaintenanceRequestStatus) {
+  return status !== MaintenanceRequestStatus.COMPLETED && status !== MaintenanceRequestStatus.CANCELLED;
 }
 
 export async function hasVendorPortalAccess(user: AuthorizedUser) {
@@ -115,7 +132,7 @@ export async function getOwnerVendorCenter(ownerUserId?: string) {
     ? { ownerUserId }
     : {};
 
-  const [profiles, invitations, jobs, invoices, payouts, units, vendorUsers] =
+  const [profiles, invitations, jobs, invoices, payouts, units, vendorUsers, recurringTasks] =
     await Promise.all([
       prisma.vendorProfile.findMany({
         where: profileWhere,
@@ -158,6 +175,7 @@ export async function getOwnerVendorCenter(ownerUserId?: string) {
             },
           },
           vendorWorkLogs: { orderBy: { createdAt: "desc" }, take: 2 },
+          vendorInvoices: { orderBy: { createdAt: "desc" }, take: 3 },
         },
         orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
         take: 50,
@@ -201,13 +219,28 @@ export async function getOwnerVendorCenter(ownerUserId?: string) {
         take: 200,
       }),
       getVendorAssignableUsers(ownerUserId),
+      prisma.taskItem.findMany({
+        where: {
+          type: "MAINTENANCE",
+          source: "recurring_maintenance",
+          status: { in: [TaskItemStatus.TODO, TaskItemStatus.IN_PROGRESS, TaskItemStatus.WAITING, TaskItemStatus.BLOCKED] },
+          ...(ownerUserId ? { unit: { property: { ownerId: ownerUserId, isArchived: false } } } : {}),
+        },
+        include: {
+          assignedTo: { select: { id: true, name: true, email: true } },
+          unit: { select: { id: true, unitNumber: true, property: { select: { name: true } } } },
+        },
+        orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+        take: 30,
+      }),
     ]);
 
-  const openJobs = jobs.filter(
-    (job) =>
-      job.status !== MaintenanceRequestStatus.COMPLETED &&
-      job.status !== MaintenanceRequestStatus.CANCELLED,
-  ).length;
+  const openJobRecords = jobs.filter((job) => isOpenMaintenance(job.status));
+  const openJobs = openJobRecords.length;
+  const unassignedJobs = openJobRecords.filter((job) => !job.assignedTo).length;
+  const waitingVendorAcceptance = openJobRecords.filter((job) => job.status === MaintenanceRequestStatus.WAITING_ON_VENDOR).length;
+  const slaBreaches = openJobRecords.filter((job) => slaDueAt(job.createdAt, job.priority).getTime() < Date.now()).length;
+  const payoutEligibleInvoices = invoices.filter((invoice) => invoice.status === VendorInvoiceStatus.APPROVED && !invoice.vendorPayoutId).length;
   const submittedInvoices = invoices.filter(
     (invoice) => invoice.status === VendorInvoiceStatus.SUBMITTED,
   ).length;
@@ -235,10 +268,15 @@ export async function getOwnerVendorCenter(ownerUserId?: string) {
     payouts,
     units,
     vendorUsers,
+    recurringTasks,
     metrics: {
       vendorCount: profiles.length,
       openJobs,
+      unassignedJobs,
+      waitingVendorAcceptance,
+      slaBreaches,
       submittedInvoices,
+      payoutEligibleInvoices,
       unpaidInvoiceAmount,
       pendingPayoutAmount,
     },
@@ -246,7 +284,7 @@ export async function getOwnerVendorCenter(ownerUserId?: string) {
 }
 
 export async function getVendorPortal(userId: string) {
-  const [profiles, jobs, invoices, payouts, workLogs] = await Promise.all([
+  const [profiles, jobs, invoices, payouts, workLogs, photos] = await Promise.all([
     prisma.vendorProfile.findMany({
       where: { userId, isActive: true },
       include: {
@@ -308,13 +346,19 @@ export async function getVendorPortal(userId: string) {
       orderBy: { createdAt: "desc" },
       take: 20,
     }),
+    prisma.document.findMany({
+      where: { uploadedById: userId, notes: { contains: "Maintenance photo", mode: "insensitive" } },
+      include: { unit: { select: { unitNumber: true, property: { select: { name: true } } } } },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
   ]);
 
-  const openJobs = jobs.filter(
-    (job) =>
-      job.status !== MaintenanceRequestStatus.COMPLETED &&
-      job.status !== MaintenanceRequestStatus.CANCELLED,
-  ).length;
+  const openJobRecords = jobs.filter((job) => isOpenMaintenance(job.status));
+  const openJobs = openJobRecords.length;
+  const waitingAcceptance = openJobRecords.filter((job) => job.status === MaintenanceRequestStatus.WAITING_ON_VENDOR).length;
+  const slaBreaches = openJobRecords.filter((job) => slaDueAt(job.createdAt, job.priority).getTime() < Date.now()).length;
+  const payoutEligibleInvoices = invoices.filter((invoice) => invoice.status === VendorInvoiceStatus.APPROVED && !invoice.vendorPayoutId).length;
   const approvedInvoiceAmount = invoices
     .filter(
       (invoice) =>
@@ -336,8 +380,12 @@ export async function getVendorPortal(userId: string) {
     invoices,
     payouts,
     workLogs,
+    photos,
     metrics: {
       openJobs,
+      waitingAcceptance,
+      slaBreaches,
+      payoutEligibleInvoices,
       invoiceCount: invoices.length,
       approvedInvoiceAmount,
       pendingInvoiceAmount,
