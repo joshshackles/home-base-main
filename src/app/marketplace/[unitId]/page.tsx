@@ -18,7 +18,11 @@ import {
   ShieldCheck,
   WalletCards,
 } from "lucide-react";
-import { saveFavoriteRental } from "@/app/applicant/actions";
+import {
+  messagePotentialLandlord,
+  saveFavoriteRental,
+  startMarketplaceApplication,
+} from "@/app/applicant/actions";
 import { createLead } from "@/app/marketplace/actions";
 import { formatCurrency } from "@/lib/format";
 import { getVerifiedCurrentUser } from "@/lib/auth";
@@ -41,7 +45,7 @@ export default async function UnitDetailPage({
   searchParams,
 }: {
   params: { unitId: string };
-  searchParams?: { lead?: string; error?: string };
+  searchParams?: { lead?: string; error?: string; question?: string };
 }) {
   const currentUser = await getVerifiedCurrentUser();
   const unit = await prisma.unit.findFirst({
@@ -67,15 +71,40 @@ export default async function UnitDetailPage({
   if (!unit) notFound();
 
   const isApplicant = isApplicantMarketplaceViewer(currentUser);
-  const favorite = isApplicant
-    ? await prisma.favoriteRental.findUnique({
-        where: {
-          userId_unitId: { userId: currentUser!.userId, unitId: unit.id },
-        },
-        select: { id: true },
-      })
-    : null;
+  const [favorite, applicantProfile, existingApplication, reusableDocuments] =
+    isApplicant
+      ? await Promise.all([
+          prisma.favoriteRental.findUnique({
+            where: {
+              userId_unitId: { userId: currentUser!.userId, unitId: unit.id },
+            },
+            select: { id: true },
+          }),
+          prisma.applicantProfile.findUnique({
+            where: { userId: currentUser!.userId },
+            include: { householdMembers: true, incomeSources: true },
+          }),
+          prisma.application.findFirst({
+            where: {
+              unitId: unit.id,
+              OR: [
+                { applicantUserId: currentUser!.userId },
+                { applicantEmail: currentUser!.email.toLowerCase() },
+              ],
+              status: { not: "WITHDRAWN" },
+            },
+            select: { id: true, status: true, updatedAt: true },
+          }),
+          prisma.document.count({
+            where: {
+              uploadedById: currentUser!.userId,
+              status: { in: ["UPLOADED", "REVIEWED", "ACCEPTED"] },
+            },
+          }),
+        ])
+      : [null, null, null, 0];
   const leadSubmitted = searchParams?.lead === "success";
+  const questionSent = searchParams?.question === "sent";
   const errorMessage = searchParams?.error;
   const headline = unit.marketingHeadline || unit.property.name;
   const qualityScore = getListingQualityScore(unit);
@@ -292,6 +321,13 @@ export default async function UnitDetailPage({
               body="Your interest has been saved. The rental team can now follow up with next steps."
             />
           ) : null}
+          {questionSent ? (
+            <Notice
+              tone="success"
+              title="Question sent"
+              body="Your message was sent to the rental team and this home was saved to your applicant dashboard."
+            />
+          ) : null}
           {errorMessage ? (
             <Notice
               tone="error"
@@ -322,138 +358,224 @@ export default async function UnitDetailPage({
           </div>
 
           {isApplicant ? (
-            <form
-              action={saveFavoriteRental}
-              className="mt-3 rounded-2xl bg-blue-50 p-3"
-            >
-              <input type="hidden" name="unitId" value={unit.id} />
-              <label className="block text-sm font-black text-blue-950">
-                Save to favorites
-              </label>
-              <textarea
-                name="notes"
-                rows={2}
-                className="mt-2 w-full rounded-xl border border-blue-200 px-3 py-2 text-sm"
-                placeholder="Private comparison notes..."
-              />
-              <button
-                type="submit"
-                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800"
-              >
-                <Heart size={15} />{" "}
-                {favorite ? "Update favorite" : "Save rental"}
-              </button>
-            </form>
-          ) : (
-            <Link
-              href={`/sign-in?next=/marketplace/${unit.id}`}
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-black text-slate-900 hover:bg-slate-50"
-            >
-              <Heart size={15} /> Sign in to save
-            </Link>
-          )}
+            <div className="mt-4 space-y-3">
+              <section className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-blue-700">
+                  Fast apply
+                </p>
+                <h2 className="mt-1 text-xl font-black text-blue-950">
+                  Apply with your saved renter packet
+                </h2>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[11px] font-black text-blue-950">
+                  <span className="rounded-xl bg-white px-2 py-2">
+                    {applicantProfile ? "Profile" : "Start profile"}
+                  </span>
+                  <span className="rounded-xl bg-white px-2 py-2">
+                    {applicantProfile
+                      ? `${applicantProfile.householdMembers.length + applicantProfile.incomeSources.length} details`
+                      : "0 details"}
+                  </span>
+                  <span className="rounded-xl bg-white px-2 py-2">
+                    {reusableDocuments} docs
+                  </span>
+                </div>
+                {existingApplication ? (
+                  <Link
+                    href={`/applicant/applications/${existingApplication.id}`}
+                    className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white hover:bg-blue-700"
+                  >
+                    Continue application
+                  </Link>
+                ) : (
+                  <form action={startMarketplaceApplication} className="mt-3 grid gap-3">
+                    <input type="hidden" name="unitId" value={unit.id} />
+                    <label className="flex gap-3 rounded-xl border border-blue-200 bg-white p-3 text-sm font-bold leading-5 text-blue-950">
+                      <input
+                        type="checkbox"
+                        name="shareAuthorization"
+                        value="true"
+                        required
+                        className="mt-1 h-4 w-4 rounded border-blue-300"
+                      />
+                      I authorize HomeBase to share my saved renter profile,
+                      contact details, household, income, and reusable documents
+                      with this rental team.
+                    </label>
+                    <textarea
+                      name="message"
+                      rows={3}
+                      className="rounded-xl border border-blue-200 px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                      placeholder="Optional note for the rental team..."
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700"
+                    >
+                      Apply with saved info
+                    </button>
+                  </form>
+                )}
+              </section>
 
-          <form action={createLead} className="mt-4 grid gap-3">
-            <input type="hidden" name="unitId" value={unit.id} />
-            <label className="hidden" aria-hidden="true">
-              Company website
-              <input name="companyWebsite" tabIndex={-1} autoComplete="off" />
-            </label>
-            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
-              <div
-                className="cf-turnstile"
-                data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-              />
-            ) : null}
-            <div className="grid grid-cols-2 gap-2">
-              <label className="grid gap-1 text-xs font-black text-slate-700">
-                I want to
-                <select
-                  name="intent"
-                  className={inputClass}
-                  defaultValue="tour"
+              <details className="rounded-2xl border border-slate-200 bg-white p-3">
+                <summary className="cursor-pointer text-sm font-black text-slate-900">
+                  Ask a question instead
+                </summary>
+                <form action={messagePotentialLandlord} className="mt-3 grid gap-2">
+                  <input type="hidden" name="unitId" value={unit.id} />
+                  <input
+                    type="hidden"
+                    name="returnTo"
+                    value={`/marketplace/${unit.id}`}
+                  />
+                  <textarea
+                    name="message"
+                    required
+                    rows={3}
+                    className={textareaClass}
+                    placeholder="Ask about tours, availability, pets, utilities, or move-in timing."
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-black text-slate-900 hover:bg-slate-50"
+                  >
+                    Send question
+                  </button>
+                </form>
+              </details>
+
+              <form action={saveFavoriteRental} className="rounded-2xl bg-slate-50 p-3">
+                <input type="hidden" name="unitId" value={unit.id} />
+                <label className="block text-sm font-black text-slate-900">
+                  Private comparison note
+                </label>
+                <textarea
+                  name="notes"
+                  rows={2}
+                  className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  placeholder="Why this home is worth keeping..."
+                />
+                <button
+                  type="submit"
+                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800"
                 >
-                  <option value="tour">Request tour</option>
-                  <option value="availability">Check availability</option>
-                  <option value="apply">Start application</option>
-                  <option value="question">Ask question</option>
-                </select>
-              </label>
-              <label className="grid gap-1 text-xs font-black text-slate-700">
-                Move-in
-                <input name="moveInDate" type="date" className={inputClass} />
-              </label>
+                  <Heart size={15} />{" "}
+                  {favorite ? "Update favorite" : "Save rental"}
+                </button>
+              </form>
             </div>
-            <label className="grid gap-1 text-xs font-black text-slate-700">
-              Name
-              <input
-                name="name"
-                required
-                className={inputClass}
-                placeholder="Jane Doe"
-              />
-            </label>
-            <label className="grid gap-1 text-xs font-black text-slate-700">
-              Email
-              <div className="relative">
-                <Mail
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  size={16}
-                />
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  className={`${inputClass} w-full pl-9`}
-                  placeholder="jane@example.com"
-                />
-              </div>
-            </label>
-            <label className="grid gap-1 text-xs font-black text-slate-700">
-              Phone
-              <div className="relative">
-                <Phone
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  size={16}
-                />
-                <input
-                  name="phone"
-                  className={`${inputClass} w-full pl-9`}
-                  placeholder="417-555-0000"
-                />
-              </div>
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <label className="grid gap-1 text-xs font-black text-slate-700">
-                Household
-                <input
-                  name="householdSize"
-                  type="number"
-                  min="1"
-                  className={inputClass}
-                  placeholder="2"
-                />
-              </label>
-              <label className="grid gap-1 text-xs font-black text-slate-700">
-                Pets
-                <input name="pets" className={inputClass} placeholder="None" />
-              </label>
-            </div>
-            <label className="grid gap-1 text-xs font-black text-slate-700">
-              Message
-              <textarea
-                name="message"
-                className={textareaClass}
-                placeholder="I am interested in this rental and would like more information."
-              />
-            </label>
-            <button
-              type="submit"
-              className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700"
-            >
-              Send inquiry
-            </button>
-          </form>
+          ) : (
+            <>
+              <Link
+                href={`/login?next=/marketplace/${unit.id}`}
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-black text-slate-900 hover:bg-slate-50"
+              >
+                <Heart size={15} /> Sign in to apply faster
+              </Link>
+
+              <form action={createLead} className="mt-4 grid gap-3">
+                <input type="hidden" name="unitId" value={unit.id} />
+                <label className="hidden" aria-hidden="true">
+                  Company website
+                  <input name="companyWebsite" tabIndex={-1} autoComplete="off" />
+                </label>
+                {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
+                  <div
+                    className="cf-turnstile"
+                    data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                  />
+                ) : null}
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="grid gap-1 text-xs font-black text-slate-700">
+                    I want to
+                    <select
+                      name="intent"
+                      className={inputClass}
+                      defaultValue="tour"
+                    >
+                      <option value="tour">Request tour</option>
+                      <option value="availability">Check availability</option>
+                      <option value="apply">Start application</option>
+                      <option value="question">Ask question</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-1 text-xs font-black text-slate-700">
+                    Move-in
+                    <input name="moveInDate" type="date" className={inputClass} />
+                  </label>
+                </div>
+                <label className="grid gap-1 text-xs font-black text-slate-700">
+                  Name
+                  <input
+                    name="name"
+                    required
+                    className={inputClass}
+                    placeholder="Jane Doe"
+                  />
+                </label>
+                <label className="grid gap-1 text-xs font-black text-slate-700">
+                  Email
+                  <div className="relative">
+                    <Mail
+                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      size={16}
+                    />
+                    <input
+                      name="email"
+                      type="email"
+                      required
+                      className={`${inputClass} w-full pl-9`}
+                      placeholder="jane@example.com"
+                    />
+                  </div>
+                </label>
+                <label className="grid gap-1 text-xs font-black text-slate-700">
+                  Phone
+                  <div className="relative">
+                    <Phone
+                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      size={16}
+                    />
+                    <input
+                      name="phone"
+                      className={`${inputClass} w-full pl-9`}
+                      placeholder="417-555-0000"
+                    />
+                  </div>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="grid gap-1 text-xs font-black text-slate-700">
+                    Household
+                    <input
+                      name="householdSize"
+                      type="number"
+                      min="1"
+                      className={inputClass}
+                      placeholder="2"
+                    />
+                  </label>
+                  <label className="grid gap-1 text-xs font-black text-slate-700">
+                    Pets
+                    <input name="pets" className={inputClass} placeholder="None" />
+                  </label>
+                </div>
+                <label className="grid gap-1 text-xs font-black text-slate-700">
+                  Message
+                  <textarea
+                    name="message"
+                    className={textareaClass}
+                    placeholder="I am interested in this rental and would like more information."
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700"
+                >
+                  Send inquiry
+                </button>
+              </form>
+            </>
+          )}
         </aside>
       </section>
 

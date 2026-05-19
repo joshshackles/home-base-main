@@ -1,6 +1,6 @@
 "use server";
 
-import { AccountAccessType, AuditAction, ApplicationStatus, ConnectionRole, ConnectionStatus, DocumentCategory, DocumentStatus, DocumentVisibility, LeasePacketStatus, MaintenancePriority, MessageThreadStatus, MessageThreadType, RentalLifecycleStatus, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
+import { AccountAccessType, AuditAction, ApplicationStatus, ConnectionRole, ConnectionStatus, DocumentCategory, DocumentStatus, DocumentVisibility, LeadStatus, LeasePacketStatus, MaintenancePriority, MessageThreadStatus, MessageThreadType, RentalLifecycleStatus, SignatureRole, SignatureStatus, UnitStatus, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -222,6 +222,11 @@ const unitContactSchema = z.object({
   email: z.string().trim().email().optional(),
   phone: z.string().trim().max(40).optional(),
   note: z.string().trim().max(500).optional()
+});
+
+const leadReplySchema = z.object({
+  leadId: z.string().trim().min(1),
+  body: z.string().trim().min(2).max(4000)
 });
 
 const unitTermsSchema = z.object({
@@ -951,6 +956,69 @@ export async function addLandlordLeadNote(formData: FormData) {
 
   revalidateLandlord();
   revalidatePath(`/landlord/leads/${parsed.data.leadId}`);
+}
+
+export async function replyToLandlordLead(formData: FormData) {
+  const user = await requireLandlordAction();
+  const parsed = leadReplySchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+
+  const lead = await prisma.lead.findFirst({
+    where: {
+      id: parsed.data.leadId,
+      unit: { property: { ownerId: user.userId, isArchived: false } }
+    },
+    include: { unit: { include: { property: true } } }
+  });
+  if (!lead) throw new Error("This lead is not assigned to your landlord account.");
+
+  const listingUrl = `${appUrl()}/marketplace/${lead.unit.id}`;
+  const senderName = user.name || user.email;
+  const body = [
+    `Hello ${lead.name},`,
+    "",
+    parsed.data.body,
+    "",
+    `Rental: ${lead.unit.property.name} #${lead.unit.unitNumber}`,
+    listingUrl,
+    "",
+    `- ${senderName}`
+  ].join("\n");
+
+  const result = await sendEmail({
+    to: lead.email,
+    toName: lead.name,
+    subject: `Re: ${lead.unit.property.name} #${lead.unit.unitNumber}`,
+    body
+  });
+
+  await prisma.lead.update({
+    where: { id: lead.id },
+    data: { status: LeadStatus.CONTACTED }
+  });
+  await prisma.leadNote.create({
+    data: {
+      leadId: lead.id,
+      note: [
+        `[Landlord reply ${result.ok ? "sent" : "attempted"} to ${lead.email}]`,
+        parsed.data.body,
+        result.ok ? null : `Delivery note: ${result.error ?? "Email provider did not confirm delivery."}`
+      ].filter(Boolean).join("\n\n")
+    }
+  });
+
+  await writeAuditLog({
+    actor: user,
+    action: AuditAction.NOTE,
+    entityType: "Lead",
+    entityId: lead.id,
+    message: `Replied to lead ${lead.email}.`,
+    metadata: { emailProvider: result.provider, ok: result.ok }
+  });
+
+  revalidateLandlord();
+  revalidatePath(`/landlord/leads/${lead.id}`);
+  redirect(`/landlord/leads/${lead.id}?reply=sent`);
 }
 
 export async function approveLandlordApplicationAsTenant(formData: FormData) {

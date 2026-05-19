@@ -1,3 +1,11 @@
+## v4.31.0 - Marketplace Application & Lead Reply UX
+
+- Added signed-in marketplace fast apply so applicants can authorize sharing their saved renter packet from the listing page.
+- Replaced the public inquiry form for signed-in applicants with a compact apply path, optional applicant note, saved-rental note, and lightweight question flow.
+- Added landlord lead replies from the lead detail page, including email delivery through the existing provider helper, lead status updates, audit logging, and timeline notes.
+- Fixed the marketplace sign-in path to use the app's `/login` route and kept the full public lead form for guest visitors.
+- Added release documentation and a focused verifier for marketplace application and lead reply UX markers.
+
 ## v4.30.2 - Vercel Migration Runner Typecheck Fix
 
 - Fixed TypeScript validation for the Vercel automatic migration runner by removing generic type arguments from dynamically typed Prisma raw query calls.

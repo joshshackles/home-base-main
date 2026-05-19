@@ -8,6 +8,8 @@ import {
   DocumentStatus,
   DocumentVisibility,
   LeasePacketStatus,
+  MessageThreadStatus,
+  MessageThreadType,
   SignatureRole,
   SignatureStatus,
   TenantPaymentStatus,
@@ -59,6 +61,13 @@ const applicantInquirySchema = z.object({
   unitId: z.string().trim().min(1),
   phone: z.string().trim().max(80).optional(),
   message: z.string().trim().min(2).max(2000),
+  returnTo: z.string().trim().max(240).optional(),
+});
+
+const marketplaceApplicationSchema = z.object({
+  unitId: z.string().trim().min(1),
+  shareAuthorization: z.coerce.boolean().refine(Boolean, "Authorize sharing your renter packet to apply."),
+  message: z.string().trim().max(1200).optional(),
 });
 
 async function ensureProfile(userId: string, fallbackName: string | null) {
@@ -259,7 +268,114 @@ export async function messagePotentialLandlord(formData: FormData) {
 
   revalidateApplicant();
   revalidatePath("/landlord/leads");
+  if (parsed.data.returnTo?.startsWith("/marketplace/")) redirect(`${parsed.data.returnTo}?question=sent`);
   redirect("/applicant/favorites?message=sent");
+}
+
+export async function startMarketplaceApplication(formData: FormData) {
+  const user = await requireApplicantAction();
+  const parsed = marketplaceApplicationSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+
+  const unit = await prisma.unit.findFirst({
+    where: {
+      id: parsed.data.unitId,
+      status: UnitStatus.AVAILABLE,
+      marketingStatus: "ACTIVE",
+      property: { isArchived: false },
+    },
+    include: { property: true },
+  });
+  if (!unit) throw new Error("This rental is no longer available for applications.");
+
+  const profile = await ensureProfile(user.userId, user.name);
+  const existing = await prisma.application.findFirst({
+    where: {
+      unitId: unit.id,
+      OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email.toLowerCase() }],
+      status: { not: ApplicationStatus.WITHDRAWN },
+    },
+    select: { id: true, applicantUserId: true },
+  });
+  const applicantName = profile.preferredName || profile.legalName || user.name || user.email;
+  const message = parsed.data.message?.trim();
+
+  const application = existing
+    ? await prisma.application.update({
+        where: { id: existing.id },
+        data: { applicantUserId: existing.applicantUserId ?? user.userId },
+        select: { id: true },
+      })
+    : await prisma.$transaction(async (tx) => {
+        const lead = await tx.lead.findFirst({
+          where: { unitId: unit.id, email: user.email.toLowerCase() },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, application: { select: { id: true } } },
+        });
+        return tx.application.create({
+          data: {
+            unitId: unit.id,
+            leadId: lead && !lead.application ? lead.id : undefined,
+            applicantUserId: user.userId,
+            applicantName,
+            applicantEmail: user.email.toLowerCase(),
+            applicantPhone: profile.phone,
+            status: ApplicationStatus.STARTED,
+            summary: message || "Applicant authorized sharing their saved renter packet from the marketplace listing.",
+            applicationDetail: {
+              create: {
+                requestedMoveInDate: profile.desiredMoveInDate,
+                previousAddress: [profile.currentAddress, profile.city, profile.state, profile.zip].filter(Boolean).join(", ") || null,
+                petDetails: profile.pets,
+                voucherProgram: profile.voucherHolder ? "Voucher holder" : null,
+                reasonForMoving: profile.renterBio,
+              },
+            },
+            notes: {
+              create: {
+                note: `[Applicant] Authorized HomeBase to share saved renter profile, household, income, reusable documents, and contact details for this rental.${message ? `\n\nApplicant note: ${message}` : ""}`,
+              },
+            },
+            messageThreads: {
+              create: {
+                type: MessageThreadType.APPLICATION,
+                status: MessageThreadStatus.WAITING_ON_STAFF,
+                subject: `Application started: ${unit.property.name} #${unit.unitNumber}`,
+                createdById: user.userId,
+                lastMessageAt: new Date(),
+                messages: {
+                  create: {
+                    senderId: user.userId,
+                    body: message || "I authorized sharing my saved renter packet and would like to apply for this home.",
+                  },
+                },
+              },
+            },
+          },
+          select: { id: true },
+        });
+      });
+
+  if (existing) {
+    await prisma.applicationNote.create({
+      data: {
+        applicationId: application.id,
+        note: `[Applicant] Re-authorized marketplace packet sharing for ${unit.property.name} #${unit.unitNumber}.${message ? `\n\nApplicant note: ${message}` : ""}`,
+      },
+    });
+  }
+
+  await prisma.favoriteRental.upsert({
+    where: { userId_unitId: { userId: user.userId, unitId: unit.id } },
+    update: {},
+    create: { userId: user.userId, unitId: unit.id },
+  });
+
+  revalidateApplicant();
+  revalidatePath("/landlord/applications");
+  revalidatePath("/landlord/inbox");
+  revalidatePath(`/marketplace/${unit.id}`);
+  redirect(`/applicant/applications/${application.id}?applied=1`);
 }
 
 export async function addHouseholdMember(formData: FormData) {

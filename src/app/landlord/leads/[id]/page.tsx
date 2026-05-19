@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { addLandlordLeadNote } from "@/app/landlord/actions";
+import { addLandlordLeadNote, replyToLandlordLead } from "@/app/landlord/actions";
 import { Field, textareaClass } from "@/components/admin/FormFields";
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";
 import { formatCurrency } from "@/lib/format";
@@ -13,7 +13,7 @@ function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-export default async function LandlordLeadDetailPage({ params }: { params: { id: string } }) {
+export default async function LandlordLeadDetailPage({ params, searchParams }: { params: { id: string }; searchParams?: { reply?: string } }) {
   const user = await requireRole(["LANDLORD"], "/landlord");
   const lead = await prisma.lead.findFirst({
     where: { id: params.id, unit: { property: { ownerId: user.userId, isArchived: false } } },
@@ -24,7 +24,12 @@ export default async function LandlordLeadDetailPage({ params }: { params: { id:
 
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-      <LandlordPageHeader title={lead.name} description="Review this lead and add landlord follow-up notes. Status changes and application conversion remain admin-only." actionHref="/landlord/leads" actionLabel="Back to leads" />
+      <LandlordPageHeader title={lead.name} description="Review the renter question, reply directly, and keep follow-up notes in one place." actionHref="/landlord/leads" actionLabel="Back to leads" />
+      {searchParams?.reply === "sent" ? (
+        <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">
+          Reply sent and saved to the lead timeline.
+        </div>
+      ) : null}
       <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -36,6 +41,28 @@ export default async function LandlordLeadDetailPage({ params }: { params: { id:
               <div><p className="text-xs font-bold uppercase text-slate-500">Received</p><p className="mt-1 font-semibold text-slate-900">{lead.createdAt.toLocaleString()}</p></div>
             </div>
             <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-slate-700"><p className="text-xs font-bold uppercase text-slate-500">Original message</p><p className="mt-2 leading-7">{lead.message ?? "No message provided."}</p></div>
+          </div>
+
+          <div className="rounded-3xl border border-brand-200 bg-brand-50 p-6 shadow-sm">
+            <h2 className="text-2xl font-black text-slate-950">Reply to prospect</h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">
+              Send a direct email response and save the reply to this lead timeline.
+            </p>
+            <form action={replyToLandlordLead} className="mt-5 space-y-4">
+              <input type="hidden" name="leadId" value={lead.id} />
+              <Field label="Message">
+                <textarea
+                  name="body"
+                  className={textareaClass}
+                  placeholder={`Hi ${lead.name.split(" ")[0] || lead.name}, this home is still available. I can answer your question or help schedule a tour.`}
+                  required
+                />
+              </Field>
+              <div className="flex flex-wrap gap-3">
+                <button type="submit" className="rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700">Send Reply</button>
+                <a href={`mailto:${lead.email}`} className="rounded-2xl border border-brand-200 bg-white px-5 py-3 font-bold text-brand-800 hover:bg-brand-100">Open email app</a>
+              </div>
+            </form>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
