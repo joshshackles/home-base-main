@@ -238,15 +238,19 @@ export function summarizeLifecycleRecommendations(recommendations: RentalLifecyc
     ...step,
     count: recommendations.filter((item) => item.status === step.status).length
   }));
-  const needsAttention = recommendations.filter((item) =>
-    [RentalLifecycleStatus.DRAFT, RentalLifecycleStatus.COMING_SOON, RentalLifecycleStatus.MAINTENANCE_HOLD, RentalLifecycleStatus.TURNOVER, RentalLifecycleStatus.NOTICE_GIVEN].includes(item.status)
-  ).length;
-  const occupied = recommendations.filter((item) =>
-    [RentalLifecycleStatus.OCCUPIED, RentalLifecycleStatus.RENEWAL_PENDING, RentalLifecycleStatus.NOTICE_GIVEN].includes(item.status)
-  ).length;
-  const ready = recommendations.filter((item) =>
-    [RentalLifecycleStatus.ACTIVE, RentalLifecycleStatus.LEAD_ACTIVITY].includes(item.status)
-  ).length;
+  const needsAttentionStatuses = new Set<RentalLifecycleStatus>([
+    RentalLifecycleStatus.DRAFT,
+    RentalLifecycleStatus.COMING_SOON,
+    RentalLifecycleStatus.MAINTENANCE_HOLD,
+    RentalLifecycleStatus.TURNOVER,
+    RentalLifecycleStatus.NOTICE_GIVEN
+  ]);
+  const occupiedStatuses = new Set<RentalLifecycleStatus>([RentalLifecycleStatus.OCCUPIED, RentalLifecycleStatus.RENEWAL_PENDING, RentalLifecycleStatus.NOTICE_GIVEN]);
+  const readyStatuses = new Set<RentalLifecycleStatus>([RentalLifecycleStatus.ACTIVE, RentalLifecycleStatus.LEAD_ACTIVITY]);
+
+  const needsAttention = recommendations.filter((item) => needsAttentionStatuses.has(item.status)).length;
+  const occupied = recommendations.filter((item) => occupiedStatuses.has(item.status)).length;
+  const ready = recommendations.filter((item) => readyStatuses.has(item.status)).length;
 
   return {
     total,
