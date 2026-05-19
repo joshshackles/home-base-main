@@ -1,3 +1,9 @@
+## v4.26.3 - Inbox Type and Release Label Fix
+
+- Fixed the admin inbox thread typing so maintenance requests and application records can safely handle nullable related units returned by Prisma.
+- Added the missing `APP_RELEASE_LABEL` export used by the layout, footer, admin system page, and admin operations helpers.
+- Kept the clean-install guard active and synchronized README, app version, package metadata, and changelog release notes.
+
 ## v4.26.2 - Landlord Unit JSX Compile Fix
 
 - Fixed the landlord unit detail page compile error by closing the Pipeline panel before the next layout section.
