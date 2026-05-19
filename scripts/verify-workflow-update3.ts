@@ -9,9 +9,9 @@ const checks: Array<[string, string]> = [
   ["src/app/applicant/maintenance/page.tsx", "Request maintenance help"],
   ["src/app/admin/maintenance/page.tsx", "Maintenance queue"],
   ["src/app/landlord/maintenance/page.tsx", "Maintenance queue"],
-  ["src/app/applicant/inbox/page.tsx", "TextingInbox"],
-  ["src/app/admin/inbox/page.tsx", "TextingInbox"],
-  ["src/app/landlord/inbox/page.tsx", "TextingInbox"]
+  ["src/app/applicant/inbox/page.tsx", "Workflow messages"],
+  ["src/app/admin/inbox/page.tsx", "Workflow messages"],
+  ["src/app/landlord/inbox/page.tsx", "Workflow messages"]
 ];
 
 for (const [file, needle] of checks) {

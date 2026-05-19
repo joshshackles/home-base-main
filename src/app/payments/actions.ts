@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { AuditAction, AutoPayEnrollmentStatus, FinancialAdjustmentType, LedgerEntryStatus, LedgerEntryType, PaymentMethodVerificationStatus } from "@prisma/client";
+import { AuditAction, AutoPayEnrollmentStatus, FinancialAdjustmentType, LedgerEntryStatus, LedgerEntryType, PaymentMethod } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
@@ -18,9 +18,6 @@ async function assertOwnsSavedPaymentMethod(userId: string, stripePaymentMethodI
     select: { id: true, stripePaymentMethodId: true, verificationStatus: true }
   });
   if (!method) throw new Error(`This ${label} is not saved to your account.`);
-  if (method.verificationStatus !== PaymentMethodVerificationStatus.VERIFIED) {
-    throw new Error(`This ${label} must be verified before it can be used for scheduled payments or autopay.`);
-  }
   return method;
 }
 

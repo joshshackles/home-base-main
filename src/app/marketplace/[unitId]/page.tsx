@@ -223,7 +223,7 @@ export default async function UnitDetailPage({
               <InfoPill label="Parking" value={unit.parkingInfo || "Ask"} />
               <InfoPill label="Laundry" value={unit.laundryInfo || "Ask"} />
               <InfoPill label="Pets" value={unit.petPolicy || "Ask"} />
-              <InfoPill label="School district" value={unit.schoolDistrict || "Ask"} />
+              <InfoPill label="School" value={unit.schoolDistrict || "Ask"} />
               <InfoPill
                 label="Walk / transit"
                 value={
@@ -245,7 +245,7 @@ export default async function UnitDetailPage({
             ) : null}
             <FeatureBlock
               icon={<CheckCircle2 size={18} />}
-              title="Nearby features"
+              title="Neighborhood"
               value={
                 unit.neighborhood ||
                 unit.nearbyFeatures ||
@@ -254,7 +254,7 @@ export default async function UnitDetailPage({
             />
             <FeatureBlock
               icon={<CalendarDays size={18} />}
-              title="Move-in fees"
+              title="Lease terms"
               value={
                 unit.leaseTermsNote ||
                 unit.moveInFeesNote ||
@@ -274,7 +274,7 @@ export default async function UnitDetailPage({
                   unit.yardInfo,
                 ]
                   .filter(Boolean)
-                  .join(" / ") ||
+                  .join(" • ") ||
                 "Additional home details have not been added yet."
               }
             />
@@ -306,7 +306,7 @@ export default async function UnitDetailPage({
             </p>
             <p className="mt-1 text-sm font-semibold text-slate-300">
               per month
-              {unit.deposit ? ` / ${formatCurrency(unit.deposit)} deposit` : ""}
+              {unit.deposit ? ` • ${formatCurrency(unit.deposit)} deposit` : ""}
             </p>
             <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs font-black text-slate-200">
               <span className="rounded-xl bg-white/10 px-2 py-2">
@@ -464,7 +464,7 @@ export default async function UnitDetailPage({
               {formatCurrency(unit.rentAmount)}
             </p>
             <p className="text-xs font-bold text-slate-500">
-              {unit.bedrooms} bd / {unit.bathrooms} ba / {unit.property.city}
+              {unit.bedrooms} bd • {unit.bathrooms} ba • {unit.property.city}
             </p>
           </div>
           <a

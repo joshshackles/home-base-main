@@ -1,12 +1,10 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { MaintenanceRequestStatus } from "@prisma/client";
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";
 import { formatCurrency } from "@/lib/format";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { lifecycleLabel, recommendRentalLifecycle } from "@/lib/rental-lifecycle-engine";
 
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
@@ -21,10 +19,7 @@ export default async function LandlordUnitsPage() {
       tenantUser: true,
       currentApplication: true,
       leads: true,
-      applications: { include: { leasePackets: { select: { status: true } } } },
-      occupancies: { select: { status: true } },
-      notices: { select: { status: true }, take: 5 },
-      maintenanceRequests: { where: { status: { notIn: [MaintenanceRequestStatus.COMPLETED, MaintenanceRequestStatus.CANCELLED] } }, select: { id: true } },
+      applications: true,
       photos: { orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }], take: 1 }
     },
     orderBy: [{ property: { name: "asc" } }, { unitNumber: "asc" }]
@@ -37,21 +32,6 @@ export default async function LandlordUnitsPage() {
         <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {units.map((unit) => {
             const featuredPhoto = unit.photos[0];
-            const lifecycle = recommendRentalLifecycle({
-              unitStatus: unit.status,
-              storedLifecycleStatus: unit.lifecycleStatus,
-              tenantUserId: unit.tenantUserId,
-              currentApplicationId: unit.currentApplicationId,
-              leadCount: unit.leads.length,
-              applicationStatuses: unit.applications.map((application) => application.status),
-              leasePacketStatuses: unit.applications.flatMap((application) => application.leasePackets.map((packet) => packet.status)),
-              occupancyStatuses: unit.occupancies.map((occupancy) => occupancy.status),
-              noticeStatuses: unit.notices.map((notice) => notice.status),
-              openMaintenanceCount: unit.maintenanceRequests.length,
-              photoCount: unit.photos.length,
-              hasDescription: Boolean(unit.description || unit.marketingHeadline),
-              hasTerms: Boolean(unit.leaseTermsNote && unit.rentAmount > 0)
-            });
             return (
               <Link key={unit.id} href={`/landlord/rentals/${unit.id}`} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-xl">
                 <div className="relative h-44 bg-slate-950">
@@ -62,7 +42,6 @@ export default async function LandlordUnitsPage() {
                     <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-950 via-slate-800 to-brand-700 text-sm font-black uppercase tracking-[0.25em] text-white/80">No photo yet</div>
                   )}
                   <span className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-black uppercase text-slate-800">{label(unit.status)}</span>
-                  <span className="absolute bottom-4 left-4 rounded-full bg-slate-950/90 px-3 py-1 text-xs font-black uppercase text-white">{lifecycleLabel(lifecycle.status)}</span>
                 </div>
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-3">
@@ -78,7 +57,6 @@ export default async function LandlordUnitsPage() {
                     <span className="rounded-2xl bg-slate-50 px-2 py-2">{unit.leads.length} leads</span>
                   </div>
                   <p className="mt-4 text-sm leading-6 text-slate-600">{unit.tenantUser ? `Tenant: ${unit.tenantUser.name || unit.tenantUser.email}` : unit.currentApplication?.applicantName ? `Linked to ${unit.currentApplication.applicantName}` : "No tenant assigned"}</p>
-                  <p className="mt-2 text-xs font-bold uppercase text-slate-500">Lifecycle confidence {lifecycle.confidence}% - {lifecycle.reason}</p>
                   <p className="mt-3 text-sm font-black text-brand-700">Open rental workspace</p>
                 </div>
               </Link>
@@ -102,29 +80,13 @@ export default async function LandlordUnitsPage() {
           <tbody className="divide-y divide-slate-200">
             {units.length === 0 ? (
               <tr><td colSpan={7} className="px-5 py-10 text-center text-slate-600">No rentals yet. Add a rental and choose the type: single-family home, apartment, mobile home, townhouse, duplex, condo, room, commercial, or other.</td></tr>
-            ) : units.map((unit) => {
-              const lifecycle = recommendRentalLifecycle({
-                unitStatus: unit.status,
-                storedLifecycleStatus: unit.lifecycleStatus,
-                tenantUserId: unit.tenantUserId,
-                currentApplicationId: unit.currentApplicationId,
-                leadCount: unit.leads.length,
-                applicationStatuses: unit.applications.map((application) => application.status),
-                leasePacketStatuses: unit.applications.flatMap((application) => application.leasePackets.map((packet) => packet.status)),
-                occupancyStatuses: unit.occupancies.map((occupancy) => occupancy.status),
-                noticeStatuses: unit.notices.map((notice) => notice.status),
-                openMaintenanceCount: unit.maintenanceRequests.length,
-                photoCount: unit.photos.length,
-                hasDescription: Boolean(unit.description || unit.marketingHeadline),
-                hasTerms: Boolean(unit.leaseTermsNote && unit.rentAmount > 0)
-              });
-              return (
+            ) : units.map((unit) => (
               <tr key={unit.id} className="hover:bg-slate-50">
                 <td className="px-5 py-4"><p className="font-bold text-slate-950">{unit.property.name}{unit.unitNumber !== "Main" ? ` #${unit.unitNumber}` : ""}</p>{unit.voucherFriendly ? <p className="mt-1 text-xs font-bold text-brand-700">Voucher-friendly</p> : null}</td>
                 <td className="px-5 py-4 text-slate-600">{unit.rentalType.replaceAll("_", " ")}<br />{unit.property.addressLine}, {unit.property.city}</td>
                 <td className="px-5 py-4 font-bold text-slate-950">{formatCurrency(unit.rentAmount)}</td>
                 <td className="px-5 py-4 text-slate-600">{unit.bedrooms} bd / {unit.bathrooms} ba<br />{unit.squareFeet ? `${unit.squareFeet.toLocaleString()} sq ft` : "Sq ft not set"}</td>
-                <td className="px-5 py-4"><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase text-slate-700">{label(unit.status)}</span><br /><span className="mt-2 inline-flex rounded-full bg-brand-50 px-3 py-1 text-xs font-bold uppercase text-brand-700">{lifecycleLabel(lifecycle.status)}</span></td>
+                <td className="px-5 py-4"><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase text-slate-700">{label(unit.status)}</span></td>
                 <td className="px-5 py-4 text-slate-600">
                   {unit.tenantUser ? `${unit.tenantUser.name || unit.tenantUser.email}` : unit.currentApplication?.applicantName ?? "No tenant assigned"}
                   <br />{unit.leads.length} leads / {unit.applications.length} applications
@@ -137,7 +99,7 @@ export default async function LandlordUnitsPage() {
                   </div>
                 </td>
               </tr>
-            ); })}
+            ))}
           </tbody>
         </table>
       </div>
