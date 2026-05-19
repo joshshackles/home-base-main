@@ -337,6 +337,7 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
               </div>
             </div>
           </div>
+        </Panel>
       </section>
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_380px]">

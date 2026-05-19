@@ -1,3 +1,8 @@
+## v4.26.2 - Landlord Unit JSX Compile Fix
+
+- Fixed the landlord unit detail page compile error by closing the Pipeline panel before the next layout section.
+- Confirmed the clean-install, operational coherence, and payments production checks continue to pass before Prisma binary download.
+
 ## v4.26.1 - Vercel Clean Install Release Fix
 
 - Fixed `payments-production:verify` so it validates the active package version instead of requiring the historical `4.21.0` package version.
