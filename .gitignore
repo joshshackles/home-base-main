@@ -1,0 +1,46 @@
+# dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Next.js / React build output
+.next/
+out/
+build/
+dist/
+.vercel/
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# test / coverage output
+coverage/
+.vitest/
+playwright-report/
+test-results/
+
+# local env / secrets
+.env
+.env.*
+!.env.example
+
+# local storage and generated uploads
+storage/
+uploads/
+public/uploads/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.vercel*.log
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

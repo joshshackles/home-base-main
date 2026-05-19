@@ -1,0 +1,129 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { ArrowUpRight, Inbox, Plus, Search } from "lucide-react";
+
+type Tone = "slate" | "blue" | "green" | "amber" | "red";
+
+const toneClasses: Record<Tone, string> = {
+  slate: "border-slate-200 bg-slate-50 text-slate-700",
+  blue: "border-blue-200 bg-blue-50 text-blue-700",
+  green: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  amber: "border-amber-200 bg-amber-50 text-amber-800",
+  red: "border-red-200 bg-red-50 text-red-700"
+};
+
+export function AppCard({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <section className={`rounded-[var(--hb-radius)] border border-slate-200 bg-white p-[var(--hb-card-padding)] shadow-sm ${className}`}>{children}</section>;
+}
+
+export function SectionHeader({ title, detail, action, count }: { title: string; detail?: string; action?: ReactNode; count?: string | number }) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-2">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-black tracking-tight text-slate-950">{title}</h2>
+          {count !== undefined ? <StatusBadge tone="slate">{count}</StatusBadge> : null}
+        </div>
+        {detail ? <p className="mt-1 text-xs leading-5 text-slate-600">{detail}</p> : null}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+export function MetricTile({ label, value, detail, href, tone = "blue" }: { label: string; value: ReactNode; detail?: string; href?: string; tone?: Tone }) {
+  const body = (
+    <div className="h-full rounded-[var(--hb-radius)] border border-slate-200 bg-white p-3 shadow-sm transition hover:border-blue-200">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">{label}</p>
+        {href ? <ArrowUpRight size={15} className="text-slate-400" /> : null}
+      </div>
+      <p className={`mt-2 truncate text-2xl font-black ${tone === "green" ? "text-emerald-700" : tone === "amber" ? "text-amber-700" : tone === "red" ? "text-red-700" : "text-slate-950"}`}>{value}</p>
+      {detail ? <p className="mt-1 truncate text-xs font-semibold text-slate-500">{detail}</p> : null}
+    </div>
+  );
+  return href ? <Link href={href}>{body}</Link> : body;
+}
+
+export function StatusBadge({ children, tone = "slate" }: { children: ReactNode; tone?: Tone }) {
+  return <span className={`inline-flex w-fit items-center rounded-full border px-2 py-0.5 text-[11px] font-black uppercase tracking-wide ${toneClasses[tone]}`}>{children}</span>;
+}
+
+export function QuickActionButton({ href, children, icon = <Plus size={15} /> }: { href: string; children: ReactNode; icon?: ReactNode }) {
+  return <Link href={href} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white transition hover:bg-blue-700">{icon}{children}</Link>;
+}
+
+export function ActionBar({ children }: { children: ReactNode }) {
+  return <div className="flex flex-wrap items-center gap-2 rounded-[var(--hb-radius)] border border-slate-200 bg-white p-2 shadow-sm">{children}</div>;
+}
+
+export function EmptyState({ title, detail, action }: { title: string; detail: string; action?: ReactNode }) {
+  return (
+    <div className="rounded-[var(--hb-radius)] border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
+      <Inbox className="mx-auto text-slate-400" size={26} />
+      <h3 className="mt-2 text-sm font-black text-slate-950">{title}</h3>
+      <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-slate-600">{detail}</p>
+      {action ? <div className="mt-3">{action}</div> : null}
+    </div>
+  );
+}
+
+export function CompactTable({ children }: { children: ReactNode }) {
+  return <div className="overflow-x-auto rounded-[var(--hb-radius)] border border-slate-200 bg-white"><table className="min-w-full divide-y divide-slate-100 text-sm">{children}</table></div>;
+}
+
+export function ActivityTimeline({ items }: { items: Array<{ title: string; detail?: string; tone?: Tone; href?: string }> }) {
+  return (
+    <div className="space-y-2">
+      {items.map((item) => {
+        const row = (
+          <div className="flex gap-3 rounded-[var(--hb-radius)] border border-slate-200 bg-white p-3">
+            <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${item.tone === "green" ? "bg-emerald-500" : item.tone === "amber" ? "bg-amber-500" : item.tone === "red" ? "bg-red-500" : "bg-blue-600"}`} />
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-black text-slate-950">{item.title}</span>
+              {item.detail ? <span className="block truncate text-xs text-slate-600">{item.detail}</span> : null}
+            </span>
+          </div>
+        );
+        return item.href ? <Link key={`${item.title}-${item.href}`} href={item.href}>{row}</Link> : <div key={item.title}>{row}</div>;
+      })}
+    </div>
+  );
+}
+
+export function SystemTabs({ tabs }: { tabs: Array<{ href: string; label: string; active?: boolean }> }) {
+  return (
+    <nav className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-100 p-1">
+      {tabs.map((tab) => <Link key={tab.href} href={tab.href} className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-black ${tab.active ? "bg-white text-slate-950 shadow-sm" : "text-slate-600 hover:bg-white/70"}`}>{tab.label}</Link>)}
+    </nav>
+  );
+}
+
+export function DrawerPanel({ title, children }: { title: string; children: ReactNode }) {
+  return <aside className="rounded-[var(--hb-radius)] border border-slate-200 bg-white p-3 shadow-sm"><SectionHeader title={title} /> <div className="mt-3">{children}</div></aside>;
+}
+
+export function DataGrid({ children }: { children: ReactNode }) {
+  return <div className="grid gap-[var(--hb-gap)] sm:grid-cols-2 xl:grid-cols-4">{children}</div>;
+}
+
+export function CommandPalette({ compact = false, actions = [
+  { label: "Create unit", href: "/landlord/rentals/new" },
+  { label: "Assign tenant", href: "/landlord/applications" },
+  { label: "Send message", href: "/landlord/inbox" },
+  { label: "Collect payment", href: "/landlord/payments" },
+  { label: "Open ledger", href: "/landlord/ledger" }
+] }: { compact?: boolean; actions?: Array<{ label: string; href: string }> }) {
+  return (
+    <div className={`${compact ? "block" : "hidden lg:block"} rounded-xl border border-slate-700 bg-slate-900 p-2 text-white shadow-xl`}>
+      <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-300">
+        <Search size={14} />
+        <span className="font-semibold">Command palette</span>
+        <kbd className="ml-auto rounded border border-slate-700 px-1.5 py-0.5 text-[10px]">Cmd K</kbd>
+      </div>
+      <div className="mt-2 grid gap-1">
+        {actions.map((action) => <Link key={`${action.label}-${action.href}`} href={action.href} className="rounded-lg px-3 py-1.5 text-left text-xs font-bold text-slate-300 hover:bg-slate-800">{action.label}</Link>)}
+      </div>
+    </div>
+  );
+}

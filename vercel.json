@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "npm run vercel-build",
+  "regions": [
+    "iad1"
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/send-queued-email",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/process-payments",
+      "schedule": "15 8 * * *"
+    }
+  ],
+  "installCommand": "npm ci --ignore-scripts --no-audit --no-fund"
+}

@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --hb-bg: #0f172a;
+  --hb-surface: #111827;
+  --hb-accent: #2563eb;
+  --hb-success: #10b981;
+  --hb-warning: #f59e0b;
+  --hb-danger: #ef4444;
+  --hb-border: #334155;
+  --hb-muted: #64748b;
+  --hb-card: #ffffff;
+  --hb-radius: 14px;
+  --hb-gap: 0.75rem;
+  --hb-card-padding: 0.75rem;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.45);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+[data-density="compact"] {
+  --hb-gap: 0.625rem;
+  --hb-card-padding: 0.625rem;
+  --hb-radius: 12px;
+}
+
+[data-density="ultra"] {
+  --hb-gap: 0.5rem;
+  --hb-card-padding: 0.5rem;
+  --hb-radius: 10px;
+}
