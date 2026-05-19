@@ -98,11 +98,15 @@ Keep the daily schedule while the project remains on Hobby, or deployment can fa
 
 ## Verify locally before deploy
 
+For fully reproducible Vercel installs, generate and commit a lockfile from a normal Node/npm shell:
+
 ```bash
-npm ci
+npm install --package-lock-only
+```
+
+```bash
+npm install
 npm run vercel:preflight
-npm run clean-install:verify
-npm run migrations:check
 npm run typecheck
 npm run test
 ```

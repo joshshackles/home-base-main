@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { Activity, AlertTriangle, Bot, CheckCircle2, Clock3, DatabaseBackup, PlayCircle, RefreshCcw, ServerCog, ShieldCheck, TestTube2, TriangleAlert } from "lucide-react";
+import { Activity, AlertTriangle, Bot, CheckCircle2, Clock3, DatabaseBackup, PlayCircle, RefreshCcw, ServerCog, ShieldCheck, TriangleAlert } from "lucide-react";
 import { captureSystemHealthAction, seedAutomationRulesAction, syncOperationalReadinessAction } from "@/app/admin/actions";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { OpsLinkCard, OpsMetric, OpsPanel } from "@/components/admin/ops/AdminOpsCards";
@@ -83,7 +83,6 @@ export default async function AdminOperationsPage({ searchParams }: { searchPara
         >
           <div className="grid gap-3">
             <OpsLinkCard href="/admin/backups" title="Backup and recovery" detail="Generate a backup, validate restore readiness, and review backup manifests." icon={<DatabaseBackup size={18} />} />
-            <OpsLinkCard href="/admin/workflows" title="Workflow readiness" detail="Review which major workflows are proven, covered, basic, or underdeveloped before planning the next release." icon={<TestTube2 size={18} />} />
             <OpsLinkCard href="/admin/analytics" title="Analytics snapshots" detail="Capture and compare platform operating metrics over time." icon={<Activity size={18} />} />
             <OpsLinkCard href="/admin/audit" title="Audit explorer" detail="Review security, financial, recovery, and administrative changes." icon={<ShieldCheck size={18} />} />
             <form action={seedAutomationRulesAction}>

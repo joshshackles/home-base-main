@@ -1,5 +1,18 @@
-import { expect, test } from "@playwright/test";
-import { demoPassword, e2eUsers, loginAs } from "./helpers";
+import { expect, test, type Page } from "@playwright/test";
+
+const demoPassword = process.env.E2E_PASSWORD || "HomeBaseDemo!2026";
+const adminEmail = process.env.E2E_ADMIN_EMAIL || "admin@homebase.local";
+const landlordEmail = process.env.E2E_LANDLORD_EMAIL || "landlord@homebase.local";
+const applicantEmail = process.env.E2E_APPLICANT_EMAIL || "applicant@homebase.local";
+
+async function login(page: Page, email: string, next = "/applicant") {
+  await page.goto(`/login?next=${encodeURIComponent(next)}`);
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(demoPassword);
+  await page.getByRole("button", { name: /sign in/i }).click();
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator("body")).not.toContainText("Invalid email or password", { timeout: 5_000 });
+}
 
 test.describe("operational foundation smoke coverage", () => {
   test("signup can request landlord access", async ({ page }) => {
@@ -19,14 +32,14 @@ test.describe("operational foundation smoke coverage", () => {
   });
 
   test("admin access approval page loads", async ({ page }) => {
-    await loginAs(page, e2eUsers.admin, "/admin/users");
+    await login(page, adminEmail, "/admin/users");
     await page.goto("/admin/users");
     await expect(page.getByRole("heading").first()).toBeVisible();
     await expect(page.locator("body")).toContainText(/access|user|role|admin/i);
   });
 
   test("landlord listing creation and multi-photo upload screens load", async ({ page }) => {
-    await loginAs(page, e2eUsers.landlord, "/landlord/rentals/new");
+    await login(page, landlordEmail, "/landlord/rentals/new");
     await page.goto("/landlord/rentals/new");
     await expect(page.getByRole("heading").first()).toBeVisible();
     await expect(page.locator('input[type="file"][name="photos"]').first()).toHaveAttribute("multiple", "");
@@ -34,34 +47,34 @@ test.describe("operational foundation smoke coverage", () => {
   });
 
   test("tenant assignment workflow is reachable", async ({ page }) => {
-    await loginAs(page, e2eUsers.landlord, "/landlord/applications");
+    await login(page, landlordEmail, "/landlord/applications");
     await page.goto("/landlord/applications");
     await expect(page.getByRole("heading").first()).toBeVisible();
     await expect(page.locator("body")).toContainText(/tenant|application|assign|approve/i);
   });
 
   test("messaging inbox loads for applicant and landlord", async ({ page }) => {
-    await loginAs(page, e2eUsers.applicant, "/applicant/inbox");
+    await login(page, applicantEmail, "/applicant/inbox");
     await page.goto("/applicant/inbox");
     await expect(page.getByRole("heading").first()).toBeVisible();
     await page.goto("/login?next=/landlord/inbox");
-    await loginAs(page, e2eUsers.landlord, "/landlord/inbox");
+    await login(page, landlordEmail, "/landlord/inbox");
     await page.goto("/landlord/inbox");
     await expect(page.getByRole("heading").first()).toBeVisible();
   });
 
   test("Stripe checkout setup surfaces payment setup controls", async ({ page }) => {
-    await loginAs(page, e2eUsers.landlord, "/landlord/payments");
+    await login(page, landlordEmail, "/landlord/payments");
     await page.goto("/landlord/payments");
     await expect(page.locator("body")).toContainText(/stripe|connect|payment|checkout/i);
-    await loginAs(page, e2eUsers.applicant, "/applicant/payments");
+    await login(page, applicantEmail, "/applicant/payments");
     await page.goto("/applicant/payments");
     await expect(page.locator("body")).toContainText(/payment|method|autopay|stripe/i);
   });
 
   test("mobile drawer and command palette open", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await loginAs(page, e2eUsers.landlord, "/landlord");
+    await login(page, landlordEmail, "/landlord");
     await page.getByRole("button", { name: /open navigation/i }).click();
     await expect(page.getByRole("dialog", { name: /dashboard navigation/i })).toBeVisible();
     await page.keyboard.press("Escape");

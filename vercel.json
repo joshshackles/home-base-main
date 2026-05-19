@@ -14,5 +14,6 @@
       "path": "/api/cron/process-payments",
       "schedule": "15 8 * * *"
     }
-  ]
+  ],
+  "installCommand": "npm ci --no-audit --no-fund"
 }

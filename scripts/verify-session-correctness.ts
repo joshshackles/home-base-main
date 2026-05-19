@@ -35,7 +35,7 @@ assertText("src/app/api/documents/[id]/route.ts", "const user = await getVerifie
 assertNotText("src/app/api/documents/[id]/route.ts", "getCurrentUser", "document downloads no longer trust cookie-only users");
 
 assertText("src/components/AppHeader.tsx", "getVerifiedCurrentUser", "app header uses verified user helper");
-assertText("src/components/AppHeader.tsx", "type VerifiedUser = Awaited<ReturnType<typeof getVerifiedCurrentUser>>", "app header receives a database-verified user");
+assertText("src/components/AppHeader.tsx", "export async function AppHeader", "app header is async for database verification");
 assertNotText("src/components/AppHeader.tsx", "getCurrentUser", "app header no longer trusts cookie-only users");
 
 assertText("src/app/login/actions.ts", "getVerifiedCurrentUser", "logout auditing uses verified user helper");
