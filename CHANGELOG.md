@@ -1,3 +1,10 @@
+## v4.20.2 - Vercel Install and Inbox Type Hardening
+
+- Updated Vercel installs to skip dependency lifecycle scripts during `npm ci` so Prisma package postinstall scripts cannot block dependency installation.
+- Kept Prisma generation in the explicit Vercel build pipeline before `next build`.
+- Fixed the admin inbox maintenance request thread type to allow nullable units from Prisma.
+- Synchronized release metadata for clean install verification.
+
 ## v4.20.0 - Unified Rental Lifecycle Engine
 
 - Added a shared rental lifecycle engine that derives one operating status from unit, lead, application, lease, occupancy, notice, maintenance, and listing readiness signals.
