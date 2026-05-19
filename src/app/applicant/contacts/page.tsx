@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getUserRelationshipContactsList } from "@/lib/profile-connections";

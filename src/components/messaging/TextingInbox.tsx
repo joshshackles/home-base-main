@@ -60,13 +60,7 @@ type Thread = {
     applicantEmail?: string;
     unit: { id?: string; unitNumber: string; property: { id?: string; name: string } };
   } | null;
-  maintenanceRequest: {
-    id?: string;
-    subject: string;
-    status?: string;
-    priority?: string;
-    unit?: { id?: string; unitNumber: string; property: { id?: string; name: string } } | null;
-  } | null;
+  maintenanceRequest: { id?: string; subject: string; status?: string; priority?: string } | null;
   messages: Message[];
 };
 
@@ -91,9 +85,9 @@ type FilterState = {
 };
 
 const QUICK_REPLIES = [
-  "Thanks - I will review this and follow up.",
+  "Thanks — I’ll review this and follow up.",
   "Can you upload a photo or document?",
-  "I am checking the status and will send the next step shortly.",
+  "I’m checking the status and will send the next step shortly.",
   "This has been resolved and can be closed."
 ];
 
@@ -135,7 +129,6 @@ function initials(sender: Sender) {
 
 function threadContext(thread: Thread) {
   if (thread.application) return `${thread.application.unit.property.name} #${thread.application.unit.unitNumber}`;
-  if (thread.maintenanceRequest?.unit) return `${thread.maintenanceRequest.unit.property.name} #${thread.maintenanceRequest.unit.unitNumber}`;
   if (thread.maintenanceRequest) return thread.maintenanceRequest.subject;
   return label(String(thread.type));
 }
@@ -217,7 +210,7 @@ function nextBestAction(thread: Thread, isStaffInbox: boolean) {
   if (isEscalated(thread, isStaffInbox)) return "Escalate or reply now. This conversation has been waiting more than 48 hours.";
   if (isOverdue(thread, isStaffInbox)) return "Send a status update or assign ownership. This conversation is past the 24-hour response target.";
   if (isWaitingOnCurrentUser(thread, isStaffInbox)) return "Reply with a clear next step, request, or resolution to move this conversation forward.";
-  return "Monitor for the other party's response. Add an internal note if staff context is needed.";
+  return "Monitor for the other party’s response. Add an internal note if staff context is needed.";
 }
 
 function toneForStatus(status: string) {
@@ -332,44 +325,10 @@ function QuickReply({ threadId, body, returnTo }: { threadId: string; body: stri
   );
 }
 
-function workspaceFromBasePath(basePath: string) {
-  if (basePath.startsWith("/admin")) return "admin";
-  if (basePath.startsWith("/landlord")) return "landlord";
-  if (basePath.startsWith("/applicant")) return "applicant";
-  return "applicant";
-}
-
-function workflowHrefForThread(thread: Thread, basePath: string) {
-  const workspace = workspaceFromBasePath(basePath);
-  if (thread.maintenanceRequest?.id) return `/${workspace}/maintenance`;
-  if (thread.application?.id) return `/${workspace}/applications`;
-  return basePath;
-}
-
-function recordHrefForThread(thread: Thread, basePath: string) {
-  const workspace = workspaceFromBasePath(basePath);
-  const unitId = thread.application?.unit.id ?? thread.maintenanceRequest?.unit?.id;
-  if (!unitId) return null;
-  if (workspace === "admin") return `/admin/rentals/${unitId}`;
-  if (workspace === "landlord") return `/landlord/rentals/${unitId}`;
-  return `/marketplace/${unitId}`;
-}
-
-function ContextLink({ thread, basePath }: { thread: Thread; basePath: string }) {
-  const workflowHref = workflowHrefForThread(thread, basePath);
-  const recordHref = recordHrefForThread(thread, basePath);
-  return (
-    <>
-      {thread.maintenanceRequest?.id ? (
-        <Link href={workflowHref} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><Wrench size={14} /> Maintenance queue</Link>
-      ) : thread.application?.id ? (
-        <Link href={workflowHref} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><MessageSquareText size={14} /> Applications</Link>
-      ) : null}
-      {recordHref ? (
-        <Link href={recordHref} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><Hash size={14} /> Rental record</Link>
-      ) : null}
-    </>
-  );
+function ContextLink({ thread }: { thread: Thread }) {
+  if (thread.maintenanceRequest?.id) return <Link href="/landlord/maintenance" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><Wrench size={14} /> Maintenance queue</Link>;
+  if (thread.application?.id) return <Link href="/landlord/applications" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><MessageSquareText size={14} /> Applications</Link>;
+  return null;
 }
 
 export function TextingInbox({
@@ -562,10 +521,10 @@ export function TextingInbox({
                       {activeThread.messages.some((message) => message.isInternal) ? <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-black uppercase text-amber-800 ring-1 ring-amber-200"><LockKeyhole size={12} /> Internal notes</span> : null}
                     </div>
                     <h2 className="mt-2 truncate text-2xl font-black text-slate-950">{activeThread.subject}</h2>
-                    <p className="mt-1 text-sm text-slate-600">{threadContext(activeThread)} - started by {senderLabel(activeThread.createdBy)}</p>
+                    <p className="mt-1 text-sm text-slate-600">{threadContext(activeThread)} • started by {senderLabel(activeThread.createdBy)}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <ContextLink thread={activeThread} basePath={basePath} />
+                    <ContextLink thread={activeThread} />
                     {canManageThreadStatus ? (
                       <StatusAction threadId={activeThread.id} status={activeThread.status === MessageThreadStatus.CLOSED ? MessageThreadStatus.OPEN : MessageThreadStatus.CLOSED} returnTo={returnTo}>
                         {activeThread.status === MessageThreadStatus.CLOSED ? <CircleDot size={14} /> : <CheckCircle2 size={14} />}
@@ -615,7 +574,7 @@ export function TextingInbox({
                         <div className={`max-w-[86%] rounded-[1.35rem] px-4 py-3 shadow-sm ${message.isInternal ? "border border-amber-200 bg-amber-100 text-amber-950" : isMine ? "bg-brand-600 text-white" : "bg-white text-slate-900"}`}>
                           {showSender ? <div className="mb-1 flex flex-wrap items-center gap-2 text-xs font-black uppercase opacity-75"><span>{senderLabel(message.sender)}</span><span>{label(message.sender.role)}</span>{message.isInternal ? <span className="inline-flex items-center gap-1"><ShieldCheck size={12} /> Internal</span> : null}</div> : null}
                           <p className="whitespace-pre-wrap text-sm leading-6">{message.body}</p>
-                          <div className="mt-2 flex items-center justify-end gap-2 text-[11px] font-bold opacity-70"><span>{message.createdAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>{readReceipt ? <span>- {readReceipt}</span> : null}</div>
+                          <div className="mt-2 flex items-center justify-end gap-2 text-[11px] font-bold opacity-70"><span>{message.createdAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>{readReceipt ? <span>• {readReceipt}</span> : null}</div>
                         </div>
                       </div>
                     </div>

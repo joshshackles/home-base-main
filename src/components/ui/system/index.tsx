@@ -107,22 +107,18 @@ export function DataGrid({ children }: { children: ReactNode }) {
   return <div className="grid gap-[var(--hb-gap)] sm:grid-cols-2 xl:grid-cols-4">{children}</div>;
 }
 
-export function CommandPalette({ compact = false, actions = [
-  { label: "Create unit", href: "/landlord/rentals/new" },
-  { label: "Assign tenant", href: "/landlord/applications" },
-  { label: "Send message", href: "/landlord/inbox" },
-  { label: "Collect payment", href: "/landlord/payments" },
-  { label: "Open ledger", href: "/landlord/ledger" }
-] }: { compact?: boolean; actions?: Array<{ label: string; href: string }> }) {
+export function CommandPalette() {
+  const actions = ["Create unit", "Assign tenant", "Send message", "Collect payment", "Open ledger"];
+
   return (
-    <div className={`${compact ? "block" : "hidden lg:block"} rounded-xl border border-slate-700 bg-slate-900 p-2 text-white shadow-xl`}>
+    <div className="hidden rounded-xl border border-slate-700 bg-slate-900 p-2 text-white shadow-xl lg:block">
       <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-300">
         <Search size={14} />
         <span className="font-semibold">Command palette</span>
         <kbd className="ml-auto rounded border border-slate-700 px-1.5 py-0.5 text-[10px]">Cmd K</kbd>
       </div>
       <div className="mt-2 grid gap-1">
-        {actions.map((action) => <Link key={`${action.label}-${action.href}`} href={action.href} className="rounded-lg px-3 py-1.5 text-left text-xs font-bold text-slate-300 hover:bg-slate-800">{action.label}</Link>)}
+        {actions.map((action) => <button key={action} className="rounded-lg px-3 py-1.5 text-left text-xs font-bold text-slate-300 hover:bg-slate-800" type="button">{action}</button>)}
       </div>
     </div>
   );

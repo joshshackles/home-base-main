@@ -42,13 +42,6 @@ export async function enableAutoPay(input: { userId: string; unitId: string; str
     include: { rentBillingPolicy: true }
   });
   if (!unit) throw new Error("This unit is not available for autopay from your account.");
-  const ownedMethods = await prisma.renterPaymentMethod.findMany({
-    where: { userId: input.userId, stripePaymentMethodId: { in: [input.stripePaymentMethodId, input.backupPaymentMethodId].filter((value): value is string => Boolean(value)) } },
-    select: { stripePaymentMethodId: true }
-  });
-  const ownedIds = new Set(ownedMethods.map((method) => method.stripePaymentMethodId));
-  if (!ownedIds.has(input.stripePaymentMethodId)) throw new Error("The primary payment method is not saved to this renter account.");
-  if (input.backupPaymentMethodId && !ownedIds.has(input.backupPaymentMethodId)) throw new Error("The backup payment method is not saved to this renter account.");
   const day = clampBillingDay(input.dayOfMonth ?? unit.rentBillingPolicy?.dueDayOfMonth ?? 1);
   const enrollment = await prisma.autoPayEnrollment.upsert({
     where: { userId_unitId: { userId: input.userId, unitId: input.unitId } },

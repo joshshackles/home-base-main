@@ -2,13 +2,12 @@
 
 Premium housing operations platform for properties, units, leads, applications, documents, inspections, lease packets, e-signature evidence, notifications, communication, payments, and ledgers.
 
-Current package version: **4.20.2**
+Current package version: **3.5.5**
 
 ## What is included
 
 - Admin, landlord, applicant, and marketplace portals.
 - Unified housing OS brand system with geometric HomeBase mark, favicon/app icon, grouped dashboard shell, and shared UI primitives.
-- Operational coherence cockpit that standardizes next-best work, inbox, records, money, and activity across dashboards.
 - Property/unit inventory management.
 - Public lead capture with anti-spam protections.
 - Applications, documents, inspections, leases, signatures, and ledger workflows.
@@ -19,9 +18,6 @@ Current package version: **4.20.2**
 - Email queue hardening and cron-compatible sending route.
 - Stripe Connect, tenant checkout, scheduled payments, autopay, retry recovery, refunds, and enterprise finance records.
 - Vitest test scaffolding, structured logging, and verification scripts.
-- End-to-end workflow QA matrix for discovery, applicant, landlord, maintenance, messaging, admin, and finance paths.
-- Admin workflow readiness center that scores core product promises as proven, covered, basic, or underdeveloped.
-- Unified rental lifecycle engine for listing, application, lease, move-in, resident, renewal, notice, turnover, hold, and archive states.
 - SEO, accessibility, and legal-page starter polish.
 
 ## Setup
@@ -55,7 +51,6 @@ npm run qa:smoke
 - Configure `CRON_SECRET` before enabling queued email cron delivery.
 - Review Privacy, Terms, Fair Housing, and Accessibility pages with counsel before public launch.
 - Replace any scaffolded authentication with the production auth plan before exposing this as a public SaaS.
-- This clean-foundation package is intended for fresh installs. It ships one squashed baseline migration plus newer product migrations, not the historical development chain.
 
 ## Documentation
 
@@ -71,9 +66,6 @@ Update docs live in `docs/`, including:
 - `UPDATE_11_TESTS_OBSERVABILITY.md`
 - `UPDATE_12_PRODUCTION_POLISH.md`
 - `PRODUCT_IDENTITY_UX_SYSTEM.md`
-- `END_TO_END_WORKFLOW_QA.md`
-- `WORKFLOW_READINESS_CENTER.md`
-- `UNIFIED_RENTAL_LIFECYCLE_ENGINE.md`
 
 ## Changelog
 

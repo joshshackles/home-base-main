@@ -1,4 +1,4 @@
-﻿import { readFileSync } from "fs";
+import { readFileSync } from "fs";
 import path from "path";
 
 const root = process.cwd();
@@ -31,12 +31,12 @@ assertContains("src/app/page.tsx", [
 
 assertContains("src/components/dashboard/WorkhorseDashboard.tsx", [
   "bg-slate-50",
-  "rounded-[1.5rem]",
+  "rounded-[2rem]",
   "bg-emerald-50",
-  "truncate text-3xl",
-  "Next best actions"
+  "truncate text-4xl",
+  "Work queue"
 ]);
 
-assertNotContains("src/app/page.tsx", ["\u00C3\u00A2", "\u00C3\u0082", "\u00E2\u0080\u00A2", "\u00C2\u00B7"]);
+assertNotContains("src/app/page.tsx", ["â", "Â", "•", "·"]);
 
 console.log("Dashboard polish verification passed.");

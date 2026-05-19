@@ -25,19 +25,16 @@ const packageJson = existsSync(packageJsonPath) ? JSON.parse(readFileSync(packag
 const scripts = packageJson.scripts || {};
 const deps = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
 
-if (scripts["vercel-build"]?.includes("prisma migrate deploy")) {
-  fail('Clean-foundation Vercel builds must not run "prisma migrate deploy"; run migrations as an explicit release operation instead.');
+if (!scripts["vercel-build"]?.includes("prisma migrate deploy")) {
+  fail('package.json must include a vercel-build script that runs "prisma migrate deploy" before next build.');
 }
 
-if (scripts["vercel-build"]?.includes("vercel:migration-recovery") || scripts["vercel:migration-recovery"]) {
-  fail('Clean-install packages must not run legacy "vercel:migration-recovery" during deployment.');
+if (!scripts["vercel-build"]?.includes("vercel:migration-recovery")) {
+  fail('package.json must run "vercel:migration-recovery" before "prisma migrate deploy" to recover known failed Neon migrations.');
 }
 
-if (!scripts["vercel-build"]?.includes("clean-install:verify")) {
-  fail('package.json must run "clean-install:verify" during Vercel builds.');
-}
-if (!scripts["vercel-build"]?.includes("operational-coherence:verify")) {
-  fail('package.json must run "operational-coherence:verify" during Vercel builds.');
+if (!scripts["vercel:migration-recovery"]?.includes("scripts/resolve-vercel-migrations.ts")) {
+  fail('package.json must include "vercel:migration-recovery" for known failed migration recovery.');
 }
 
 if (!scripts["vercel:preflight"]?.includes("scripts/verify-vercel.ts")) {
@@ -140,4 +137,4 @@ if (process.env.VERCEL === "1" || process.env.NODE_ENV === "production") {
 }
 
 if (failed) process.exit(1);
-console.log("Vercel preflight passed: build command, clean migration strategy, cron route, security headers, environment contract, and serverless storage settings are Vercel-ready.");
+console.log("Vercel preflight passed: build command, Prisma migration path, cron route, security headers, environment contract, and serverless storage settings are Vercel-ready.");

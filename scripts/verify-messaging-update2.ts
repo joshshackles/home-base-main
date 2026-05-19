@@ -17,9 +17,9 @@ assertContains("src/lib/authorization.ts", "visibleMessageWhereForUser", "inbox 
 assertContains("src/lib/authorization.ts", "visibleThreadWhereForUser", "thread visibility must hide internal-only threads from non-staff users.");
 assertContains("src/app/workflow-actions.ts", "if (parsed.isInternal && !isStaff) await assertCanWriteInternalNote(user);", "forged internal-note submissions must be rejected, not silently downgraded.");
 assertContains("src/app/workflow-actions.ts", "assertCanAccessMessageThread(user, threadId)", "message replies must still assert thread access before writing.");
-assertContains("src/app/workflow-actions.ts", "redirect(safeInboxReturnTo(formData, user, threadId))", "message sends should return users to the selected thread while preserving safe filters.");
+assertContains("src/app/workflow-actions.ts", "redirect(inboxPathForUser(user, threadId))", "message sends should return users to the selected thread.");
 assertContains("src/components/messaging/TextingInbox.tsx", "selectedThreadId", "inbox must support selected thread state.");
-assertContains("src/components/messaging/TextingInbox.tsx", "hrefWithThread(basePath, activeFilters, thread.id)", "thread list must use routable thread selection instead of static anchors.");
+assertContains("src/components/messaging/TextingInbox.tsx", "?thread=", "thread list must use routable thread selection instead of static anchors.");
 assertNotContains("src/components/messaging/TextingInbox.tsx", "const activeThread = threads[0] ?? null;", "inbox must not always lock to the first thread.");
 assertContains("src/app/applicant/inbox/page.tsx", "visibleMessageWhereForUser", "applicant inbox must use centralized message visibility rules.");
 assertContains("src/app/applicant/inbox/page.tsx", "visibleThreadWhereForUser", "applicant inbox must hide internal-only threads.");

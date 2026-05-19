@@ -22,7 +22,6 @@ import {
   Zap
 } from "lucide-react";
 import { requestAccountAccessAction, reviewAccountAccessAction } from "@/app/account/actions";
-import { buildDashboardCoherence, type CoherenceSummary, type CoherenceTone } from "@/lib/dashboard/coherence";
 
 type DashboardMetric = {
   label: string;
@@ -66,7 +65,6 @@ export type WorkhorseDashboardProps = {
   tasks: DashboardTask[];
   tools: DashboardTool[];
   accessRequests: AccessRequest[];
-  coherence?: CoherenceSummary;
   showAccessBuilder?: boolean;
   adminAccessQueue?: AccessRequest[];
 };
@@ -109,15 +107,7 @@ function activityVerb(task: DashboardTask) {
   return "Queued";
 }
 
-function coherenceToneClass(tone: CoherenceTone) {
-  if (tone === "red") return "border-red-200 bg-red-50 text-red-900";
-  if (tone === "amber") return "border-amber-200 bg-amber-50 text-amber-900";
-  if (tone === "green") return "border-emerald-200 bg-emerald-50 text-emerald-900";
-  if (tone === "blue") return "border-blue-200 bg-blue-50 text-blue-900";
-  return "border-slate-200 bg-slate-50 text-slate-900";
-}
-
-export function WorkhorseDashboard({ name, accountLabel, headline, summary, metrics, tasks, tools, accessRequests, coherence, showAccessBuilder = true, adminAccessQueue = [] }: WorkhorseDashboardProps) {
+export function WorkhorseDashboard({ name, accountLabel, headline, summary, metrics, tasks, tools, accessRequests, showAccessBuilder = true, adminAccessQueue = [] }: WorkhorseDashboardProps) {
   const pendingTypes = new Set(accessRequests.filter((request) => request.status === "PENDING").map((request) => request.type));
   const approvedTypes = new Set(accessRequests.filter((request) => request.status === "APPROVED").map((request) => request.type));
   const sortedTasks = tasks
@@ -133,7 +123,6 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
     { href: "/account/password", label: "Security", icon: <KeyRound size={15} /> },
     ...(tools.slice(0, 3).map((tool) => ({ href: tool.href, label: tool.title, icon: tool.icon ?? <BriefcaseBusiness size={15} /> })))
   ];
-  const operationalCoherence = coherence ?? buildDashboardCoherence({ tasks, tools, metrics });
 
   return (
     <main id="main-content" className="min-h-screen bg-slate-50">
@@ -186,36 +175,6 @@ export function WorkhorseDashboard({ name, accountLabel, headline, summary, metr
               <AccessLine icon={<BadgeCheck size={15} />} label="Approved" value={`${approvedTypes.size}`} />
             </div>
           </aside>
-        </section>
-
-        <section className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
-            <SectionHeader
-              eyebrow="Today"
-              title="Operating cockpit"
-              detail="Every dashboard answers the same questions: what needs action, who is waiting, where is the record, what money moved, and what changed."
-              count={`${operationalCoherence.attentionTotal} urgent`}
-            />
-            <div className="mt-3 grid gap-2 md:grid-cols-5">
-              {operationalCoherence.areas.map((area) => (
-                <Link key={area.key} href={area.href} className={`min-w-0 rounded-2xl border p-3 transition hover:-translate-y-0.5 hover:bg-white ${coherenceToneClass(area.tone)}`}>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-xs font-black uppercase tracking-wide">{area.label}</p>
-                    <span className="rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-black">{area.count}</span>
-                  </div>
-                  <p className="mt-2 line-clamp-2 text-sm font-black leading-5">{area.question}</p>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 opacity-80">{area.detail}</p>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <Link href={operationalCoherence.nextActionHref} className="rounded-[1.5rem] border border-slate-200 bg-slate-950 p-4 text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-900">
-            <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-brand-100"><Zap size={13} /> Next best action</p>
-            <h2 className="mt-3 line-clamp-2 text-2xl font-black leading-tight">{operationalCoherence.nextActionLabel}</h2>
-            <p className="mt-2 text-xs leading-5 text-slate-300">{operationalCoherence.primaryQuestion}</p>
-            <span className="mt-4 inline-flex items-center gap-2 text-xs font-black uppercase tracking-wide text-brand-100">Open work <ArrowUpRight size={14} /></span>
-          </Link>
         </section>
 
         <section className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

@@ -1,4 +1,4 @@
-import { ClipboardList, DollarSign, FileSignature, FileText, Home, Bell, Inbox, LayoutDashboard, ClipboardCheck, MessageSquare, Wrench, Users, CheckSquare, CalendarDays, BarChart3, Megaphone, BriefcaseBusiness, Shield, PackageSearch, PlugZap, ClipboardCheck as ScreeningCheck, Route } from "lucide-react";
+import { ClipboardList, DollarSign, FileSignature, FileText, Home, Bell, Inbox, LayoutDashboard, ClipboardCheck, MessageSquare, Wrench, Users, CheckSquare, CalendarDays, BarChart3, Megaphone, BriefcaseBusiness, Shield, PackageSearch, PlugZap, ClipboardCheck as ScreeningCheck } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { DashboardShell, type ShellNavGroup } from "@/components/layout/DashboardShell";
 
@@ -6,7 +6,6 @@ const navGroups: ShellNavGroup[] = [
   { label: "Operations", items: [
     { href: "/landlord", label: "Dashboard", icon: LayoutDashboard },
     { href: "/landlord/rentals", label: "Rentals", icon: Home },
-    { href: "/landlord/lifecycle", label: "Lifecycle", icon: Route },
     { href: "/landlord/contacts", label: "Contacts", icon: Users },
     { href: "/landlord/vendors", label: "Vendors", icon: BriefcaseBusiness }
   ] },
