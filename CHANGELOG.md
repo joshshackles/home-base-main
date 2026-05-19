@@ -1,3 +1,9 @@
+## v4.17.2 - Inbox Thread Type Safety Patch
+
+- Allows maintenance-request inbox threads to carry nullable unit relationships from Prisma.
+- Guards record links and context labels when related maintenance/application units are missing.
+- Keeps the Vercel deterministic install fix from v4.17.1 intact.
+
 ## v4.16.0 - Operational Coherence
 
 - Added a shared dashboard coherence DTO/builder so dashboards consistently surface today's work, inbox, rental records, money, and recent activity.
