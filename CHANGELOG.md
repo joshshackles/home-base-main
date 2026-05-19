@@ -1,3 +1,9 @@
+## v4.30.2 - Vercel Migration Runner Typecheck Fix
+
+- Fixed TypeScript validation for the Vercel automatic migration runner by removing generic type arguments from dynamically typed Prisma raw query calls.
+- Preserved the existing Neon baseline reconciliation flow added in v4.30.1.
+- Keeps automatic production migrations enabled while allowing Next.js type checking to pass.
+
 ## v4.30.1 - Existing Neon Baseline Migration Reconciliation
 
 - Hardened the Vercel automatic migration runner for existing Neon databases that already contain app tables and enums.

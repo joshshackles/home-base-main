@@ -40,17 +40,17 @@ function migrationNames() {
 }
 
 async function tableExists(tableName: string) {
-  const rows = await prisma.$queryRawUnsafe<Array<{ exists: boolean }>>(
+  const rows = (await prisma.$queryRawUnsafe(
     "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1) AS exists",
     tableName
-  );
+  )) as Array<{ exists: boolean }>;
   return Boolean(rows[0]?.exists);
 }
 
 async function existingApplicationObjectCount() {
-  const rows = await prisma.$queryRawUnsafe<Array<{ count: number }>>(
+  const rows = (await prisma.$queryRawUnsafe(
     "SELECT COUNT(*)::int AS count FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name <> '_prisma_migrations'"
-  );
+  )) as Array<{ count: number }>;
   return Number(rows[0]?.count ?? 0);
 }
 
@@ -58,9 +58,9 @@ async function successfulMigrationNames() {
   const exists = await tableExists("_prisma_migrations");
   if (!exists) return new Set<string>();
 
-  const rows = await prisma.$queryRawUnsafe<Array<{ migration_name: string }>>(
+  const rows = (await prisma.$queryRawUnsafe(
     'SELECT migration_name FROM "_prisma_migrations" WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY started_at ASC'
-  );
+  )) as Array<{ migration_name: string }>;
   return new Set(rows.map((row) => row.migration_name));
 }
 
@@ -68,9 +68,9 @@ async function failedMigrationNames() {
   const exists = await tableExists("_prisma_migrations");
   if (!exists) return new Set<string>();
 
-  const rows = await prisma.$queryRawUnsafe<Array<{ migration_name: string }>>(
+  const rows = (await prisma.$queryRawUnsafe(
     'SELECT migration_name FROM "_prisma_migrations" WHERE finished_at IS NULL AND rolled_back_at IS NULL ORDER BY started_at ASC'
-  );
+  )) as Array<{ migration_name: string }>;
   return new Set(rows.map((row) => row.migration_name));
 }
 
