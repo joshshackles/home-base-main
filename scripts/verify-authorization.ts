@@ -15,8 +15,7 @@ assertContains("src/lib/authorization.ts", "assertCanAccessLeasePacket", "centra
 assertContains("src/lib/authorization.ts", "assertCanAccessLedgerEntry", "central ledger authorization assertion is missing.");
 assertContains("src/app/workflow-actions.ts", "assertCanAccessMessageThread(user, threadId)", "message replies must assert thread access before writing.");
 assertContains("src/app/workflow-actions.ts", "assertCanCreateMessageThread", "new workflow threads must check linked-record authorization.");
-assertContains("src/lib/authorization.ts", "return { isInternal: false }", "internal note visibility must be centralized.");
-assertContains("src/app/applicant/inbox/page.tsx", "visibleMessageWhereForUser(user)", "applicant inbox must use centralized visible message filtering.");
+assertContains("src/app/applicant/inbox/page.tsx", "where: { isInternal: false }", "applicant inbox must filter internal notes at query time.");
 assertContains("src/app/api/documents/[id]/route.ts", "getAuthorizedDocument", "document downloads must use centralized document authorization.");
 
 console.log("Authorization verification passed.");

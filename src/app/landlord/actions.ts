@@ -17,7 +17,6 @@ import { syncUnitStaffConnections, upsertProfileConnection } from "@/lib/profile
 import { createAssetServiceRecordFromForm, createAssetWarrantyFromForm, createKeyLockRecordFromForm, createMaintenanceAssetFromForm, maintenanceInventoryPaths } from "@/lib/maintenance-inventory";
 import { createCertificationRecordFromForm, createComplianceInspectionRequirementFromForm, createInsurancePolicyFromForm, insuranceCompliancePaths } from "@/lib/insurance-compliance";
 import { activateTenantFromApplication, endTenantOccupancy } from "@/lib/relationship-lifecycle";
-import { lifecycleToUnitStatus } from "@/lib/rental-lifecycle-engine";
 import { createIntegrationConnectionFromForm, createIntegrationEventFromForm, createQuickBooksConnectionFromForm, integrationsHubPaths, runIntegrationDiagnosticFromForm, updateIntegrationConnectionStatusFromForm } from "@/lib/integrations-hub";
 
 async function requireLandlordAction() {
@@ -183,9 +182,6 @@ const singleFamilyHomeSchema = z.object({
 });
 
 const MAX_UNIT_PHOTOS = 12;
-const MAX_UNIT_PHOTO_BYTES = 2 * 1024 * 1024;
-const MAX_UNIT_PHOTO_BATCH_BYTES = 10 * 1024 * 1024;
-const ALLOWED_UNIT_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
 
 const tenantAssignmentSchema = z.object({
   unitId: z.string().trim().min(1),
@@ -299,35 +295,17 @@ function cleanOptionalId(value: string | null | undefined) {
   return value && value.trim().length > 0 ? value.trim() : null;
 }
 
-function validateUnitPhotoBatch(files: File[], existing = 0) {
-  if (files.length === 0) return;
+async function saveUnitPhotos(unitId: string, files: File[], existing = 0) {
+  if (files.length === 0) return [];
   if (existing + files.length > MAX_UNIT_PHOTOS) {
     throw new Error(`Each unit can have up to ${MAX_UNIT_PHOTOS} photos. Remove a photo before uploading more.`);
   }
-
-  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
-  if (totalBytes > MAX_UNIT_PHOTO_BATCH_BYTES) {
-    throw new Error("Upload photos in smaller batches. A single unit photo upload can be up to 10 MB total.");
-  }
-
-  for (const file of files) {
-    if (!ALLOWED_UNIT_PHOTO_TYPES.has(file.type)) {
-      throw new Error("Unit photos must be JPEG, PNG, WebP, HEIC, or HEIF image files.");
-    }
-    if (file.size > MAX_UNIT_PHOTO_BYTES) {
-      throw new Error("Each unit photo must be 2 MB or smaller. Compress large photos before uploading.");
-    }
-  }
-}
-
-async function saveUnitPhotos(unitId: string, files: File[], existing = 0) {
-  if (files.length === 0) return [];
-  validateUnitPhotoBatch(files, existing);
 
   const hasFeatured = await prisma.unitPhoto.findFirst({ where: { unitId, isFeatured: true }, select: { id: true } });
   const createdIds: string[] = [];
 
   for (const [index, file] of files.entries()) {
+    if (!file.type.startsWith("image/")) throw new Error("Unit photos must be image files.");
     const stored = await saveUploadedDocument(file);
     const created = await prisma.unitPhoto.create({
       data: {
@@ -347,7 +325,7 @@ async function saveUnitPhotos(unitId: string, files: File[], existing = 0) {
 }
 
 function photoFilesFromFormData(formData: FormData) {
-  return formData.getAll("photos").filter((value): value is File => value instanceof File && value.size > 0 && value.name !== "");
+  return formData.getAll("photos").filter((value): value is File => value instanceof File && value.size > 0);
 }
 
 function landlordUnifiedRentalPropertyPayload(formData: FormData, landlordId: string) {
@@ -418,7 +396,6 @@ export async function createLandlordUnit(formData: FormData) {
   const user = await requireLandlordAction();
   const data = await landlordUnitPayload(formData, user.userId);
   const photos = photoFilesFromFormData(formData);
-  validateUnitPhotoBatch(photos, 0);
 
   const created = await prisma.unit.create({ data });
   const createdPhotos = await saveUnitPhotos(created.id, photos, 0);
@@ -464,8 +441,6 @@ export async function createLandlordSingleFamilyHome(formData: FormData) {
   const parsed = singleFamilyHomeSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) throw new Error(validationMessage(parsed.error));
   if (parsed.data.status === UnitStatus.ARCHIVED) throw new Error("Landlords cannot archive homes from the landlord portal.");
-  const photos = photoFilesFromFormData(formData);
-  validateUnitPhotoBatch(photos, 0);
 
   const propertyName = parsed.data.name?.trim() || parsed.data.addressLine;
   const created = await prisma.$transaction(async (tx) => {
@@ -520,6 +495,7 @@ export async function createLandlordSingleFamilyHome(formData: FormData) {
     return { property, unit };
   });
 
+  const photos = photoFilesFromFormData(formData);
   const createdPhotos = await saveUnitPhotos(created.unit.id, photos, 0);
 
   await writeAuditLog({
@@ -555,11 +531,10 @@ export async function uploadLandlordUnitPhotos(formData: FormData) {
   const unitId = getRequiredId(formData, "Unit ID");
   await assertOwnsUnit(unitId, user.userId);
 
-  const files = photoFilesFromFormData(formData);
+  const files = formData.getAll("photos").filter((value): value is File => value instanceof File && value.size > 0);
   if (files.length === 0) throw new Error("Choose at least one image to upload.");
 
   const existing = await prisma.unitPhoto.count({ where: { unitId } });
-  validateUnitPhotoBatch(files, existing);
   const createdIds = await saveUnitPhotos(unitId, files, existing);
 
   await writeAuditLog({ actor: user, action: AuditAction.UPDATE, entityType: "Unit", entityId: unitId, message: `Landlord uploaded ${createdIds.length} unit photo(s).` });
@@ -632,7 +607,15 @@ export async function updateLandlordUnitLifecycleStatus(formData: FormData) {
   if (!parsed.success) throw new Error(validationMessage(parsed.error));
   await assertOwnsUnit(parsed.data.unitId, user.userId);
 
-  const unitStatus = lifecycleToUnitStatus(parsed.data.lifecycleStatus);
+  const unitStatus = parsed.data.lifecycleStatus === RentalLifecycleStatus.OCCUPIED
+    ? UnitStatus.OCCUPIED
+    : parsed.data.lifecycleStatus === RentalLifecycleStatus.ARCHIVED
+      ? UnitStatus.ARCHIVED
+      : parsed.data.lifecycleStatus === RentalLifecycleStatus.MAINTENANCE_HOLD
+        ? UnitStatus.UNAVAILABLE
+        : parsed.data.lifecycleStatus === RentalLifecycleStatus.APPLICATION_PENDING || parsed.data.lifecycleStatus === RentalLifecycleStatus.LEASE_PENDING || parsed.data.lifecycleStatus === RentalLifecycleStatus.MOVE_IN_SCHEDULED
+          ? UnitStatus.PENDING
+          : UnitStatus.AVAILABLE;
 
   await prisma.unit.update({
     where: { id: parsed.data.unitId },

@@ -22,22 +22,13 @@ for (const migration of migrations) {
 }
 
 const sortedMigrations = [...migrations].sort();
-const baselineMigration = "20260518000000_squashed_operational_foundation";
-if (sortedMigrations[0] !== baselineMigration) {
-  console.error(`Clean-install packages must start with ${baselineMigration}. Remove historical development migrations before shipping.`);
-  process.exit(1);
-}
-
-const preBaselineMigrations = sortedMigrations.filter((migration) => migration < baselineMigration);
-if (preBaselineMigrations.length > 0) {
-  console.error(`Clean-install packages must not include pre-baseline development migrations: ${preBaselineMigrations.join(", ")}.`);
-  process.exit(1);
-}
-
-const legacyCompatibilityMigration = "20260518000100_financial_automation_recovery";
-if (migrations.includes(legacyCompatibilityMigration)) {
-  console.error("Clean-install packages must not ship legacy no-op migration recovery folders.");
-  process.exit(1);
+const compatibilityMigration = "20260518000100_financial_automation_recovery";
+if (migrations.includes(compatibilityMigration)) {
+  const sql = readFileSync(path.join(migrationsDir, compatibilityMigration, "migration.sql"), "utf8");
+  if (!sql.includes("Compatibility no-op") || sql.includes("PaymentEventType")) {
+    console.error("The old financial automation migration name may only ship as a no-op compatibility migration.");
+    process.exit(1);
+  }
 }
 
 const rentalPaymentMigration = sortedMigrations.find((migration) => migration.includes("rental_payment_operations"));

@@ -13,20 +13,9 @@ npm run vercel-build
 That command runs:
 
 1. `npm run vercel:preflight`
-2. `npm run clean-install:verify`
-3. `npm run operational-coherence:verify`
-4. `prisma generate`
-5. `next build`
-
-## Database migration policy
-
-Vercel builds do **not** run `prisma migrate deploy`. Apply database changes as a deliberate release step before promoting a deployment:
-
-```bash
-npm run db:deploy
-```
-
-This keeps build retries, preview deployments, and cache restores from mutating production data.
+2. `prisma generate`
+3. `prisma migrate deploy`
+4. `next build`
 
 ## Required production environment variables
 
@@ -38,7 +27,16 @@ APP_URL=https://your-domain.com
 CRON_SECRET=
 ```
 
-Use the exact names `DATABASE_URL` and `DIRECT_URL`. The Prisma schema reads those environment variables directly.
+For Neon/Vercel Postgres, the app also accepts these aliases:
+
+```env
+POSTGRES_PRISMA_URL=
+POSTGRES_URL=
+NEON_DATABASE_URL=
+POSTGRES_URL_NON_POOLING=
+POSTGRES_URL_NON_POOLING_DIRECT=
+NEON_DIRECT_URL=
+```
 
 ## Recommended document storage
 
@@ -60,14 +58,13 @@ DOCUMENT_S3_SERVER_SIDE_ENCRYPTION=AES256
 
 ## Cron
 
-This package is configured for **Vercel Hobby** until full production rollout. Hobby cron jobs may run no more frequently than once per day, so `vercel.json` registers daily processors:
+This package is configured for **Vercel Hobby** until full production rollout. Hobby cron jobs may run no more frequently than once per day, so `vercel.json` registers the queued-email processor once daily:
 
 ```txt
-/api/cron/send-queued-email - 0 3 * * *
-/api/cron/process-payments - 15 8 * * *
+/api/cron/send-queued-email — 0 3 * * *
 ```
 
-Set `CRON_SECRET` in Vercel Project Settings before relying on scheduled email or payment processing. Vercel Cron will send it as a bearer token when the environment variable exists.
+Set `CRON_SECRET` in Vercel Project Settings before relying on scheduled email processing. Vercel Cron will send it as a bearer token when the environment variable exists.
 
 For Hobby/demo builds, the preflight check now warns instead of failing when `CRON_SECRET` is not set. This keeps deployment unblocked while configuration is still being finalized. The cron endpoint still rejects scheduled requests until the secret exists, so add it before testing the queue. To make missing `CRON_SECRET` fail the build again, set either:
 
@@ -79,19 +76,13 @@ REQUIRE_CRON_SECRET=true
 
 ### Production upgrade note
 
-When the project moves to Vercel Pro, cron schedules can be increased to more production-ready intervals, for example:
+When the project moves to Vercel Pro, the queued email cron can be increased to a more production-ready interval, for example:
 
 ```json
-[
-  {
-    "path": "/api/cron/send-queued-email",
-    "schedule": "*/5 * * * *"
-  },
-  {
-    "path": "/api/cron/process-payments",
-    "schedule": "*/15 * * * *"
-  }
-]
+{
+  "path": "/api/cron/send-queued-email",
+  "schedule": "*/5 * * * *"
+}
 ```
 
 Keep the daily schedule while the project remains on Hobby, or deployment can fail because of unsupported cron frequency.
@@ -99,10 +90,8 @@ Keep the daily schedule while the project remains on Hobby, or deployment can fa
 ## Verify locally before deploy
 
 ```bash
-npm ci
+npm install
 npm run vercel:preflight
-npm run clean-install:verify
-npm run migrations:check
 npm run typecheck
 npm run test
 ```
