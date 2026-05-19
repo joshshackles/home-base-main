@@ -1,3 +1,10 @@
+## v4.30.1 - Existing Neon Baseline Migration Reconciliation
+
+- Hardened the Vercel automatic migration runner for existing Neon databases that already contain app tables and enums.
+- Detects failed or missing squashed baseline migration history before running `prisma migrate deploy`.
+- Reconciles the live Neon schema with `prisma db push --skip-generate`, then marks current migrations as applied so future deployments can use normal migration deploy behavior.
+- Prevents the squashed baseline from attempting to recreate existing PostgreSQL enum types such as `UserRole`.
+
 ## v4.30.0 - Vercel Automatic Prisma Migrations
 
 - Added a Vercel production migration runner that runs before `next build` so Neon schema changes are applied automatically during production deployment.
