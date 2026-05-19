@@ -2,7 +2,7 @@
 
 Premium housing operations platform for properties, units, leads, applications, documents, inspections, lease packets, e-signature evidence, notifications, communication, payments, and ledgers.
 
-Current package version: **4.26.3**
+Current package version: **4.30.0**
 
 ## What is included
 
@@ -12,6 +12,7 @@ Current package version: **4.26.3**
 - Property/unit inventory management.
 - Public lead capture with anti-spam protections.
 - Applications, documents, inspections, leases, signatures, and ledger workflows.
+- Applicant application readiness scoring, checklist guidance, and stronger submit validation.
 - Document storage abstraction with local, database, and S3/R2-compatible providers.
 - PDF generation using `pdf-lib`.
 - E-signature consent/evidence hashing.
@@ -35,6 +36,13 @@ npm run prisma:migrate
 npm run seed
 npm run dev
 ```
+
+
+## Vercel automatic migrations
+
+Production Vercel deployments now run `npm run vercel:migrate` before `next build`. The migration runner uses `prisma migrate deploy` when Prisma migration history already exists. If it detects an existing Neon database with application tables but no Prisma migration history, it first runs a one-time safe schema sync with `prisma db push --skip-generate`, records the current migrations as applied, and lets future deployments use normal migration deploys.
+
+Automatic migrations run by default only when `VERCEL_ENV=production`. Set `VERCEL_RUN_MIGRATIONS=1` to force migrations in another environment, or `VERCEL_SKIP_MIGRATIONS=1` to skip them during an emergency deploy. Keep `DIRECT_URL` pointed at the direct Neon connection string so Prisma migrations do not use the pooled app connection.
 
 ## Production verification
 

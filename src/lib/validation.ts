@@ -260,6 +260,37 @@ export const deleteIncomeSourceSchema = z.object({
   id: requiredText("Income source ID")
 });
 
+
+export const applicationDetailSchema = z.object({
+  applicationId: requiredText("Application ID"),
+  dateOfBirth: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.date().nullable()),
+  governmentIdType: optionalText,
+  emergencyContactName: optionalText,
+  emergencyContactPhone: optionalText,
+  emergencyContactRelation: optionalText,
+  currentHousingStartDate: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.date().nullable()),
+  previousAddress: optionalText,
+  previousLandlordName: optionalText,
+  previousLandlordPhone: optionalText,
+  reasonForMoving: optionalText,
+  requestedMoveInDate: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.date().nullable()),
+  voucherProgram: optionalText,
+  voucherCaseWorker: optionalText,
+  voucherCaseWorkerContact: optionalText,
+  vehicleInfo: optionalText,
+  petDetails: optionalText,
+  serviceAnimalAccommodation: optionalText,
+  hasPriorEviction: z.coerce.boolean().default(false),
+  priorEvictionExplanation: optionalText,
+  hasCriminalHistory: z.coerce.boolean().default(false),
+  criminalHistoryExplanation: optionalText,
+  hasOutstandingUtilities: z.coerce.boolean().default(false),
+  outstandingUtilitiesExplanation: optionalText,
+  consentToScreening: z.coerce.boolean().default(false),
+  informationCertified: z.coerce.boolean().default(false),
+  applicantSignature: optionalText
+});
+
 export const applicantApplicationSubmitSchema = z.object({
   applicationId: requiredText("Application ID")
 });

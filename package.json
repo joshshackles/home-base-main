@@ -1,6 +1,6 @@
 {
   "name": "homebase-mls",
-  "version": "4.26.3",
+  "version": "4.30.0",
   "private": true,
   "type": "module",
   "packageManager": "npm@10.9.0",
@@ -55,7 +55,7 @@
     "test:watch": "vitest",
     "observability:verify": "tsx scripts/verify-observability.ts",
     "update12:verify": "tsx scripts/verify-update12.ts",
-    "vercel-build": "npm run vercel:preflight && npm run lockfile:verify && npm run clean-install:verify && npm run operational-coherence:verify && npm run payments-production:verify && prisma generate && next build",
+    "vercel-build": "npm run vercel:preflight && npm run lockfile:verify && npm run clean-install:verify && npm run operational-coherence:verify && npm run payments-production:verify && npm run vercel:migrate && prisma generate && next build",
     "vercel:preflight": "tsx scripts/verify-vercel.ts",
     "clean-install:verify": "tsx scripts/verify-clean-install.ts",
     "workflow-update1:verify": "tsx scripts/verify-workflow-update1.ts",
@@ -90,7 +90,8 @@
     "vendor-invitations:verify": "tsx scripts/verify-vendor-invitations.ts",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test tests/e2e/operational-foundation.spec.ts",
-    "test:e2e:workflow": "playwright test tests/e2e/workflow-matrix.spec.ts"
+    "test:e2e:workflow": "playwright test tests/e2e/workflow-matrix.spec.ts",
+    "vercel:migrate": "tsx scripts/run-vercel-migrations.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.716.0",

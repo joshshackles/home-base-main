@@ -1,3 +1,33 @@
+## v4.30.0 - Vercel Automatic Prisma Migrations
+
+- Added a Vercel production migration runner that runs before `next build` so Neon schema changes are applied automatically during production deployment.
+- Added a one-time existing-database baseline path for Neon databases that already have app tables but no Prisma migration history, preventing the squashed clean-install migration from trying to recreate existing tables.
+- Added migration controls: `VERCEL_RUN_MIGRATIONS=1` to force migration execution and `VERCEL_SKIP_MIGRATIONS=1` to skip during an emergency deploy.
+- Updated Vercel preflight checks, package scripts, README, and environment examples to document the automated migration flow.
+
+## v4.29.0 - Rental Application Staff Review Phase 3
+
+- Added a Phase 3 staff review engine for rental applications with approval blockers, review warnings, next-best-action guidance, and structured decision readiness.
+- Added automatic recommended document requests based on application details, income, voucher/subsidy status, pets or assistance animal details, and utility balance disclosures.
+- Added a staff review panel to the admin application detail page with a checklist, applicant readiness score, document automation, and final decision form.
+- Hardened approval so applications cannot be approved and converted to tenant access until required review conditions are complete.
+- Preserved the existing database schema for this phase by storing review actions in application notes and document request records.
+
+## v4.28.0 - Rental Application Structured Details Phase 2
+
+- Added the ApplicationDetail data model and migration for structured rental application fields.
+- Added applicant-facing application details, housing history, voucher, vehicle, pet, disclosure, and certification sections.
+- Added server action validation and persistence for structured application details without storing them in the application summary.
+- Updated application readiness scoring so structured details and screening acknowledgements are required before submission.
+- Added admin review visibility for the new structured application details and acknowledgements.
+
+## v4.27.0 - Applicant Application Readiness Phase 1
+
+- Added a reusable applicant application readiness engine that scores profile, contact, address, household, income, rental history, landlord references, requested documents, move-in timing, and applicant notes.
+- Added a readiness checklist and progress meter to the applicant application detail page so applicants can see exactly what is complete and what still needs attention.
+- Strengthened applicant submission validation so applications cannot be submitted until all required readiness items are complete.
+- Enhanced the applications list with per-application readiness progress, next-step guidance, and clearer submission readiness signals.
+
 ## v4.26.3 - Inbox Type and Release Label Fix
 
 - Fixed the admin inbox thread typing so maintenance requests and application records can safely handle nullable related units returned by Prisma.

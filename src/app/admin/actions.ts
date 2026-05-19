@@ -65,6 +65,7 @@ import { createAssetServiceRecordFromForm, createAssetWarrantyFromForm, createKe
 import { createCertificationRecordFromForm, createComplianceInspectionRequirementFromForm, createInsurancePolicyFromForm, insuranceCompliancePaths } from "@/lib/insurance-compliance";
 import { createIntegrationConnectionFromForm, createIntegrationEventFromForm, createQuickBooksConnectionFromForm, integrationsHubPaths, runIntegrationDiagnosticFromForm, updateIntegrationConnectionStatusFromForm } from "@/lib/integrations-hub";
 import { activateTenantFromApplication, endTenantOccupancy } from "@/lib/relationship-lifecycle";
+import { assertApplicationCanApprove, buildApplicationDocumentRecommendations, buildStaffApplicationReview } from "@/lib/application-review";
 import { captureAnalyticsSnapshot, captureSystemHealthSnapshot, ensureDefaultAutomationRules, markBackupRestoreStarted, saveBrandingSettings, syncOperationalAlertsFromReadiness } from "@/lib/admin-ops";
 
 const LOCKED_LEASE_PACKET_STATUSES: LeasePacketStatus[] = [
@@ -735,16 +736,146 @@ export async function linkApplicationToApplicant(formData: FormData) {
   revalidatePath(`/admin/applications/${parsed.data.applicationId}`);
 }
 
+
+async function getApplicationForStaffReview(applicationId: string) {
+  const application = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: {
+      applicantUser: { include: { applicantProfile: { include: { householdMembers: true, incomeSources: true } } } },
+      applicationDetail: true,
+      documentRequests: true,
+      leasePackets: true,
+      occupancies: true
+    }
+  });
+  if (!application) throw new Error("Application was not found.");
+  return application;
+}
+
+export async function createRecommendedApplicationDocumentRequests(formData: FormData) {
+  const actor = await requireAdminAction();
+  const applicationId = String(formData.get("applicationId") || "");
+  if (!applicationId) throw new Error("Application is required.");
+
+  const application = await getApplicationForStaffReview(applicationId);
+  const recommendations = buildApplicationDocumentRecommendations(application).filter((item) => !item.alreadyRequested);
+
+  if (recommendations.length === 0) {
+    await prisma.applicationNote.create({
+      data: {
+        applicationId,
+        note: "[Review] No new recommended document requests were needed. Existing requests already cover the Phase 3 checklist."
+      }
+    });
+    revalidatePath(`/admin/applications/${applicationId}`);
+    redirect(`/admin/applications/${applicationId}?recommendations=none`);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    for (const recommendation of recommendations) {
+      await tx.documentRequest.create({
+        data: {
+          applicationId,
+          title: recommendation.title,
+          category: recommendation.category,
+          visibility: recommendation.visibility,
+          instructions: `${recommendation.instructions}\n\nReason: ${recommendation.reason}`,
+          requestedById: actor.userId
+        }
+      });
+    }
+
+    await tx.application.update({
+      where: { id: applicationId },
+      data: { status: application.status === ApplicationStatus.STARTED ? ApplicationStatus.UNDER_REVIEW : application.status }
+    });
+
+    await tx.applicationNote.create({
+      data: {
+        applicationId,
+        note: `[Review] Created ${recommendations.length} recommended document request(s): ${recommendations.map((item) => item.title).join(", ")}.`
+      }
+    });
+  });
+
+  await writeAuditLog({
+    actor,
+    action: AuditAction.CREATE,
+    entityType: "Application",
+    entityId: applicationId,
+    message: `Created ${recommendations.length} recommended document requests for application review.`,
+    metadata: { recommendedDocumentRequestKeys: recommendations.map((item) => item.key) }
+  });
+
+  revalidateInventory();
+  revalidatePath(`/admin/applications/${applicationId}`);
+  redirect(`/admin/applications/${applicationId}?recommendations=created`);
+}
+
+export async function recordApplicationReviewDecision(formData: FormData) {
+  const actor = await requireAdminAction();
+  const applicationId = String(formData.get("applicationId") || "");
+  const decisionValue = String(formData.get("decision") || "UNDER_REVIEW");
+  const reviewNote = optionalString(formData, "reviewNote");
+  const moveInValue = String(formData.get("moveInDate") || "");
+  if (!applicationId) throw new Error("Application is required.");
+  if (!Object.values(ApplicationStatus).includes(decisionValue as ApplicationStatus)) throw new Error("Invalid application decision.");
+
+  const decision = decisionValue as ApplicationStatus;
+  const application = await getApplicationForStaffReview(applicationId);
+  const review = buildStaffApplicationReview(application);
+
+  if (decision === ApplicationStatus.APPROVED) {
+    assertApplicationCanApprove(application);
+    await activateTenantFromApplication({
+      applicationId,
+      actor,
+      moveInDate: moveInValue ? new Date(`${moveInValue}T12:00:00`) : null,
+      notes: reviewNote ?? "Tenant relationship activated by Phase 3 application review approval."
+    });
+  } else {
+    await prisma.application.update({ where: { id: applicationId }, data: { status: decision } });
+  }
+
+  await prisma.applicationNote.create({
+    data: {
+      applicationId,
+      note: `[Review decision] ${decision.replaceAll("_", " ")}. ${reviewNote ?? review.nextBestAction}`
+    }
+  });
+
+  await writeAuditLog({
+    actor,
+    action: AuditAction.STATUS_CHANGE,
+    entityType: "Application",
+    entityId: applicationId,
+    message: `Recorded Phase 3 application review decision: ${decision}.`,
+    metadata: {
+      canApproveAtDecisionTime: review.canApprove,
+      requiredIncompleteCount: review.requiredIncompleteCount,
+      reviewWarningCount: review.reviewWarningCount
+    }
+  });
+
+  revalidateInventory();
+  revalidatePath(`/admin/applications/${applicationId}`);
+  revalidatePath("/admin/applications");
+  revalidatePath("/applicant");
+  redirect(`/admin/applications/${applicationId}?decision=${decision.toLowerCase()}`);
+}
+
 export async function updateApplicationStatus(formData: FormData) {
   const actor = await requireAdminAction();
   const parsed = applicationStatusSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) throw new Error(validationMessage(parsed.error));
 
   if (parsed.data.status === ApplicationStatus.APPROVED) {
+    const application = await getApplicationForStaffReview(parsed.data.id);
+    assertApplicationCanApprove(application);
     await activateTenantFromApplication({
       applicationId: parsed.data.id,
       actor,
-      notes: "Tenant relationship activated by admin application approval."
+      notes: "Tenant relationship activated by admin application approval after Phase 3 readiness review."
     });
   } else {
     await prisma.application.update({

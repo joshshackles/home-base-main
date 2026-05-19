@@ -25,10 +25,6 @@ const packageJson = existsSync(packageJsonPath) ? JSON.parse(readFileSync(packag
 const scripts = packageJson.scripts || {};
 const deps = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
 
-if (scripts["vercel-build"]?.includes("prisma migrate deploy")) {
-  fail('Clean-foundation Vercel builds must not run "prisma migrate deploy"; run migrations as an explicit release operation instead.');
-}
-
 if (scripts["vercel-build"]?.includes("vercel:migration-recovery") || scripts["vercel:migration-recovery"]) {
   fail('Clean-install packages must not run legacy "vercel:migration-recovery" during deployment.');
 }
@@ -38,6 +34,12 @@ if (!scripts["vercel-build"]?.includes("clean-install:verify")) {
 }
 if (!scripts["vercel-build"]?.includes("operational-coherence:verify")) {
   fail('package.json must run "operational-coherence:verify" during Vercel builds.');
+}
+if (!scripts["vercel-build"]?.includes("vercel:migrate")) {
+  fail('package.json must run "vercel:migrate" during Vercel builds so production Neon migrations are applied automatically.');
+}
+if (!scripts["vercel:migrate"]?.includes("scripts/run-vercel-migrations.ts")) {
+  fail('package.json must define "vercel:migrate" using scripts/run-vercel-migrations.ts.');
 }
 
 if (!scripts["vercel:preflight"]?.includes("scripts/verify-vercel.ts")) {
@@ -140,4 +142,4 @@ if (process.env.VERCEL === "1" || process.env.NODE_ENV === "production") {
 }
 
 if (failed) process.exit(1);
-console.log("Vercel preflight passed: build command, clean migration strategy, cron route, security headers, environment contract, and serverless storage settings are Vercel-ready.");
+console.log("Vercel preflight passed: build command, automatic migration runner, cron route, security headers, environment contract, and serverless storage settings are Vercel-ready.");

@@ -8,9 +8,11 @@ import {
   endAdminTenantOccupancyAction,
   addApplicationNote,
   createDocumentRequest,
+  createRecommendedApplicationDocumentRequests,
   createLeaseFromApplication,
   generateApplicationClaimLink,
   linkApplicationToApplicant,
+  recordApplicationReviewDecision,
   updateApplicationStatus,
   updateDocumentRequestStatus,
   updateDocumentStatus,
@@ -19,10 +21,17 @@ import {
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Field, inputClass, selectClass, textareaClass } from "@/components/admin/FormFields";
 import { formatCurrency } from "@/lib/format";
+import { buildStaffApplicationReview } from "@/lib/application-review";
 import { prisma } from "@/lib/prisma";
 
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function detailValue(value: string | Date | null | undefined) {
+  if (!value) return "Not provided";
+  if (value instanceof Date) return value.toLocaleDateString();
+  return value;
 }
 
 function requestBadge(status: string) {
@@ -42,7 +51,8 @@ export default async function ApplicationDetailPage({ params, searchParams }: { 
       documentRequests: { include: { fulfilledDocument: true, requestedBy: true }, orderBy: { createdAt: "desc" } },
       leasePackets: { include: { template: true }, orderBy: { createdAt: "desc" } },
       claimTokens: { orderBy: { createdAt: "desc" }, take: 3 },
-      occupancies: { include: { tenant: true, unit: { include: { property: true } }, leasePacket: { include: { template: true } } }, orderBy: { createdAt: "desc" } }
+      occupancies: { include: { tenant: true, unit: { include: { property: true } }, leasePacket: { include: { template: true } } }, orderBy: { createdAt: "desc" } },
+      applicationDetail: true
     }
   });
 
@@ -52,6 +62,8 @@ export default async function ApplicationDetailPage({ params, searchParams }: { 
   const submittedRequests = application.documentRequests.filter((request) => request.status === "SUBMITTED");
   const acceptedRequests = application.documentRequests.filter((request) => request.status === "ACCEPTED");
   const leaseTemplates = await prisma.leaseTemplate.findMany({ where: { isActive: true }, orderBy: { name: "asc" } });
+  const staffReview = buildStaffApplicationReview(application);
+  const pendingRecommendedRequests = staffReview.recommendations.filter((item) => !item.alreadyRequested);
 
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
@@ -76,6 +88,108 @@ export default async function ApplicationDetailPage({ params, searchParams }: { 
               <p className="text-xs font-bold uppercase text-slate-500">Summary</p>
               <p className="mt-2 leading-7">{application.summary ?? "No summary provided."}</p>
             </div>
+          </div>
+
+
+          <div className="rounded-3xl border border-brand-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-brand-700">Phase 3 staff review</p>
+                <h2 className="mt-1 text-2xl font-black text-slate-950">Decision readiness and document automation</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Use this panel to see what blocks approval, create recommended document requests, and record a final review decision.</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
+                <p className="text-xs font-bold uppercase text-slate-500">Applicant readiness</p>
+                <p className="text-3xl font-black text-slate-950">{staffReview.readiness.score}%</p>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm font-black text-slate-950">Next best action</p>
+              <p className="mt-1 text-sm leading-6 text-slate-700">{staffReview.nextBestAction}</p>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              {staffReview.checklist.map((item) => (
+                <div key={item.id} className={`rounded-2xl border p-4 ${item.complete ? "border-emerald-200 bg-emerald-50" : item.severity === "required" ? "border-rose-200 bg-rose-50" : "border-amber-200 bg-amber-50"}`}>
+                  <div className="flex items-start gap-3">
+                    <span className={`mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-black ${item.complete ? "bg-emerald-600 text-white" : item.severity === "required" ? "bg-rose-600 text-white" : "bg-amber-500 text-white"}`}>{item.complete ? "✓" : "!"}</span>
+                    <div>
+                      <p className="font-black text-slate-950">{item.label}</p>
+                      <p className="mt-1 text-sm leading-6 text-slate-700">{item.description}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 grid gap-4 lg:grid-cols-2">
+              <form action={createRecommendedApplicationDocumentRequests} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <input type="hidden" name="applicationId" value={application.id} />
+                <p className="font-black text-slate-950">Recommended document requests</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{pendingRecommendedRequests.length === 0 ? "All current recommended requests have already been created or waived." : `${pendingRecommendedRequests.length} recommended request(s) can be created from the application data.`}</p>
+                <div className="mt-3 space-y-2">
+                  {staffReview.recommendations.map((recommendation) => (
+                    <div key={recommendation.key} className="rounded-xl bg-white p-3 text-sm shadow-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-bold text-slate-950">{recommendation.title}</p>
+                          <p className="mt-1 text-xs text-slate-500">{recommendation.reason}</p>
+                        </div>
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${recommendation.alreadyRequested ? "bg-emerald-100 text-emerald-800" : recommendation.requiredForApproval ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800"}`}>{recommendation.alreadyRequested ? "Created" : recommendation.requiredForApproval ? "Required" : "Suggested"}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button type="submit" className="mt-4 w-full rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700" disabled={pendingRecommendedRequests.length === 0}>{pendingRecommendedRequests.length === 0 ? "No New Requests Needed" : "Create Recommended Requests"}</button>
+              </form>
+
+              <form action={recordApplicationReviewDecision} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <input type="hidden" name="applicationId" value={application.id} />
+                <p className="font-black text-slate-950">Record review decision</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Approval is blocked until all required Phase 3 checklist items are complete.</p>
+                <div className="mt-4 space-y-4">
+                  <Field label="Decision"><select name="decision" className={selectClass} defaultValue={application.status}>{Object.values(ApplicationStatus).map((status) => <option key={status} value={status}>{label(status)}</option>)}</select></Field>
+                  <Field label="Move-in date for approval"><input name="moveInDate" type="date" className={inputClass} /></Field>
+                  <Field label="Review note"><textarea name="reviewNote" className={textareaClass} rows={4} placeholder="Decision reason, conditions, missing items, or approval notes." /></Field>
+                  {!staffReview.canApprove ? <div className="rounded-2xl bg-rose-50 p-3 text-sm leading-6 text-rose-900"><p className="font-black">Approval blocked</p><ul className="mt-2 list-disc space-y-1 pl-5">{staffReview.approvalBlockedReasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div> : null}
+                  <button type="submit" className="w-full rounded-2xl bg-slate-950 px-5 py-3 font-bold text-white hover:bg-slate-800">Save Review Decision</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-brand-700">Phase 2 structured review</p>
+                <h2 className="mt-1 text-2xl font-black text-slate-950">Applicant details and acknowledgements</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Structured applicant details collected from the applicant portal for screening and move-in review.</p>
+              </div>
+              <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${application.applicationDetail?.signedAt ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                {application.applicationDetail?.signedAt ? "Signed" : "Not signed"}
+              </span>
+            </div>
+            {application.applicationDetail ? (
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <div><p className="text-xs font-bold uppercase text-slate-500">Date of birth</p><p className="mt-1 font-semibold text-slate-900">{detailValue(application.applicationDetail.dateOfBirth)}</p></div>
+                <div><p className="text-xs font-bold uppercase text-slate-500">Government ID type</p><p className="mt-1 font-semibold text-slate-900">{detailValue(application.applicationDetail.governmentIdType)}</p></div>
+                <div><p className="text-xs font-bold uppercase text-slate-500">Emergency contact</p><p className="mt-1 font-semibold text-slate-900">{detailValue(application.applicationDetail.emergencyContactName)}</p></div>
+                <div><p className="text-xs font-bold uppercase text-slate-500">Emergency phone</p><p className="mt-1 font-semibold text-slate-900">{detailValue(application.applicationDetail.emergencyContactPhone)}</p></div>
+                <div><p className="text-xs font-bold uppercase text-slate-500">Previous landlord</p><p className="mt-1 font-semibold text-slate-900">{detailValue(application.applicationDetail.previousLandlordName)}</p></div>
+                <div><p className="text-xs font-bold uppercase text-slate-500">Landlord contact</p><p className="mt-1 font-semibold text-slate-900">{detailValue(application.applicationDetail.previousLandlordPhone)}</p></div>
+                <div><p className="text-xs font-bold uppercase text-slate-500">Requested move-in</p><p className="mt-1 font-semibold text-slate-900">{detailValue(application.applicationDetail.requestedMoveInDate)}</p></div>
+                <div><p className="text-xs font-bold uppercase text-slate-500">Voucher program</p><p className="mt-1 font-semibold text-slate-900">{detailValue(application.applicationDetail.voucherProgram)}</p></div>
+                <div className="md:col-span-2"><p className="text-xs font-bold uppercase text-slate-500">Reason for moving</p><p className="mt-1 leading-7 text-slate-700">{detailValue(application.applicationDetail.reasonForMoving)}</p></div>
+                <div className="md:col-span-2 grid gap-3 md:grid-cols-3">
+                  <div className="rounded-2xl bg-slate-50 p-4"><p className="text-xs font-bold uppercase text-slate-500">Prior eviction</p><p className="mt-1 font-bold text-slate-900">{application.applicationDetail.hasPriorEviction ? "Yes" : "No"}</p><p className="mt-2 text-sm text-slate-600">{application.applicationDetail.priorEvictionExplanation ?? "No explanation provided."}</p></div>
+                  <div className="rounded-2xl bg-slate-50 p-4"><p className="text-xs font-bold uppercase text-slate-500">Criminal history</p><p className="mt-1 font-bold text-slate-900">{application.applicationDetail.hasCriminalHistory ? "Yes" : "No"}</p><p className="mt-2 text-sm text-slate-600">{application.applicationDetail.criminalHistoryExplanation ?? "No explanation provided."}</p></div>
+                  <div className="rounded-2xl bg-slate-50 p-4"><p className="text-xs font-bold uppercase text-slate-500">Utility balance</p><p className="mt-1 font-bold text-slate-900">{application.applicationDetail.hasOutstandingUtilities ? "Yes" : "No"}</p><p className="mt-2 text-sm text-slate-600">{application.applicationDetail.outstandingUtilitiesExplanation ?? "No explanation provided."}</p></div>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-900">The applicant has not completed the structured Phase 2 details yet.</p>
+            )}
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

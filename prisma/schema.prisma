@@ -1226,6 +1226,7 @@ model Application {
   recurringChargeSchedules RecurringChargeSchedule[]
   paymentPlans PaymentPlan[]
   claimTokens ApplicationClaimToken[]
+  applicationDetail ApplicationDetail?
   currentTenantUnits Unit[] @relation("CurrentTenantApplication")
   utilityAccounts UtilityAccount[]
   tenantPayments TenantPayment[]
@@ -1245,6 +1246,46 @@ model Application {
   @@index([status])
   @@index([createdAt])
 }
+
+model ApplicationDetail {
+  id                         String   @id @default(cuid())
+  applicationId              String   @unique
+  dateOfBirth                DateTime?
+  governmentIdType           String?
+  emergencyContactName       String?
+  emergencyContactPhone      String?
+  emergencyContactRelation   String?
+  currentHousingStartDate    DateTime?
+  previousAddress            String?
+  previousLandlordName       String?
+  previousLandlordPhone      String?
+  reasonForMoving            String?
+  requestedMoveInDate        DateTime?
+  voucherProgram             String?
+  voucherCaseWorker          String?
+  voucherCaseWorkerContact   String?
+  vehicleInfo                String?
+  petDetails                 String?
+  serviceAnimalAccommodation String?
+  hasPriorEviction           Boolean  @default(false)
+  priorEvictionExplanation   String?
+  hasCriminalHistory         Boolean  @default(false)
+  criminalHistoryExplanation String?
+  hasOutstandingUtilities    Boolean  @default(false)
+  outstandingUtilitiesExplanation String?
+  consentToScreening         Boolean  @default(false)
+  informationCertified       Boolean  @default(false)
+  applicantSignature         String?
+  signedAt                   DateTime?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([signedAt])
+}
+
 model ApplicationNote {
   id            String   @id @default(cuid())
   applicationId String
