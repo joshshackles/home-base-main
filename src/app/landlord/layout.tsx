@@ -5,6 +5,7 @@ const navGroups: ShellNavGroup[] = [
   { label: "Operations", items: [
     { href: "/landlord", label: "Dashboard", icon: "LayoutDashboard" },
     { href: "/landlord/rentals", label: "Rentals", icon: "Home" },
+    { href: "/landlord/tenants", label: "Tenants", icon: "Users" },
     { href: "/landlord/lifecycle", label: "Lifecycle", icon: "Route" },
     { href: "/landlord/contacts", label: "Contacts", icon: "Users" },
     { href: "/landlord/vendors", label: "Vendors", icon: "BriefcaseBusiness" }

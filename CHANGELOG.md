@@ -1,3 +1,12 @@
+## v4.33.0 - Applicant Packet Fields & Tenant Visibility
+
+- Added structured driver license state/number, vehicle, license plate, and housing agency/case worker fields to reusable applicant profiles and application details.
+- Replaced vague ID, case worker, and vehicle inputs with dropdowns and grouped operational sections.
+- Added visible applicant profile save confirmation, application detail save confirmation, and post-submit redirect to the applications list with a submitted banner.
+- Kept the first auto-apply confirmation screen focused by hiding the Phase 2 form when the applicant has just applied from a listing.
+- Expanded the landlord application detail page so landlords can see the submitted applicant packet, household, income, vehicle, voucher, disclosures, and profile details.
+- Added a landlord Tenants screen and tenant detail page to view renter, occupancy, unit, application packet, household, income, lease, and document context in one place.
+
 ## v4.32.0 - Reusable Auto-Apply Profile Packet
 
 - Expanded the applicant reusable profile to store Phase 2 application details, emergency contact, housing history, voucher/caseworker, vehicle, accommodation, disclosure, and certification fields.

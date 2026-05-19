@@ -1,6 +1,6 @@
 # Marketplace Application & Lead Reply UX
 
-Version: 4.32.0
+Version: 4.33.0
 
 ## Goal
 
@@ -12,6 +12,7 @@ Make applying for a home feel like an account-aware marketplace action instead o
 - The panel shows profile, household/income detail count, and reusable document count as confidence signals.
 - Applicants must explicitly authorize sharing their saved renter profile, contact details, household, income, and reusable documents with the rental team.
 - The saved renter packet now includes Phase 2 application details and acknowledgements from the applicant profile.
+- The packet now uses structured driver license, vehicle, license plate, housing agency, and case worker fields so landlords can review operational renter details without parsing free-form text.
 - If the applicant already has a non-withdrawn application for the home, the page routes them to continue it instead of creating a duplicate.
 - Applicants can ask a lightweight question from the same panel without retyping name and email.
 - The full public lead form remains available for signed-out visitors.

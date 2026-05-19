@@ -13,7 +13,7 @@ function label(value: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-export default async function ApplicantApplicationsPage() {
+export default async function ApplicantApplicationsPage({ searchParams }: { searchParams?: { submitted?: string } }) {
   const user = await requireRole(
     ["APPLICANT", "TENANT"],
     "/applicant/applications",
@@ -62,6 +62,11 @@ export default async function ApplicantApplicationsPage() {
           Browse Listings
         </Link>
       </div>
+      {searchParams?.submitted === "1" ? (
+        <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 font-bold text-emerald-900">
+          Application submitted. It is now in the review queue.
+        </div>
+      ) : null}
 
       <div className="mt-8 grid gap-4">
         {applications.length === 0 ? (

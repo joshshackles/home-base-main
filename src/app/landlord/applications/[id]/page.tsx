@@ -13,11 +13,28 @@ function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function dateValue(value: Date | null | undefined) {
+  return value ? value.toLocaleDateString() : "Not provided";
+}
+
+function valueOrAsk(value: string | number | null | undefined) {
+  if (value === null || typeof value === "undefined" || value === "") return "Not provided";
+  return String(value);
+}
+
 export default async function LandlordApplicationDetailPage({ params }: { params: { id: string } }) {
   const user = await requireRole(["LANDLORD"], "/landlord");
   const application = await prisma.application.findFirst({
     where: { id: params.id, unit: { property: { ownerId: user.userId, isArchived: false } } },
-    include: { unit: { include: { property: true } }, lead: true, applicantUser: true, notes: { orderBy: { createdAt: "desc" } }, occupancies: { include: { tenant: true }, orderBy: { createdAt: "desc" } } }
+    include: {
+      unit: { include: { property: true } },
+      lead: true,
+      applicantUser: { include: { applicantProfile: { include: { householdMembers: true, incomeSources: true } } } },
+      applicationDetail: true,
+      notes: { orderBy: { createdAt: "desc" } },
+      documents: { orderBy: { createdAt: "desc" } },
+      occupancies: { include: { tenant: true }, orderBy: { createdAt: "desc" } }
+    }
   });
 
   if (!application) notFound();
@@ -37,6 +54,68 @@ export default async function LandlordApplicationDetailPage({ params }: { params
             </div>
             <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-slate-700"><p className="text-xs font-bold uppercase text-slate-500">Summary</p><p className="mt-2 leading-7">{application.summary ?? "No summary provided."}</p></div>
           </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-black text-slate-950">Applicant packet</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Reusable profile, submitted application details, household, income, vehicle, case worker, and disclosure information.</p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <Info label="Date of birth" value={dateValue(application.applicationDetail?.dateOfBirth)} />
+              <Info label="Government ID" value={valueOrAsk(application.applicationDetail?.governmentIdType)} />
+              <Info label="DL state" value={valueOrAsk(application.applicationDetail?.driversLicenseState)} />
+              <Info label="DL number" value={valueOrAsk(application.applicationDetail?.driversLicenseNumber)} />
+              <Info label="Emergency contact" value={valueOrAsk(application.applicationDetail?.emergencyContactName)} />
+              <Info label="Emergency phone" value={valueOrAsk(application.applicationDetail?.emergencyContactPhone)} />
+              <Info label="Emergency relation" value={valueOrAsk(application.applicationDetail?.emergencyContactRelation)} />
+              <Info label="Housing since" value={dateValue(application.applicationDetail?.currentHousingStartDate)} />
+              <Info label="Previous address" value={valueOrAsk(application.applicationDetail?.previousAddress)} />
+              <Info label="Previous landlord" value={valueOrAsk(application.applicationDetail?.previousLandlordName)} />
+              <Info label="Previous landlord contact" value={valueOrAsk(application.applicationDetail?.previousLandlordPhone)} />
+              <Info label="Move-in requested" value={dateValue(application.applicationDetail?.requestedMoveInDate)} />
+              <Info label="Voucher program" value={valueOrAsk(application.applicationDetail?.voucherProgram)} />
+              <Info label="Housing agency" value={valueOrAsk(application.applicationDetail?.voucherAgency)} />
+              <Info label="Case worker" value={valueOrAsk(application.applicationDetail?.voucherCaseWorker)} />
+              <Info label="Case worker contact" value={valueOrAsk(application.applicationDetail?.voucherCaseWorkerContact)} />
+              <Info label="Vehicle" value={[application.applicationDetail?.vehicleYear, application.applicationDetail?.vehicleColor, application.applicationDetail?.vehicleMake, application.applicationDetail?.vehicleModel].filter(Boolean).join(" ") || "Not provided"} />
+              <Info label="License plate" value={[application.applicationDetail?.licensePlateState, application.applicationDetail?.licensePlateNumber].filter(Boolean).join(" ") || "Not provided"} />
+              <Info label="Signature" value={application.applicationDetail?.signedAt ? `Signed ${application.applicationDetail.signedAt.toLocaleDateString()}` : "Signature needed"} />
+            </div>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <TextBlock label="Reason for moving" value={application.applicationDetail?.reasonForMoving} />
+              <TextBlock label="Vehicle notes" value={application.applicationDetail?.vehicleInfo} />
+              <TextBlock label="Pets" value={application.applicationDetail?.petDetails} />
+              <TextBlock label="Accommodation details" value={application.applicationDetail?.serviceAnimalAccommodation} />
+              <TextBlock label="Eviction explanation" value={application.applicationDetail?.priorEvictionExplanation} />
+              <TextBlock label="Criminal history explanation" value={application.applicationDetail?.criminalHistoryExplanation} />
+              <TextBlock label="Utility balance explanation" value={application.applicationDetail?.outstandingUtilitiesExplanation} />
+            </div>
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              <Flag label="Prior eviction" active={application.applicationDetail?.hasPriorEviction ?? false} />
+              <Flag label="Criminal history" active={application.applicationDetail?.hasCriminalHistory ?? false} />
+              <Flag label="Outstanding utilities" active={application.applicationDetail?.hasOutstandingUtilities ?? false} />
+            </div>
+          </div>
+
+          {application.applicantUser?.applicantProfile ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-2xl font-black text-slate-950">Reusable renter profile</h2>
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <TextBlock label="Rental history" value={application.applicantUser.applicantProfile.rentalHistory} />
+                <TextBlock label="Employment summary" value={application.applicantUser.applicantProfile.employmentSummary} />
+                <TextBlock label="Landlord references" value={application.applicantUser.applicantProfile.landlordReferences} />
+                <TextBlock label="Renter bio" value={application.applicantUser.applicantProfile.renterBio} />
+              </div>
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs font-bold uppercase text-slate-500">Household</p>
+                  <div className="mt-2 space-y-2 text-sm text-slate-700">{application.applicantUser.applicantProfile.householdMembers.length ? application.applicantUser.applicantProfile.householdMembers.map((member) => <p key={member.id}><strong>{member.name}</strong> - {label(member.relationship)}{member.age !== null ? `, age ${member.age}` : ""}</p>) : <p>None listed.</p>}</div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs font-bold uppercase text-slate-500">Income</p>
+                  <div className="mt-2 space-y-2 text-sm text-slate-700">{application.applicantUser.applicantProfile.incomeSources.length ? application.applicantUser.applicantProfile.incomeSources.map((income) => <p key={income.id}><strong>{income.sourceName}</strong> - {formatCurrency(income.amount)} {label(income.frequency)}</p>) : <p>None listed.</p>}</div>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-black text-slate-950">Application notes</h2>
@@ -101,5 +180,31 @@ export default async function LandlordApplicationDetailPage({ params }: { params
         </aside>
       </section>
     </main>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 p-4">
+      <p className="text-xs font-bold uppercase text-slate-500">{label}</p>
+      <p className="mt-1 font-semibold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function TextBlock({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 p-4">
+      <p className="text-xs font-bold uppercase text-slate-500">{label}</p>
+      <p className="mt-2 leading-7 text-slate-700">{value || "Not provided."}</p>
+    </div>
+  );
+}
+
+function Flag({ label, active }: { label: string; active: boolean }) {
+  return (
+    <div className={`rounded-2xl border p-4 text-sm font-black ${active ? "border-amber-200 bg-amber-50 text-amber-950" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
+      {label}: {active ? "Yes" : "No"}
+    </div>
   );
 }

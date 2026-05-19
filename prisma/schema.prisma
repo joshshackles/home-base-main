@@ -1252,6 +1252,8 @@ model ApplicationDetail {
   applicationId              String   @unique
   dateOfBirth                DateTime?
   governmentIdType           String?
+  driversLicenseState        String?
+  driversLicenseNumber       String?
   emergencyContactName       String?
   emergencyContactPhone      String?
   emergencyContactRelation   String?
@@ -1262,9 +1264,16 @@ model ApplicationDetail {
   reasonForMoving            String?
   requestedMoveInDate        DateTime?
   voucherProgram             String?
+  voucherAgency              String?
   voucherCaseWorker          String?
   voucherCaseWorkerContact   String?
   vehicleInfo                String?
+  vehicleMake                String?
+  vehicleModel               String?
+  vehicleColor               String?
+  vehicleYear                String?
+  licensePlateNumber         String?
+  licensePlateState          String?
   petDetails                 String?
   serviceAnimalAccommodation String?
   hasPriorEviction           Boolean  @default(false)
@@ -1323,6 +1332,8 @@ model ApplicantProfile {
   renterBio        String?
   dateOfBirth                DateTime?
   governmentIdType           String?
+  driversLicenseState        String?
+  driversLicenseNumber       String?
   emergencyContactName       String?
   emergencyContactPhone      String?
   emergencyContactRelation   String?
@@ -1332,9 +1343,16 @@ model ApplicantProfile {
   previousLandlordPhone      String?
   reasonForMoving            String?
   voucherProgram             String?
+  voucherAgency              String?
   voucherCaseWorker          String?
   voucherCaseWorkerContact   String?
   vehicleInfo                String?
+  vehicleMake                String?
+  vehicleModel               String?
+  vehicleColor               String?
+  vehicleYear                String?
+  licensePlateNumber         String?
+  licensePlateState          String?
   serviceAnimalAccommodation String?
   hasPriorEviction           Boolean  @default(false)
   priorEvictionExplanation   String?

@@ -16,7 +16,11 @@ const checks: Check[] = [
       "MessageThreadStatus.WAITING_ON_STAFF",
       "applicantPacketSignedAt",
       "dateOfBirth: profile.dateOfBirth",
+      "driversLicenseState: profile.driversLicenseState",
+      "driversLicenseNumber: profile.driversLicenseNumber",
+      "voucherAgency: profile.voucherAgency",
       "voucherCaseWorker: profile.voucherCaseWorker",
+      "licensePlateNumber: profile.licensePlateNumber",
       "serviceAnimalAccommodation: profile.serviceAnimalAccommodation",
       "returnTo?.startsWith(\"/marketplace/\")"
     ]
@@ -27,6 +31,9 @@ const checks: Check[] = [
       "Reusable application packet",
       "Applicant details and acknowledgements",
       "applicantPacketSignedAt",
+      "driversLicenseNumber",
+      "licensePlateNumber",
+      "Case worker and voucher details",
       "consentToScreening",
       "informationCertified",
       "applicantSignature"
@@ -68,7 +75,7 @@ const checks: Check[] = [
   {
     file: "docs/MARKETPLACE_APPLICATION_LEAD_REPLY_UX.md",
     markers: [
-      "Version: 4.32.0",
+      "Version: 4.33.0",
       "Fast apply",
       "Landlord Reply Changes"
     ]
@@ -76,18 +83,19 @@ const checks: Check[] = [
   {
     file: "CHANGELOG.md",
     markers: [
+      "v4.33.0 - Applicant Packet Fields & Tenant Visibility",
       "v4.32.0 - Reusable Auto-Apply Profile Packet",
       "v4.31.0 - Marketplace Application & Lead Reply UX"
     ]
   },
   {
     file: "src/lib/app-version.ts",
-    markers: ["4.32.0"]
+    markers: ["4.33.0"]
   },
   {
     file: "package.json",
     markers: [
-      "\"version\": \"4.32.0\"",
+      "\"version\": \"4.33.0\"",
       "marketplace-application-ux:verify"
     ]
   },
@@ -96,6 +104,8 @@ const checks: Check[] = [
     markers: [
       "model ApplicantProfile",
       "dateOfBirth",
+      "driversLicenseNumber",
+      "licensePlateNumber",
       "consentToScreening",
       "applicantPacketSignedAt"
     ]
@@ -107,6 +117,32 @@ const checks: Check[] = [
       "\"dateOfBirth\"",
       "\"applicantPacketSignedAt\""
     ]
+  },
+  {
+    file: "prisma/migrations/20260519194000_application_packet_operational_fields/migration.sql",
+    markers: [
+      "\"driversLicenseState\"",
+      "\"driversLicenseNumber\"",
+      "\"licensePlateNumber\"",
+      "\"voucherAgency\""
+    ]
+  },
+  {
+    file: "src/app/landlord/applications/[id]/page.tsx",
+    markers: [
+      "Applicant packet",
+      "driversLicenseNumber",
+      "licensePlateNumber",
+      "Reusable renter profile"
+    ]
+  },
+  {
+    file: "src/app/landlord/tenants/page.tsx",
+    markers: ["LandlordTenantsPage", "/landlord/tenants/"]
+  },
+  {
+    file: "src/app/landlord/tenants/[id]/page.tsx",
+    markers: ["LandlordTenantDetailPage", "Application packet", "Household and income"]
   }
 ];
 

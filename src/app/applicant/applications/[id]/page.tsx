@@ -37,6 +37,8 @@ function dateValue(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
 }
 
+const states = ["", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "IA", "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", "MI", "MN", "MO", "MS", "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI", "WV", "WY", "DC"];
+
 function requestTone(status: string) {
   if (status === "ACCEPTED")
     return "border-emerald-200 bg-emerald-50 text-emerald-800";
@@ -50,8 +52,10 @@ function requestTone(status: string) {
 
 export default async function ApplicantApplicationDetailPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams?: { applied?: string; details?: string };
 }) {
   const user = await requireRole(
     ["APPLICANT", "TENANT"],
@@ -97,6 +101,7 @@ export default async function ApplicantApplicationDetailPage({
   const canWithdraw = withdrawableApplicationStatuses.includes(
     application.status,
   );
+  const justApplied = searchParams?.applied === "1";
 
   return (
     <main
@@ -126,6 +131,23 @@ export default async function ApplicantApplicationDetailPage({
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
+          {justApplied ? (
+            <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+              <h2 className="text-2xl font-black text-emerald-950">Application started</h2>
+              <p className="mt-2 leading-7 text-emerald-900">
+                Your saved renter packet was shared with the rental team. You can review this application now or return to your applications list.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Link href="/applicant/applications" className="rounded-2xl bg-emerald-700 px-5 py-3 font-bold text-white hover:bg-emerald-800">View my applications</Link>
+                <Link href="/applicant/profile" className="rounded-2xl border border-emerald-300 bg-white px-5 py-3 font-bold text-emerald-900 hover:bg-emerald-100">Update reusable profile</Link>
+              </div>
+            </div>
+          ) : null}
+          {searchParams?.details === "saved" ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 font-bold text-emerald-900">
+              Application details saved and copied to your reusable profile.
+            </div>
+          ) : null}
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-black text-slate-950">
               Application status
@@ -237,6 +259,7 @@ export default async function ApplicantApplicationDetailPage({
           </div>
 
 
+          {!justApplied ? (
           <form
             id="application-details"
             action={saveApplicationDetail}
@@ -271,7 +294,20 @@ export default async function ApplicantApplicationDetailPage({
                 <input name="dateOfBirth" type="date" defaultValue={dateValue(application.applicationDetail?.dateOfBirth)} className={inputClass} />
               </Field>
               <Field label="Government ID type">
-                <input name="governmentIdType" defaultValue={application.applicationDetail?.governmentIdType ?? ""} className={inputClass} placeholder="Driver license, state ID, passport, etc." />
+                <select name="governmentIdType" defaultValue={application.applicationDetail?.governmentIdType ?? "Driver license"} className={inputClass}>
+                  <option value="Driver license">Driver license</option>
+                  <option value="State ID">State ID</option>
+                  <option value="Passport">Passport</option>
+                  <option value="Other government ID">Other government ID</option>
+                </select>
+              </Field>
+              <Field label="Driver license state">
+                <select name="driversLicenseState" defaultValue={application.applicationDetail?.driversLicenseState ?? ""} className={inputClass}>
+                  {states.map((state) => <option key={state || "blank"} value={state}>{state || "Select state"}</option>)}
+                </select>
+              </Field>
+              <Field label="Driver license number">
+                <input name="driversLicenseNumber" defaultValue={application.applicationDetail?.driversLicenseNumber ?? ""} className={inputClass} placeholder="Enter license number" />
               </Field>
               <Field label="Emergency contact name">
                 <input name="emergencyContactName" defaultValue={application.applicationDetail?.emergencyContactName ?? ""} className={inputClass} />
@@ -304,19 +340,28 @@ export default async function ApplicantApplicationDetailPage({
               <Field label="Requested move-in date">
                 <input name="requestedMoveInDate" type="date" defaultValue={dateValue(application.applicationDetail?.requestedMoveInDate)} className={inputClass} />
               </Field>
-              <Field label="Voucher or subsidy program">
-                <input name="voucherProgram" defaultValue={application.applicationDetail?.voucherProgram ?? ""} className={inputClass} placeholder="Section 8, RAP, SPC, VASH, etc." />
-              </Field>
-              <Field label="Voucher case worker">
-                <input name="voucherCaseWorker" defaultValue={application.applicationDetail?.voucherCaseWorker ?? ""} className={inputClass} />
-              </Field>
-              <Field label="Case worker contact">
-                <input name="voucherCaseWorkerContact" defaultValue={application.applicationDetail?.voucherCaseWorkerContact ?? ""} className={inputClass} />
-              </Field>
+              <div className="rounded-2xl border border-brand-100 bg-brand-50 p-4 md:col-span-2">
+                <h3 className="text-lg font-black text-slate-950">Case worker and voucher details</h3>
+                <div className="mt-4 grid gap-5 md:grid-cols-2">
+                  <Field label="Voucher or subsidy program"><input name="voucherProgram" defaultValue={application.applicationDetail?.voucherProgram ?? ""} className={inputClass} placeholder="Section 8, RAP, SPC, VASH, etc." /></Field>
+                  <Field label="Housing agency"><input name="voucherAgency" defaultValue={application.applicationDetail?.voucherAgency ?? ""} className={inputClass} placeholder="Housing authority, nonprofit, VA, etc." /></Field>
+                  <Field label="Voucher case worker"><input name="voucherCaseWorker" defaultValue={application.applicationDetail?.voucherCaseWorker ?? ""} className={inputClass} /></Field>
+                  <Field label="Case worker contact"><input name="voucherCaseWorkerContact" defaultValue={application.applicationDetail?.voucherCaseWorkerContact ?? ""} className={inputClass} /></Field>
+                </div>
+              </div>
               <div className="md:col-span-2">
-                <Field label="Vehicle information">
-                  <textarea name="vehicleInfo" defaultValue={application.applicationDetail?.vehicleInfo ?? ""} className={textareaClass} placeholder="Vehicle make/model, plate, parking needs, or no vehicle." />
-                </Field>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <h3 className="text-lg font-black text-slate-950">Vehicle information</h3>
+                  <div className="mt-4 grid gap-5 md:grid-cols-3">
+                    <Field label="Make"><input name="vehicleMake" defaultValue={application.applicationDetail?.vehicleMake ?? ""} className={inputClass} placeholder="Toyota" /></Field>
+                    <Field label="Model"><input name="vehicleModel" defaultValue={application.applicationDetail?.vehicleModel ?? ""} className={inputClass} placeholder="Camry" /></Field>
+                    <Field label="Year"><input name="vehicleYear" defaultValue={application.applicationDetail?.vehicleYear ?? ""} className={inputClass} placeholder="2018" /></Field>
+                    <Field label="Color"><input name="vehicleColor" defaultValue={application.applicationDetail?.vehicleColor ?? ""} className={inputClass} placeholder="Silver" /></Field>
+                    <Field label="License plate number"><input name="licensePlateNumber" defaultValue={application.applicationDetail?.licensePlateNumber ?? ""} className={inputClass} /></Field>
+                    <Field label="Plate state"><select name="licensePlateState" defaultValue={application.applicationDetail?.licensePlateState ?? ""} className={inputClass}>{states.map((state) => <option key={state || "blank"} value={state}>{state || "Select state"}</option>)}</select></Field>
+                    <div className="md:col-span-3"><Field label="Parking or vehicle notes"><textarea name="vehicleInfo" defaultValue={application.applicationDetail?.vehicleInfo ?? ""} className={textareaClass} placeholder="Parking needs, second vehicle, no vehicle, accessibility placard, etc." /></Field></div>
+                  </div>
+                </div>
               </div>
               <Field label="Pet details">
                 <textarea name="petDetails" defaultValue={application.applicationDetail?.petDetails ?? ""} className={textareaClass} placeholder="Type, breed, size, weight, or no pets." />
@@ -373,6 +418,7 @@ export default async function ApplicantApplicationDetailPage({
               Save Application Details
             </button>
           </form>
+          ) : null}
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-black text-slate-950">

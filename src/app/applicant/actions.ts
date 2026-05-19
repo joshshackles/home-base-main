@@ -182,7 +182,7 @@ export async function saveApplicantProfile(formData: FormData) {
   });
 
   revalidateApplicant();
-  redirect("/applicant/profile");
+  redirect("/applicant/profile?saved=1");
 }
 
 export async function saveFavoriteRental(formData: FormData) {
@@ -335,6 +335,8 @@ export async function startMarketplaceApplication(formData: FormData) {
                 requestedMoveInDate: profile.desiredMoveInDate,
                 dateOfBirth: profile.dateOfBirth,
                 governmentIdType: profile.governmentIdType,
+                driversLicenseState: profile.driversLicenseState,
+                driversLicenseNumber: profile.driversLicenseNumber,
                 emergencyContactName: profile.emergencyContactName,
                 emergencyContactPhone: profile.emergencyContactPhone,
                 emergencyContactRelation: profile.emergencyContactRelation,
@@ -344,10 +346,17 @@ export async function startMarketplaceApplication(formData: FormData) {
                 previousLandlordPhone: profile.previousLandlordPhone,
                 petDetails: profile.pets,
                 voucherProgram: profile.voucherProgram || (profile.voucherHolder ? "Voucher holder" : null),
+                voucherAgency: profile.voucherAgency,
                 voucherCaseWorker: profile.voucherCaseWorker,
                 voucherCaseWorkerContact: profile.voucherCaseWorkerContact,
                 reasonForMoving: profile.reasonForMoving || profile.renterBio,
                 vehicleInfo: profile.vehicleInfo,
+                vehicleMake: profile.vehicleMake,
+                vehicleModel: profile.vehicleModel,
+                vehicleColor: profile.vehicleColor,
+                vehicleYear: profile.vehicleYear,
+                licensePlateNumber: profile.licensePlateNumber,
+                licensePlateState: profile.licensePlateState,
                 serviceAnimalAccommodation: profile.serviceAnimalAccommodation || profile.accessibilityNeeds,
                 hasPriorEviction: profile.hasPriorEviction,
                 priorEvictionExplanation: profile.priorEvictionExplanation,
@@ -618,6 +627,8 @@ export async function saveApplicationDetail(formData: FormData) {
     data: {
       dateOfBirth: payload.dateOfBirth,
       governmentIdType: payload.governmentIdType,
+      driversLicenseState: payload.driversLicenseState,
+      driversLicenseNumber: payload.driversLicenseNumber,
       emergencyContactName: payload.emergencyContactName,
       emergencyContactPhone: payload.emergencyContactPhone,
       emergencyContactRelation: payload.emergencyContactRelation,
@@ -628,9 +639,16 @@ export async function saveApplicationDetail(formData: FormData) {
       reasonForMoving: payload.reasonForMoving,
       desiredMoveInDate: payload.requestedMoveInDate,
       voucherProgram: payload.voucherProgram,
+      voucherAgency: payload.voucherAgency,
       voucherCaseWorker: payload.voucherCaseWorker,
       voucherCaseWorkerContact: payload.voucherCaseWorkerContact,
       vehicleInfo: payload.vehicleInfo,
+      vehicleMake: payload.vehicleMake,
+      vehicleModel: payload.vehicleModel,
+      vehicleColor: payload.vehicleColor,
+      vehicleYear: payload.vehicleYear,
+      licensePlateNumber: payload.licensePlateNumber,
+      licensePlateState: payload.licensePlateState,
       pets: payload.petDetails,
       serviceAnimalAccommodation: payload.serviceAnimalAccommodation,
       hasPriorEviction: payload.hasPriorEviction,
@@ -655,7 +673,7 @@ export async function saveApplicationDetail(formData: FormData) {
 
   revalidateApplicant();
   revalidatePath(`/applicant/applications/${applicationId}`);
-  redirect(`/applicant/applications/${applicationId}#application-details`);
+  redirect(`/applicant/applications/${applicationId}?details=saved#application-details`);
 }
 
 export async function submitApplicantApplication(formData: FormData) {
@@ -708,7 +726,7 @@ export async function submitApplicantApplication(formData: FormData) {
   });
 
   revalidateApplicant();
-  redirect(`/applicant/applications/${parsed.data.applicationId}`);
+  redirect("/applicant/applications?submitted=1");
 }
 
 export async function withdrawApplicantApplication(formData: FormData) {

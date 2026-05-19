@@ -15,7 +15,9 @@ function dateValue(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : "";
 }
 
-export default async function ApplicantProfilePage() {
+const states = ["", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "IA", "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", "MI", "MN", "MO", "MS", "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI", "WV", "WY", "DC"];
+
+export default async function ApplicantProfilePage({ searchParams }: { searchParams?: { saved?: string } }) {
   const user = await requireRole(["APPLICANT", "TENANT"], "/applicant/profile");
   const profile = await prisma.applicantProfile.findUnique({
     where: { userId: user.userId },
@@ -29,6 +31,11 @@ export default async function ApplicantProfilePage() {
         <h1 className="mt-2 text-4xl font-black text-slate-950">My profile</h1>
         <p className="mt-2 max-w-3xl text-slate-600">Keep your household, contact, rental history, and income information ready for application review.</p>
       </div>
+      {searchParams?.saved === "1" ? (
+        <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 font-bold text-emerald-900">
+          Applicant profile saved. Your reusable packet is ready for faster applications.
+        </div>
+      ) : null}
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_420px]">
         <form action={saveApplicantProfile} data-profile-draft-form className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -83,7 +90,20 @@ export default async function ApplicantProfilePage() {
               <input name="dateOfBirth" type="date" defaultValue={dateValue(profile?.dateOfBirth)} className={inputClass} />
             </Field>
             <Field label="Government ID type">
-              <input name="governmentIdType" defaultValue={profile?.governmentIdType ?? ""} className={inputClass} placeholder="Driver license, state ID, passport, etc." />
+              <select name="governmentIdType" defaultValue={profile?.governmentIdType ?? "Driver license"} className={selectClass}>
+                <option value="Driver license">Driver license</option>
+                <option value="State ID">State ID</option>
+                <option value="Passport">Passport</option>
+                <option value="Other government ID">Other government ID</option>
+              </select>
+            </Field>
+            <Field label="Driver license state">
+              <select name="driversLicenseState" defaultValue={profile?.driversLicenseState ?? ""} className={selectClass}>
+                {states.map((state) => <option key={state || "blank"} value={state}>{state || "Select state"}</option>)}
+              </select>
+            </Field>
+            <Field label="Driver license number">
+              <input name="driversLicenseNumber" defaultValue={profile?.driversLicenseNumber ?? ""} className={inputClass} placeholder="Enter license number" />
             </Field>
             <Field label="Emergency contact name">
               <input name="emergencyContactName" defaultValue={profile?.emergencyContactName ?? ""} className={inputClass} />
@@ -113,8 +133,14 @@ export default async function ApplicantProfilePage() {
                 <textarea name="reasonForMoving" defaultValue={profile?.reasonForMoving ?? ""} className={textareaClass} placeholder="Briefly explain why you are moving or what kind of housing you are looking for." />
               </Field>
             </div>
+            <div className="rounded-2xl border border-brand-100 bg-brand-50 p-4 md:col-span-2">
+              <h3 className="text-lg font-black text-slate-950">Case worker and voucher details</h3>
+              <div className="mt-4 grid gap-5 md:grid-cols-2">
             <Field label="Voucher or subsidy program">
               <input name="voucherProgram" defaultValue={profile?.voucherProgram ?? ""} className={inputClass} placeholder="Section 8, RAP, SPC, VASH, etc." />
+            </Field>
+            <Field label="Housing agency">
+              <input name="voucherAgency" defaultValue={profile?.voucherAgency ?? ""} className={inputClass} placeholder="Housing authority, nonprofit, VA, etc." />
             </Field>
             <Field label="Voucher case worker">
               <input name="voucherCaseWorker" defaultValue={profile?.voucherCaseWorker ?? ""} className={inputClass} />
@@ -122,10 +148,21 @@ export default async function ApplicantProfilePage() {
             <Field label="Case worker contact">
               <input name="voucherCaseWorkerContact" defaultValue={profile?.voucherCaseWorkerContact ?? ""} className={inputClass} />
             </Field>
+              </div>
+            </div>
             <div className="md:col-span-2">
-              <Field label="Vehicle information">
-                <textarea name="vehicleInfo" defaultValue={profile?.vehicleInfo ?? ""} className={textareaClass} placeholder="Vehicle make/model, plate, parking needs, or no vehicle." />
-              </Field>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <h3 className="text-lg font-black text-slate-950">Vehicle information</h3>
+                <div className="mt-4 grid gap-5 md:grid-cols-3">
+                  <Field label="Make"><input name="vehicleMake" defaultValue={profile?.vehicleMake ?? ""} className={inputClass} placeholder="Toyota" /></Field>
+                  <Field label="Model"><input name="vehicleModel" defaultValue={profile?.vehicleModel ?? ""} className={inputClass} placeholder="Camry" /></Field>
+                  <Field label="Year"><input name="vehicleYear" defaultValue={profile?.vehicleYear ?? ""} className={inputClass} placeholder="2018" /></Field>
+                  <Field label="Color"><input name="vehicleColor" defaultValue={profile?.vehicleColor ?? ""} className={inputClass} placeholder="Silver" /></Field>
+                  <Field label="License plate number"><input name="licensePlateNumber" defaultValue={profile?.licensePlateNumber ?? ""} className={inputClass} /></Field>
+                  <Field label="Plate state"><select name="licensePlateState" defaultValue={profile?.licensePlateState ?? ""} className={selectClass}>{states.map((state) => <option key={state || "blank"} value={state}>{state || "Select state"}</option>)}</select></Field>
+                  <div className="md:col-span-3"><Field label="Parking or vehicle notes"><textarea name="vehicleInfo" defaultValue={profile?.vehicleInfo ?? ""} className={textareaClass} placeholder="Parking needs, second vehicle, no vehicle, accessibility placard, etc." /></Field></div>
+                </div>
+              </div>
             </div>
             <div className="md:col-span-2">
               <Field label="Service animal or accommodation details">

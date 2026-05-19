@@ -1,6 +1,6 @@
 {
   "name": "homebase-mls",
-  "version": "4.32.0",
+  "version": "4.33.0",
   "private": true,
   "type": "module",
   "packageManager": "npm@10.9.0",
