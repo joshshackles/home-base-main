@@ -1,21 +1,20 @@
 export const dynamic = "force-dynamic";
 
-import { BriefcaseBusiness, ClipboardList, DollarSign, LayoutDashboard, MessageSquare, Wrench, Users } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { assertVendorPortalAccess } from "@/lib/vendors";
 import { DashboardShell, type ShellNavGroup } from "@/components/layout/DashboardShell";
 
 const navGroups: ShellNavGroup[] = [
   { label: "Vendor", items: [
-    { href: "/vendor", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/vendor/jobs", label: "Jobs", icon: Wrench },
-    { href: "/vendor/invoices", label: "Invoices", icon: DollarSign },
-    { href: "/vendor", label: "Profile", icon: BriefcaseBusiness },
-    { href: "/vendor/contacts", label: "Contacts", icon: Users }
+    { href: "/vendor", label: "Dashboard", icon: "LayoutDashboard" },
+    { href: "/vendor/jobs", label: "Jobs", icon: "Wrench" },
+    { href: "/vendor/invoices", label: "Invoices", icon: "DollarSign" },
+    { href: "/vendor", label: "Profile", icon: "BriefcaseBusiness" },
+    { href: "/vendor/contacts", label: "Contacts", icon: "Users" }
   ] },
   { label: "Communication", items: [
-    { href: "/vendor/jobs", label: "Work updates", icon: ClipboardList },
-    { href: "/vendor", label: "Messages", icon: MessageSquare }
+    { href: "/vendor/jobs", label: "Work updates", icon: "ClipboardList" },
+    { href: "/vendor", label: "Messages", icon: "MessageSquare" }
   ] }
 ];
 
