@@ -16,8 +16,11 @@ function assertExists(file: string) {
   if (!fs.existsSync(path.join(root, file))) throw new Error(`Missing required file: ${file}`);
 }
 
-assertIncludes("package.json", "\"version\": \"4.21.0\"");
-assertIncludes("src/lib/app-version.ts", "4.21.0");
+const packageJson = JSON.parse(read("package.json"));
+const appVersionSource = read("src/lib/app-version.ts");
+if (!appVersionSource.includes(packageJson.version)) {
+  throw new Error(`src/lib/app-version.ts does not match package version ${packageJson.version}`);
+}
 
 assertIncludes("prisma/schema.prisma", "model PaymentWebhookEvent");
 assertIncludes("prisma/schema.prisma", "enum PaymentWebhookProcessingStatus");

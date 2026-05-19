@@ -1,3 +1,9 @@
+## v4.26.1 - Vercel Clean Install Release Fix
+
+- Fixed `payments-production:verify` so it validates the active package version instead of requiring the historical `4.21.0` package version.
+- Confirmed the clean-install package ships only the squashed operational foundation baseline and post-baseline migrations.
+- Kept the Vercel clean-install guard intact so legacy migration recovery scripts and pre-baseline development migrations still fail the build if they reappear.
+
 ## v4.26.0 - Reporting & Analytics v1
 
 - Expanded the reports suite into first-class analytics sections for occupancy, delinquency, cash flow, lead conversion, application funnel, maintenance cost, vendor performance, and inspection compliance.
