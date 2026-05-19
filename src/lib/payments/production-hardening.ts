@@ -52,7 +52,7 @@ export async function beginStripeWebhookEvent(event: Stripe.Event) {
   return { log, duplicate: false };
 }
 
-export async function markStripeWebhookProcessed(stripeEventId: string, status: PaymentWebhookProcessingStatus.PROCESSED | PaymentWebhookProcessingStatus.SKIPPED = PaymentWebhookProcessingStatus.PROCESSED) {
+export async function markStripeWebhookProcessed(stripeEventId: string, status: Extract<PaymentWebhookProcessingStatus, "PROCESSED" | "SKIPPED"> = PaymentWebhookProcessingStatus.PROCESSED) {
   await prisma.paymentWebhookEvent.updateMany({
     where: { stripeEventId },
     data: { status, processedAt: new Date(), failedAt: null, errorMessage: null }
