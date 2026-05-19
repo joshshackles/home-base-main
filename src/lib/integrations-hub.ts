@@ -450,7 +450,14 @@ export async function runIntegrationDiagnosticFromForm(formData: FormData, optio
     }
   });
 
-  if ([IntegrationProvider.STRIPE, IntegrationProvider.SENDGRID, IntegrationProvider.POSTMARK, IntegrationProvider.QUICKBOOKS].includes(connection.provider)) {
+  const providersWithRealDiagnostics = new Set<IntegrationProvider>([
+    IntegrationProvider.STRIPE,
+    IntegrationProvider.SENDGRID,
+    IntegrationProvider.POSTMARK,
+    IntegrationProvider.QUICKBOOKS
+  ]);
+
+  if (providersWithRealDiagnostics.has(connection.provider)) {
     try {
       return await runRealConnectionDiagnostic(connection.id, options.actorId);
     } catch (error) {
