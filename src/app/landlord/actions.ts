@@ -17,6 +17,7 @@ import { syncUnitStaffConnections, upsertProfileConnection } from "@/lib/profile
 import { createAssetServiceRecordFromForm, createAssetWarrantyFromForm, createKeyLockRecordFromForm, createMaintenanceAssetFromForm, maintenanceInventoryPaths } from "@/lib/maintenance-inventory";
 import { createCertificationRecordFromForm, createComplianceInspectionRequirementFromForm, createInsurancePolicyFromForm, insuranceCompliancePaths } from "@/lib/insurance-compliance";
 import { activateTenantFromApplication, endTenantOccupancy } from "@/lib/relationship-lifecycle";
+import { lifecycleToUnitStatus } from "@/lib/rental-lifecycle-engine";
 import { createIntegrationConnectionFromForm, createIntegrationEventFromForm, createQuickBooksConnectionFromForm, integrationsHubPaths, runIntegrationDiagnosticFromForm, updateIntegrationConnectionStatusFromForm } from "@/lib/integrations-hub";
 
 async function requireLandlordAction() {
@@ -631,15 +632,7 @@ export async function updateLandlordUnitLifecycleStatus(formData: FormData) {
   if (!parsed.success) throw new Error(validationMessage(parsed.error));
   await assertOwnsUnit(parsed.data.unitId, user.userId);
 
-  const unitStatus = parsed.data.lifecycleStatus === RentalLifecycleStatus.OCCUPIED
-    ? UnitStatus.OCCUPIED
-    : parsed.data.lifecycleStatus === RentalLifecycleStatus.ARCHIVED
-      ? UnitStatus.ARCHIVED
-      : parsed.data.lifecycleStatus === RentalLifecycleStatus.MAINTENANCE_HOLD
-        ? UnitStatus.UNAVAILABLE
-        : parsed.data.lifecycleStatus === RentalLifecycleStatus.APPLICATION_PENDING || parsed.data.lifecycleStatus === RentalLifecycleStatus.LEASE_PENDING || parsed.data.lifecycleStatus === RentalLifecycleStatus.MOVE_IN_SCHEDULED
-          ? UnitStatus.PENDING
-          : UnitStatus.AVAILABLE;
+  const unitStatus = lifecycleToUnitStatus(parsed.data.lifecycleStatus);
 
   await prisma.unit.update({
     where: { id: parsed.data.unitId },

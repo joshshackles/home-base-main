@@ -1,3 +1,27 @@
+## v4.20.0 - Unified Rental Lifecycle Engine
+
+- Added a shared rental lifecycle engine that derives one operating status from unit, lead, application, lease, occupancy, notice, maintenance, and listing readiness signals.
+- Added landlord and admin lifecycle boards for portfolio-level visibility across setup, market, lease, resident, exit, and hold lanes.
+- Added lifecycle recommendation and confidence signals to landlord rental cards.
+- Added a unified lifecycle panel and manual lifecycle override to the landlord rental detail page.
+- Centralized lifecycle-to-unit-status mapping for landlord lifecycle actions.
+- Added `rental-lifecycle:verify`, docs, and E2E route coverage for the new lifecycle surfaces.
+
+## v4.19.0 - Workflow Readiness Center
+
+- Added an admin workflow readiness center at `/admin/workflows` to score each core product promise as proven, covered, basic, or underdeveloped.
+- Added a shared workflow readiness registry for public discovery, applicant, landlord, maintenance, messaging, leases, finance, admin governance, vendor, and mobile field-work workflows.
+- Linked workflow readiness from the admin sidebar and operations control center.
+- Extended the workflow E2E matrix to include the new readiness surface.
+- Added `workflow-readiness:verify` and documentation so future updates can be judged by workflow maturity, not feature count.
+
+## v4.18.0 - End-to-End Workflow QA Release
+
+- Added a deterministic Playwright workflow matrix for marketplace inquiry, applicant packet, landlord operations, maintenance, messaging, admin governance, and payment surfaces.
+- Added shared E2E helpers that assert pages do not silently render Prisma or Next.js runtime failures.
+- Expanded seed data with an occupied tenant unit, maintenance request, linked message thread, message, and operations task.
+- Added `workflow-qa:verify`, `test:e2e:workflow`, CI workflow coverage, and workflow QA documentation.
+
 ## v4.17.1 - Clean Foundation Hardening
 
 - Replaced the mixed historical migration chain with a clean baseline migration plus post-baseline migrations for fresh installs.
