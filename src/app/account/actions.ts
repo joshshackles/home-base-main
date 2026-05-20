@@ -9,6 +9,7 @@ import { hashPassword, verifyPassword } from "@/lib/password";
 import { accountAccessRequestSchema, accountAccessReviewSchema, formDataToObject, passwordChangeSchema, validationMessage } from "@/lib/validation";
 import { writeAuditLog } from "@/lib/audit";
 import { writeSecurityEvent } from "@/lib/security-events";
+import { assertSuperUser, isElevatedAccessType } from "@/lib/admin/permissions";
 
 function passwordRedirectParams(message: string, formData?: FormData) {
   const params = new URLSearchParams();
@@ -89,6 +90,7 @@ export async function requestAccountAccessAction(formData: FormData) {
 }
 
 const accessTypeToUserRole: Partial<Record<AccountAccessType, UserRole>> = {
+  [AccountAccessType.SUPER_USER]: UserRole.ADMIN,
   [AccountAccessType.LANDLORD]: UserRole.LANDLORD,
   [AccountAccessType.INSPECTOR]: UserRole.INSPECTOR,
   [AccountAccessType.ADMIN]: UserRole.ADMIN,
@@ -106,6 +108,9 @@ export async function reviewAccountAccessAction(formData: FormData) {
   });
 
   if (!request) throw new Error("Access request was not found.");
+  if (isElevatedAccessType(request.type)) {
+    await assertSuperUser(actor, "Only a platform super user can review admin or super user access requests.");
+  }
   if (request.status !== "PENDING") {
     revalidatePath("/admin");
     redirect("/admin?access=already-reviewed");
@@ -140,6 +145,7 @@ export async function reviewAccountAccessAction(formData: FormData) {
   });
 
   revalidatePath("/admin");
+  revalidatePath("/admin/command-center");
   revalidatePath("/admin/users");
   revalidatePath("/applicant");
   revalidatePath("/landlord");

@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
+import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   getClientIp,
@@ -25,6 +27,62 @@ function optionalFormText(formData: FormData, key: string) {
   return typeof value === "string" && value.trim().length > 0
     ? value.trim()
     : null;
+}
+
+const savedSearchSchema = z.object({
+  q: z.string().trim().max(160).optional(),
+  city: z.string().trim().max(120).optional(),
+  minRent: z.string().trim().max(12).optional(),
+  maxRent: z.string().trim().max(12).optional(),
+  bedrooms: z.string().trim().max(8).optional(),
+  bathrooms: z.string().trim().max(8).optional(),
+  minSqft: z.string().trim().max(12).optional(),
+  availability: z.string().trim().max(32).optional(),
+  availableBy: z.string().trim().max(32).optional(),
+  rentalType: z.string().trim().max(64).optional(),
+  voucherFriendly: z.string().trim().max(8).optional(),
+  pets: z.string().trim().max(8).optional(),
+  accessibility: z.string().trim().max(8).optional(),
+  utilities: z.string().trim().max(8).optional(),
+  sort: z.string().trim().max(64).optional(),
+  returnTo: z.string().trim().max(1200).optional(),
+});
+
+function searchLabel(payload: z.infer<typeof savedSearchSchema>) {
+  const parts = [
+    payload.q,
+    payload.city,
+    payload.maxRent ? `up to $${payload.maxRent}` : null,
+    payload.bedrooms ? `${payload.bedrooms}+ beds` : null,
+    payload.availability && payload.availability !== "any" ? "availability filter" : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" / ") : "All available rentals";
+}
+
+export async function saveMarketplaceSearch(formData: FormData) {
+  const user = await requireUser("/marketplace");
+  const parsed = savedSearchSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+
+  const filters: Record<string, string | boolean> = {};
+  for (const [key, value] of Object.entries(parsed.data)) {
+    if (key === "returnTo" || value === undefined || value === "") continue;
+    filters[key] = value === "on" ? true : value;
+  }
+
+  await prisma.savedMarketplaceSearch.create({
+    data: {
+      userId: user.userId,
+      label: searchLabel(parsed.data),
+      query: parsed.data.q || parsed.data.city || null,
+      filters,
+    },
+  });
+
+  revalidatePath("/marketplace");
+  revalidatePath("/applicant/favorites");
+  const returnTo = parsed.data.returnTo?.startsWith("/marketplace") ? parsed.data.returnTo : "/marketplace";
+  redirect(`${returnTo}${returnTo.includes("?") ? "&" : "?"}savedSearch=1`);
 }
 
 function enrichLeadMessage(

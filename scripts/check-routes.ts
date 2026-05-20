@@ -10,6 +10,7 @@ const requiredRoutes = [
   "/reset-password",
   "/account/password",
   "/admin",
+  "/admin/command-center",
   "/admin/properties",
   "/admin/units",
   "/admin/leads",

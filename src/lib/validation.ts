@@ -124,7 +124,7 @@ export const applicantSignupSchema = z.object({
 });
 
 export const accountAccessRequestSchema = z.object({
-  type: z.nativeEnum(AccountAccessType),
+  type: z.nativeEnum(AccountAccessType).refine((type) => type !== AccountAccessType.SUPER_USER, "Super user access must be granted by an existing platform super user."),
   organization: optionalText,
   reason: z.string().trim().min(10, "Tell us a little more about why you need this access.").max(1200, "Reason must be 1200 characters or fewer.")
 });

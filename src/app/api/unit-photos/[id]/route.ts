@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { UnitStatus, UserRole } from "@prisma/client";
 import { getVerifiedCurrentUser } from "@/lib/auth";
+import { canAccessUnit } from "@/lib/authorization";
 import { prisma } from "@/lib/prisma";
 import { readStoredDocument } from "@/lib/storage";
 
@@ -17,7 +18,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const isPublicListing = photo.unit.status === UnitStatus.AVAILABLE && !photo.unit.property.isArchived;
   if (!isPublicListing) {
     const user = await getVerifiedCurrentUser();
-    const canView = user && (user.role === UserRole.ADMIN || photo.unit.property.ownerId === user.userId);
+    const canView = user && (user.role === UserRole.ADMIN || (await canAccessUnit(user, photo.unitId)));
     if (!canView) return NextResponse.json({ error: "Photo not found." }, { status: 404 });
   }
 

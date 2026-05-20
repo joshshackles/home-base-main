@@ -7,13 +7,28 @@ import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
+function savedSearchHref(filters: unknown) {
+  const params = new URLSearchParams();
+  if (filters && typeof filters === "object" && !Array.isArray(filters)) {
+    for (const [key, value] of Object.entries(filters)) {
+      if (value === undefined || value === null || value === "") continue;
+      params.set(key, value === true ? "on" : String(value));
+    }
+  }
+  const query = params.toString();
+  return query ? `/marketplace?${query}` : "/marketplace";
+}
+
 export default async function ApplicantFavoritesPage({ searchParams }: { searchParams?: { message?: string } }) {
   const user = await requireRole(["APPLICANT", "TENANT"], "/applicant/favorites");
-  const favorites = await prisma.favoriteRental.findMany({
-    where: { userId: user.userId },
-    include: { unit: { include: { property: true } } },
-    orderBy: { createdAt: "desc" }
-  });
+  const [favorites, savedSearches] = await Promise.all([
+    prisma.favoriteRental.findMany({
+      where: { userId: user.userId },
+      include: { unit: { include: { property: true } } },
+      orderBy: { createdAt: "desc" }
+    }),
+    prisma.savedMarketplaceSearch.findMany({ where: { userId: user.userId }, orderBy: { createdAt: "desc" }, take: 8 })
+  ]);
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -29,6 +44,26 @@ export default async function ApplicantFavoritesPage({ searchParams }: { searchP
       {searchParams?.message === "sent" ? (
         <div className="mb-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 font-bold text-emerald-900">Message sent to the landlord lead queue.</div>
       ) : null}
+
+      <section className="mb-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-wide text-brand-700">Saved searches</p>
+            <h2 className="mt-1 text-2xl font-black text-slate-950">Return to searches you want to monitor</h2>
+          </div>
+          <Link href="/marketplace" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-900 hover:bg-slate-50">New search</Link>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {savedSearches.length > 0 ? savedSearches.map((search) => (
+            <Link key={search.id} href={savedSearchHref(search.filters)} className="rounded-2xl bg-slate-50 p-4 hover:bg-brand-50">
+              <p className="font-black text-slate-950">{search.label}</p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">Saved {search.createdAt.toLocaleDateString()}</p>
+            </Link>
+          )) : (
+            <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-600 sm:col-span-2 lg:col-span-4">Saved searches will appear here after you save filters from the marketplace.</p>
+          )}
+        </div>
+      </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
         {favorites.length === 0 ? (

@@ -176,6 +176,7 @@ const singleFamilyHomeSchema = z.object({
   smokingPolicy: z.string().trim().max(1000).optional(),
   leaseTermsNote: z.string().trim().max(2000).optional(),
   moveInFeesNote: z.string().trim().max(2000).optional(),
+  availableOn: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.date().nullable()),
   rentDueDay: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(1).max(31).nullable()),
   lateFeePolicy: z.string().trim().max(2000).optional(),
   previousTenantNotes: z.string().trim().max(4000).optional(),
@@ -226,7 +227,8 @@ const unitContactSchema = z.object({
 
 const leadReplySchema = z.object({
   leadId: z.string().trim().min(1),
-  body: z.string().trim().min(2).max(4000)
+  body: z.string().trim().min(2).max(4000),
+  returnTo: z.string().trim().max(1200).optional()
 });
 
 const unitTermsSchema = z.object({
@@ -235,6 +237,7 @@ const unitTermsSchema = z.object({
   deposit: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(0).nullable()),
   averageUtilityBill: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(0).nullable()),
   rentDueDay: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.number().int().min(1).max(31).nullable()),
+  availableOn: z.preprocess((value) => (value === "" || value === null || typeof value === "undefined" ? null : value), z.coerce.date().nullable()),
   leaseTermsNote: z.string().trim().max(2000).optional(),
   moveInFeesNote: z.string().trim().max(2000).optional(),
   lateFeePolicy: z.string().trim().max(2000).optional()
@@ -514,6 +517,7 @@ export async function createLandlordSingleFamilyHome(formData: FormData) {
         smokingPolicy: cleanOptionalText(parsed.data.smokingPolicy),
         leaseTermsNote: cleanOptionalText(parsed.data.leaseTermsNote),
         moveInFeesNote: cleanOptionalText(parsed.data.moveInFeesNote),
+        availableOn: parsed.data.availableOn,
         rentDueDay: parsed.data.rentDueDay,
         lateFeePolicy: cleanOptionalText(parsed.data.lateFeePolicy),
         previousTenantNotes: cleanOptionalText(parsed.data.previousTenantNotes),
@@ -879,6 +883,7 @@ export async function updateLandlordUnitTerms(formData: FormData) {
       deposit: parsed.data.deposit,
       averageUtilityBill: parsed.data.averageUtilityBill,
       rentDueDay: parsed.data.rentDueDay,
+      availableOn: parsed.data.availableOn,
       leaseTermsNote: cleanOptionalText(parsed.data.leaseTermsNote),
       moveInFeesNote: cleanOptionalText(parsed.data.moveInFeesNote),
       lateFeePolicy: cleanOptionalText(parsed.data.lateFeePolicy)
@@ -966,7 +971,10 @@ export async function replyToLandlordLead(formData: FormData) {
   const lead = await prisma.lead.findFirst({
     where: {
       id: parsed.data.leadId,
-      unit: { property: { ownerId: user.userId, isArchived: false } }
+      unit: {
+        property: { isArchived: false },
+        OR: [{ property: { ownerId: user.userId } }, { propertyManagerUserId: user.userId }]
+      }
     },
     include: { unit: { include: { property: true } } }
   });
@@ -1018,6 +1026,11 @@ export async function replyToLandlordLead(formData: FormData) {
 
   revalidateLandlord();
   revalidatePath(`/landlord/leads/${lead.id}`);
+  revalidatePath("/landlord/inbox");
+  if (parsed.data.returnTo?.startsWith("/landlord/inbox")) {
+    const separator = parsed.data.returnTo.includes("?") ? "&" : "?";
+    redirect(`${parsed.data.returnTo}${separator}reply=sent`);
+  }
   redirect(`/landlord/leads/${lead.id}?reply=sent`);
 }
 

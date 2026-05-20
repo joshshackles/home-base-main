@@ -112,6 +112,7 @@ export default async function UnitDetailPage({
   const mapHref = getMapSearchHref(unit);
   const primaryPhoto = unit.photos[0];
   const galleryPhotos = unit.photos.slice(1, 6);
+  const availabilityText = unit.availableOn && unit.availableOn > new Date() ? unit.availableOn.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }) : "Available now";
 
   return (
     <main id="main-content" className="min-h-screen bg-slate-50 pb-24 lg:pb-10">
@@ -244,6 +245,7 @@ export default async function UnitDetailPage({
                 label="Move-in estimate"
                 value={formatCurrency(monthlyCost.moveIn)}
               />
+              <InfoPill label="Availability" value={availabilityText} />
               <InfoPill
                 label="Deposit"
                 value={unit.deposit ? formatCurrency(unit.deposit) : "Ask"}
@@ -390,34 +392,39 @@ export default async function UnitDetailPage({
                     Continue application
                   </Link>
                 ) : (
-                  <form action={startMarketplaceApplication} className="mt-3 grid gap-3">
-                    <input type="hidden" name="unitId" value={unit.id} />
-                    <label className="flex gap-3 rounded-xl border border-blue-200 bg-white p-3 text-sm font-bold leading-5 text-blue-950">
-                      <input
-                        type="checkbox"
-                        name="shareAuthorization"
-                        value="true"
-                        required
-                        className="mt-1 h-4 w-4 rounded border-blue-300"
-                      />
-                      I authorize HomeBase to share my saved renter packet,
-                      including profile, application details, acknowledgements,
-                      household, income, and reusable documents, with this
-                      rental team.
-                    </label>
-                    <textarea
-                      name="message"
-                      rows={3}
-                      className="rounded-xl border border-blue-200 px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                      placeholder="Optional note for the rental team..."
-                    />
-                    <button
-                      type="submit"
-                      className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700"
-                    >
-                      Apply with saved info
-                    </button>
-                  </form>
+                  <div className="mt-3 grid gap-3">
+                    <Link href={`/applicant/apply/${unit.id}`} className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700">
+                      Review packet and apply
+                    </Link>
+                    <details className="rounded-xl border border-blue-200 bg-white p-3">
+                      <summary className="cursor-pointer text-sm font-black text-blue-950">One-click authorization form</summary>
+                      <form action={startMarketplaceApplication} className="mt-3 grid gap-3">
+                        <input type="hidden" name="unitId" value={unit.id} />
+                        <label className="flex gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-bold leading-5 text-blue-950">
+                          <input
+                            type="checkbox"
+                            name="shareAuthorization"
+                            value="true"
+                            required
+                            className="mt-1 h-4 w-4 rounded border-blue-300"
+                          />
+                          I authorize HomeBase to share my saved renter packet with this rental team.
+                        </label>
+                        <textarea
+                          name="message"
+                          rows={3}
+                          className="rounded-xl border border-blue-200 px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                          placeholder="Optional note for the rental team..."
+                        />
+                        <button
+                          type="submit"
+                          className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700"
+                        >
+                          Apply with saved info
+                        </button>
+                      </form>
+                    </details>
+                  </div>
                 )}
               </section>
 

@@ -9,6 +9,8 @@ export type MarketplaceSearchInput = {
   bedrooms?: number;
   bathrooms?: number;
   minSqft?: number;
+  availability?: string;
+  availableBy?: Date;
   voucherFriendly?: boolean;
   pets?: boolean;
   accessibility?: boolean;
@@ -33,10 +35,14 @@ export function getRentalSort(
       return [{ createdAt: "desc" }];
     case "rent-desc":
       return [{ rentAmount: "desc" }, { createdAt: "desc" }];
+    case "available-soonest":
+      return [{ availableOn: "asc" }, { rentAmount: "asc" }];
     case "beds":
       return [{ bedrooms: "desc" }, { rentAmount: "asc" }];
     case "size":
       return [{ squareFeet: "desc" }, { rentAmount: "asc" }];
+    case "updated":
+      return [{ updatedAt: "desc" }];
     default:
       return [{ rentAmount: "asc" }, { createdAt: "desc" }];
   }
@@ -52,10 +58,43 @@ export function buildMarketplaceWhere(
     )
       ? (input.rentalType as RentalPropertyType)
       : undefined;
+  const andFilters: Prisma.UnitWhereInput[] = [];
+
+  if (input.q) {
+    andFilters.push({
+      OR: [
+        { unitNumber: { contains: input.q, mode: "insensitive" } },
+        { description: { contains: input.q, mode: "insensitive" } },
+        { marketingHeadline: { contains: input.q, mode: "insensitive" } },
+        { marketingHighlights: { contains: input.q, mode: "insensitive" } },
+        { utilitiesNote: { contains: input.q, mode: "insensitive" } },
+        { petPolicy: { contains: input.q, mode: "insensitive" } },
+        { accessibility: { contains: input.q, mode: "insensitive" } },
+        { schoolDistrict: { contains: input.q, mode: "insensitive" } },
+        { neighborhood: { contains: input.q, mode: "insensitive" } },
+        { nearbyFeatures: { contains: input.q, mode: "insensitive" } },
+        { parkingInfo: { contains: input.q, mode: "insensitive" } },
+        { laundryInfo: { contains: input.q, mode: "insensitive" } },
+        { appliancesIncluded: { contains: input.q, mode: "insensitive" } },
+        { property: { name: { contains: input.q, mode: "insensitive" } } },
+        { property: { addressLine: { contains: input.q, mode: "insensitive" } } },
+        { property: { city: { contains: input.q, mode: "insensitive" } } },
+      ],
+    });
+  }
+
+  if (input.availability === "now") {
+    andFilters.push({ OR: [{ availableOn: null }, { availableOn: { lte: new Date() } }] });
+  } else if (input.availability === "onOrBefore" && input.availableBy) {
+    andFilters.push({ OR: [{ availableOn: null }, { availableOn: { lte: input.availableBy } }] });
+  } else if (input.availability === "after" && input.availableBy) {
+    andFilters.push({ availableOn: { gt: input.availableBy } });
+  }
 
   return {
     status: UnitStatus.AVAILABLE,
     marketingStatus: "ACTIVE",
+    ...(andFilters.length ? { AND: andFilters } : {}),
     ...(rentalType ? { rentalType } : {}),
     property: {
       isArchived: false,
@@ -63,32 +102,6 @@ export function buildMarketplaceWhere(
         ? { city: { contains: input.city, mode: "insensitive" } }
         : {}),
     },
-    ...(input.q
-      ? {
-          OR: [
-            { unitNumber: { contains: input.q, mode: "insensitive" } },
-            { description: { contains: input.q, mode: "insensitive" } },
-            { marketingHeadline: { contains: input.q, mode: "insensitive" } },
-            { marketingHighlights: { contains: input.q, mode: "insensitive" } },
-            { utilitiesNote: { contains: input.q, mode: "insensitive" } },
-            { petPolicy: { contains: input.q, mode: "insensitive" } },
-            { accessibility: { contains: input.q, mode: "insensitive" } },
-            { schoolDistrict: { contains: input.q, mode: "insensitive" } },
-            { neighborhood: { contains: input.q, mode: "insensitive" } },
-            { nearbyFeatures: { contains: input.q, mode: "insensitive" } },
-            { parkingInfo: { contains: input.q, mode: "insensitive" } },
-            { laundryInfo: { contains: input.q, mode: "insensitive" } },
-            { appliancesIncluded: { contains: input.q, mode: "insensitive" } },
-            { property: { name: { contains: input.q, mode: "insensitive" } } },
-            {
-              property: {
-                addressLine: { contains: input.q, mode: "insensitive" },
-              },
-            },
-            { property: { city: { contains: input.q, mode: "insensitive" } } },
-          ],
-        }
-      : {}),
     ...(input.minRent !== undefined || input.maxRent !== undefined
       ? {
           rentAmount: {

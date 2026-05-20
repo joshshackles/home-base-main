@@ -17,6 +17,7 @@ export type AuthorizationTarget =
   | "Application"
   | "MaintenanceRequest"
   | "MessageThread"
+  | "Lead"
   | "Document"
   | "LeasePacket"
   | "Inspection"
@@ -160,6 +161,31 @@ export async function canAccessUnit(user: AuthorizedUser, unitId: string) {
   if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && unit.property.ownerId === user.userId && !unit.property.isArchived) return true;
   if (isApplicantLike(user) && (unit.tenantUserId === user.userId || unit.occupancies.length > 0 || unit.applications.length > 0)) return true;
   if (!unit.property.isArchived && (await hasActiveProfileConnection(user, unit.property.ownerId, unit.id))) return true;
+
+  return false;
+}
+
+export async function canAccessListing(user: AuthorizedUser, unitId: string) {
+  return canAccessUnit(user, unitId);
+}
+
+export async function canAccessLead(user: AuthorizedUser, leadId: string) {
+  if (isAdmin(user)) return true;
+
+  const lead = await prisma.lead.findUnique({
+    where: { id: leadId },
+    select: {
+      email: true,
+      applicationId: true,
+      unit: { select: { id: true, property: { select: { ownerId: true, isArchived: true } } } }
+    }
+  });
+
+  if (!lead) return false;
+  if (isApplicantLike(user) && lead.email.toLowerCase() === user.email.toLowerCase()) return true;
+  if (lead.applicationId && (await canAccessApplication(user, lead.applicationId))) return true;
+  if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && lead.unit.property.ownerId === user.userId && !lead.unit.property.isArchived) return true;
+  if (!lead.unit.property.isArchived && (await hasActiveProfileConnection(user, lead.unit.property.ownerId, lead.unit.id))) return true;
 
   return false;
 }
@@ -397,6 +423,14 @@ export async function assertCanAccessProperty(user: AuthorizedUser, propertyId: 
 
 export async function assertCanAccessUnit(user: AuthorizedUser, unitId: string) {
   await assertAuthorized(await canAccessUnit(user, unitId), user, "Unit", unitId);
+}
+
+export async function assertCanAccessListing(user: AuthorizedUser, unitId: string) {
+  await assertAuthorized(await canAccessListing(user, unitId), user, "Unit", unitId);
+}
+
+export async function assertCanAccessLead(user: AuthorizedUser, leadId: string) {
+  await assertAuthorized(await canAccessLead(user, leadId), user, "Lead", leadId);
 }
 
 export async function assertCanAccessApplication(user: AuthorizedUser, applicationId: string) {

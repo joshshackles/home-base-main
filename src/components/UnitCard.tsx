@@ -35,6 +35,7 @@ type UnitCardProps = {
     schoolDistrict?: string | null;
     neighborhood?: string | null;
     averageUtilityBill?: number | null;
+    availableOn?: Date | null;
     parkingInfo?: string | null;
     laundryInfo?: string | null;
     status: string;
@@ -83,6 +84,16 @@ function featureText(unit: UnitCardProps["unit"]) {
   if (unit.schoolDistrict) features.push(unit.schoolDistrict);
   if (unit.accessibility) features.push("Accessible");
   return features.slice(0, 5);
+}
+
+function availabilityLabel(value: Date | null | undefined) {
+  if (!value) return "Available now";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const available = new Date(value);
+  available.setHours(0, 0, 0, 0);
+  if (available <= today) return "Available now";
+  return `Available ${available.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
 }
 
 export function UnitCard({
@@ -184,7 +195,7 @@ export function UnitCard({
             </form>
           ) : (
             <Link
-              href="/sign-in?next=/marketplace"
+              href="/login?next=/marketplace"
               className="rounded-full bg-white p-2 text-slate-600 shadow-sm ring-1 ring-slate-200 transition hover:text-rose-600"
               aria-label="Sign in to save rental"
             >
@@ -209,6 +220,10 @@ export function UnitCard({
           <span className="truncate">
             {unit.property.addressLine}, {unit.property.zip}
           </span>
+        </div>
+
+        <div className="mt-2 inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-emerald-700">
+          {availabilityLabel(unit.availableOn)}
         </div>
 
         {typeof listingQualityScore === "number" ? (

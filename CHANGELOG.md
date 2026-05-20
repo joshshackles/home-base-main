@@ -1,3 +1,117 @@
+## v4.46.0 - First Release Codebase Readiness
+
+- Centralized role navigation into a first-release pathway manifest so applicant, tenant, landlord, inspector, vendor, and admin shells share one route architecture.
+- Removed the unused legacy `WorkhorseDashboard` component now that role dashboards are the active dashboard system.
+- Replaced the historical all-up update verifier chain with a focused first-release verification gate.
+- Strengthened nonpublic unit photo access by reusing central `canAccessUnit` authorization instead of a one-off owner check.
+- Added first-release permission helpers for listing, lead, and admin operations access.
+- Removed generated TypeScript build metadata from the package tree and added the first-release audit document.
+
+## v4.45.0 - Workflow Polish & QA Pass
+
+- Added shared workflow polish primitives for consistent status labels, status badges, page headers, empty states, and first-run checklists.
+- Tightened marketplace search language around saved searches, filter clearing, no-results recovery, and broader-match actions.
+- Clarified applicant submission, landlord tenant-directory actions, maintenance queue actions, dashboard next-action labels, and empty activity copy.
+- Reused shared empty states and status badges in tenant search and maintenance workflows so labels and next steps feel consistent.
+- Added release documentation and a focused verifier for the workflow polish QA pass.
+
+## v4.44.0 - Admin Command Center & Super User
+
+- Upgraded `/admin` into a real platform operations command center with access requests, data quality, failed integrations, blocked workflows, sample-data safety, production health, security signals, audit activity, and quick actions.
+- Added `AccountAccessType.SUPER_USER` plus a migration and server-side permission helpers for super-user-only operations.
+- Added a protected `/admin/command-center` route that requires super-user access while keeping `/admin` useful for normal admin visibility.
+- Enforced super-user review for elevated `ADMIN` and `SUPER_USER` access requests in the existing access review action.
+- Added real data builders for quality checks, workflow blockers, integration failures, sample-data detection, elevated users, and production readiness labels without exposing secrets or fake metrics.
+- Updated admin navigation, release documentation, and verification markers for the new operations architecture.
+
+## v4.43.0 - Unified Messaging & Lead Inbox
+
+- Rebuilt `/landlord/inbox` into a unified communication center with lead questions, application conversations, maintenance threads, context cards, filters, search, metrics, and one reply composer.
+- Added a server-side `UnifiedInboxThread` adapter that normalizes `Lead`, `LeadNote`, `MessageThread`, and `Message` records without a destructive database migration.
+- Preserved existing authorization by scoping leads and message threads to landlord-owned or property-managed units and keeping reply actions server-protected.
+- Updated lead replies so landlords can answer from the unified inbox and return to the selected conversation after sending.
+- Pointed landlord dashboard lead questions into the unified inbox instead of splitting reply work across separate lead and message surfaces.
+- Documented the adapter strategy, unified sources, permission model, and remaining migration steps.
+- Added a focused verifier for the unified messaging and lead inbox release.
+
+## v4.42.0 - Marketplace Map/List Experience
+
+- Added a URL-backed marketplace view toggle for `Map preview` and `List`.
+- Added a sticky desktop location preview panel and mobile location drawer that group real filtered listings by city, ZIP, and neighborhood.
+- Added area count bubbles, area summary actions, and sample listing cards that preserve Marketplace Search v2 filters and sorting.
+- Kept the implementation honest because the current schema has addresses but no latitude/longitude or map provider dependency.
+- Documented the future full-map path: geocoded coordinates, address visibility controls, audited backfill, and a client-only map provider.
+- Added release documentation and a focused verifier for the map/list experience.
+
+## v4.41.0 - Marketplace Search v2
+
+- Added user-scoped saved marketplace searches with a new `SavedMarketplaceSearch` model and applicant saved-search display.
+- Added `Unit.availableOn`, landlord availability inputs, listing availability badges, and server-side availability filters.
+- Upgraded marketplace filters with mobile drawer controls, active filter chips, individual clear links, availability date filtering, and stronger sort options.
+- Added signed-in save-search actions and guest sign-in prompts while keeping search state URL-driven.
+- Rebuilt the no-results state with recovery actions and real broader-match listing fallbacks instead of a dead end.
+- Added release documentation and a focused verifier for Marketplace Search v2.
+
+## v4.40.0 - Applicant Journey Simplification
+
+- Added a guided apply route at `/applicant/apply/[unitId]` so signed-in applicants can review their reusable packet before authorizing profile sharing.
+- Added reusable packet readiness logic for identity, address, household, income, rental history, structured details, signature, and reusable documents.
+- Updated marketplace signed-in apply CTAs to emphasize "Review packet and apply" while keeping a compact one-click authorization form available.
+- Redirected marketplace application submission back to the applications list with a clear confirmation and direct detail link.
+- Added release documentation and a focused verifier for the simplified applicant journey.
+
+## v4.39.0 - Dedicated Tenant Portal
+
+- Added a first-class protected `/tenant` dashboard route for residents instead of sending tenant users back to the applicant home.
+- Added a resident-focused tenant dashboard shell with rent, lease, maintenance, notices, inspections, documents, messages, ledger, tasks, and calendar navigation.
+- Updated role-dashboard module home and tenant next-action links so tenant work points to `/tenant/...` URLs.
+- Added protected tenant workflow redirect routes that preserve the existing applicant-backed resident screens while establishing stable tenant URLs.
+- Added release documentation and a focused verifier for the dedicated tenant portal.
+
+## v4.38.0 - Role Clarity Next Action System
+
+- Added a role clarity layer to the shared dashboard model so every account type gets a clear role goal, current focus, primary next action, and follow-up actions.
+- Upgraded the shared role dashboard with a prominent "You are here" and "Do this next" section before the needs-attention queue.
+- Derived next actions from real needs-attention data first, then safe role empty states and authorized tools, avoiding fake work items.
+- Surfaced authorized modules directly in the dashboard clarity panel so users understand which workflows their role and approved access can use.
+- Added release documentation and a focused verifier for the role clarity and next action system.
+
+## v4.37.0 - Enterprise Public Homepage
+
+- Rebuilt the public homepage into an enterprise-grade housing marketplace and rental operations landing page.
+- Added a strong hero, rental search module, renter/landlord/housing-team/vendor pathways, platform ecosystem section, product preview, live featured listings, trust/security section, and final CTA.
+- Removed demo fallback listings and fake homepage metrics; the page now uses live marketplace data when available and honest empty/unavailable states when it is not.
+- Connected homepage search fields to the real `/marketplace` query parameters, including city, bedrooms, rent range, and voucher-friendly filtering.
+- Added release documentation and a focused verifier for homepage structure, live-data behavior, and version metadata.
+
+## v4.36.0 - Role-Based Dashboard System
+
+- Added a server-side role dashboard architecture that resolves dashboard modules from `UserRole` plus approved `AccountAccessRequest` records.
+- Added a smart `/dashboard` entry point that renders the correct role-based dashboard for the signed-in account without exposing unauthorized modules.
+- Added shared dashboard builders, permission helpers, reusable metric cards, task lists, tool grids, activity feed, and role dashboard UI components.
+- Added an inspector dashboard route with assigned inspection metrics, needs-attention work, report/reinspection signals, and protected inspector navigation.
+- Reworked admin and vendor dashboard landing pages to use the new role dashboard model while keeping existing protected admin/vendor subroutes intact.
+- Added role-aware navigation entry points and release verification for dashboard permissions, routes, and UI markers.
+
+## v4.35.0 - Landlord Tenant Directory
+
+- Added a landlord-facing Tenant Directory at `/landlord/tenants` for applicants, leads, current tenants, and past tenants connected to the landlord's own units.
+- Added server-scoped tenant visibility so directory and detail records are only loaded through applications, leads, occupancies, and units owned by the signed-in landlord.
+- Added marketplace CRM search, filters, sorting, pagination, metrics, badges, empty states, and quick actions for profile review, applications, messages, and lead replies.
+- Added privacy-aware tenant detail views with locked reusable profile states until an applicant has applied or authorized profile sharing.
+- Connected visible reusable profile, application detail, household, income, vehicle, voucher, document, unit, and message context into one landlord detail screen.
+- Added release documentation and a tenant directory verifier.
+
+## v4.34.0 - Landlord Dashboard Control Center
+
+- Rebuilt the landlord homepage into a purpose-built operating console instead of the shared generic dashboard.
+- Added high-priority sections for needs attention, recent messages/questions, applications pipeline, property/unit health, units needing action, task/lease work, and maintenance.
+- Surfaced applicant questions, unread message indicators, application packet authorization status, listing gaps, property vacancy, and next best actions directly on the dashboard.
+- Replaced the landlord applications table with a packet review queue that shows applicant authorization, household/income/document signals, unit context, message reply links, and next action guidance.
+- Added rental search and status/listing filters so landlords can find properties and units across larger portfolios.
+- Added stronger empty states, quick actions, mobile-friendly cards, clearer badges, and denser decision-oriented metrics for daily landlord work.
+- Added release documentation and a dashboard control-center verifier.
+
 ## v4.33.0 - Applicant Packet Fields & Tenant Visibility
 
 - Added structured driver license state/number, vehicle, license plate, and housing agency/case worker fields to reusable applicant profiles and application details.

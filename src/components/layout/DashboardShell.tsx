@@ -30,6 +30,7 @@ const shellIconMap = {
   PackageSearch,
   PlugZap,
   Route,
+  Search,
   ScreeningCheck: ClipboardCheck,
   Shield,
   ShieldCheck,
@@ -75,7 +76,7 @@ function ShellNavigation({ groups, onNavigate }: { groups: ShellNavGroup[]; onNa
   );
 }
 
-export function DashboardShell({ children, groups, title, accountLabel, inboxHref = "/applicant/inbox", quickCreateHref = "/marketplace" }: { children: ReactNode; groups: ShellNavGroup[]; title: string; accountLabel: string; inboxHref?: string; quickCreateHref?: string }) {
+export function DashboardShell({ children, groups, title, accountLabel, inboxHref = "/applicant/inbox", quickCreateHref = "/marketplace", quickCreateLabel = "Quick Action" }: { children: ReactNode; groups: ShellNavGroup[]; title: string; accountLabel: string; inboxHref?: string; quickCreateHref?: string; quickCreateLabel?: string }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const flatItems = useMemo(() => groups.flatMap((group) => group.items), [groups]);
@@ -173,7 +174,7 @@ export function DashboardShell({ children, groups, title, accountLabel, inboxHre
                 <Bell size={17} />
               </Link>
               <Link href={quickCreateHref} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white hover:bg-blue-700">
-                <Sparkles size={15} /> Quick create
+                <Sparkles size={15} /> {quickCreateLabel}
               </Link>
             </div>
             <nav className="flex gap-1 overflow-x-auto border-t border-slate-100 px-3 py-1.5 lg:hidden">

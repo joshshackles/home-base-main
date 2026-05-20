@@ -2,7 +2,7 @@
 
 Premium housing operations platform for properties, units, leads, applications, documents, inspections, lease packets, e-signature evidence, notifications, communication, payments, and ledgers.
 
-Current package version: **4.33.0**
+Current package version: **4.46.0**
 
 ## What is included
 
@@ -78,6 +78,12 @@ Update docs live in `docs/`, including:
 
 - `UPDATE_2_LEAD_SPAM_PROTECTION.md`
 - `UPDATE_5_SECURITY_HEADERS.md`
+- `ENTERPRISE_PUBLIC_HOMEPAGE.md`
+- `ROLE_CLARITY_NEXT_ACTION.md`
+- `DEDICATED_TENANT_PORTAL.md`
+- `APPLICANT_JOURNEY_SIMPLIFICATION.md`
+- `MARKETPLACE_SEARCH_V2.md`
+- `MARKETPLACE_MAP_LIST_EXPERIENCE.md`
 - `UPDATE_6_OBJECT_STORAGE.md`
 - `UPDATE_7_PDF_GENERATOR.md`
 - `e-signature-evidence.md`

@@ -99,6 +99,7 @@ async function assertOwnsApplication(
 function revalidateApplicant() {
   revalidatePath("/applicant");
   revalidatePath("/applicant/applications");
+  revalidatePath("/applicant/apply/[unitId]", "page");
   revalidatePath("/applicant/profile");
   revalidatePath("/applicant/favorites");
   revalidatePath("/applicant/home-tools");
@@ -414,7 +415,8 @@ export async function startMarketplaceApplication(formData: FormData) {
   revalidatePath("/landlord/applications");
   revalidatePath("/landlord/inbox");
   revalidatePath(`/marketplace/${unit.id}`);
-  redirect(`/applicant/applications/${application.id}?applied=1`);
+  revalidatePath(`/applicant/apply/${unit.id}`);
+  redirect(`/applicant/applications?applied=1&applicationId=${application.id}`);
 }
 
 export async function addHouseholdMember(formData: FormData) {

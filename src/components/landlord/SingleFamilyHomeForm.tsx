@@ -74,6 +74,9 @@ export function SingleFamilyHomeForm() {
         <Field label="Rent due day">
           <input name="rentDueDay" type="number" min="1" max="31" step="1" className={inputClass} placeholder="1" />
         </Field>
+        <Field label="Available date">
+          <input name="availableOn" type="date" className={inputClass} />
+        </Field>
         <div className="rounded-2xl bg-brand-50 p-4">
           <label className="flex items-start gap-3 text-sm font-semibold text-brand-900">
             <input type="checkbox" name="voucherFriendly" className="mt-1 h-4 w-4 rounded border-slate-300" />

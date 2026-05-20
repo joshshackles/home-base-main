@@ -15,7 +15,7 @@ type LandlordUnitFormProps = {
     bedrooms: number; bathrooms: number; rentAmount: number; deposit: number | null; squareFeet: number | null; voucherFriendly: boolean;
     utilitiesNote: string | null; accessibility: string | null; petPolicy: string | null; schoolDistrict: string | null; neighborhood: string | null; nearbyFeatures: string | null;
     yearBuilt: number | null; roofAgeYears: number | null; averageUtilityBill: number | null; parkingInfo: string | null; laundryInfo: string | null; appliancesIncluded: string | null;
-    flooringInfo: string | null; yardInfo: string | null; smokingPolicy: string | null; leaseTermsNote: string | null; moveInFeesNote: string | null; rentDueDay: number | null;
+    flooringInfo: string | null; yardInfo: string | null; smokingPolicy: string | null; leaseTermsNote: string | null; moveInFeesNote: string | null; availableOn: Date | null; rentDueDay: number | null;
     lateFeePolicy: string | null; previousTenantNotes: string | null; status: UnitStatus; description: string | null; clientNotes: string | null; importantContacts: string | null;
   };
 };
@@ -58,6 +58,7 @@ export function LandlordUnitForm({ tenants = [], applications = [], unit }: Land
         <Field label="Roof age"><input name="roofAgeYears" type="number" min="0" step="1" defaultValue={unit?.roofAgeYears ?? ""} className={inputClass} placeholder="Years" /></Field>
         <Field label="Average utility bill"><input name="averageUtilityBill" type="number" min="0" step="1" defaultValue={unit?.averageUtilityBill ?? ""} className={inputClass} /></Field>
         <Field label="Rent due day"><input name="rentDueDay" type="number" min="1" max="31" step="1" defaultValue={unit?.rentDueDay ?? ""} className={inputClass} placeholder="1" /></Field>
+        <Field label="Available date"><input name="availableOn" type="date" defaultValue={unit?.availableOn ? unit.availableOn.toISOString().slice(0, 10) : ""} className={inputClass} /></Field>
         <div className="rounded-2xl bg-brand-50 p-4 md:col-span-2"><label className="flex items-start gap-3 text-sm font-semibold text-brand-900"><input type="checkbox" name="voucherFriendly" defaultChecked={unit?.voucherFriendly ?? false} className="mt-1 h-4 w-4 rounded border-slate-300" /><span>Voucher-friendly listing<span className="block pt-1 text-xs font-normal leading-5 text-brand-900/70">Use this when the rental is open to voucher-assisted applicants.</span></span></label></div>
         <Field label="Utilities note"><textarea name="utilitiesNote" defaultValue={unit?.utilitiesNote ?? ""} className={textareaClass} /></Field>
         <Field label="Pet policy"><textarea name="petPolicy" defaultValue={unit?.petPolicy ?? ""} className={textareaClass} /></Field>

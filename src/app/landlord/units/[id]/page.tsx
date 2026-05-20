@@ -466,6 +466,7 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
               <Info label="Monthly rent" value={formatCurrency(unit.rentAmount)} />
               <Info label="Deposit" value={unit.deposit ? formatCurrency(unit.deposit) : "Not set"} />
               <Info label="Estimated move-in" value={formatCurrency(moveInTotal)} />
+              <Info label="Available date" value={unit.availableOn ? unit.availableOn.toLocaleDateString() : "Available now"} />
               <Info label="Rent due day" value={unit.rentDueDay ? `Day ${unit.rentDueDay}` : "Not set"} />
               <Info label="Average utilities" value={unit.averageUtilityBill ? formatCurrency(unit.averageUtilityBill) : "Not set"} />
               <Info label="Late fee policy" value={unit.lateFeePolicy ?? "Not set"} />
@@ -482,6 +483,7 @@ export default async function LandlordUnitDetailPage({ params, searchParams }: {
                 <label className="block"><span className="text-sm font-bold text-slate-700">Deposit</span><input name="deposit" type="number" min="0" defaultValue={unit.deposit ?? ""} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                 <label className="block"><span className="text-sm font-bold text-slate-700">Average utilities</span><input name="averageUtilityBill" type="number" min="0" defaultValue={unit.averageUtilityBill ?? ""} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                 <label className="block"><span className="text-sm font-bold text-slate-700">Rent due day</span><input name="rentDueDay" type="number" min="1" max="31" defaultValue={unit.rentDueDay ?? ""} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
+                <label className="block"><span className="text-sm font-bold text-slate-700">Available date</span><input name="availableOn" type="date" defaultValue={unit.availableOn ? unit.availableOn.toISOString().slice(0, 10) : ""} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                 <label className="block md:col-span-2"><span className="text-sm font-bold text-slate-700">Lease terms</span><textarea name="leaseTermsNote" rows={3} defaultValue={unit.leaseTermsNote ?? ""} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                 <label className="block"><span className="text-sm font-bold text-slate-700">Move-in fees</span><textarea name="moveInFeesNote" rows={3} defaultValue={unit.moveInFeesNote ?? ""} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                 <label className="block"><span className="text-sm font-bold text-slate-700">Late fee policy</span><textarea name="lateFeePolicy" rows={3} defaultValue={unit.lateFeePolicy ?? ""} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>

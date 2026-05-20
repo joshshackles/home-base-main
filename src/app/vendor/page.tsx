@@ -1,11 +1,11 @@
 export const dynamic = "force-dynamic";
 
 import { requireUser } from "@/lib/auth";
-import { getVendorPortal } from "@/lib/vendors";
-import { VendorPortalView } from "@/components/vendors/VendorPortalView";
+import { buildDashboardForModule } from "@/lib/dashboard/role-dashboard";
+import { RoleDashboard } from "@/components/dashboard/RoleDashboard";
 
 export default async function VendorDashboardPage() {
   const user = await requireUser("/vendor");
-  const data = await getVendorPortal(user.userId);
-  return <VendorPortalView data={data} active="overview" />;
+  const model = await buildDashboardForModule(user, "vendor");
+  return <RoleDashboard model={model} />;
 }

@@ -18,6 +18,7 @@ enum UserRole {
 }
 
 enum AccountAccessType {
+  SUPER_USER
   LANDLORD
   PROPERTY_MANAGER
   CASEWORKER
@@ -808,6 +809,7 @@ model User {
   createdPaymentPlans PaymentPlan[] @relation("CreatedPaymentPlans")
   currentTenantUnits Unit[] @relation("CurrentTenantUnits")
   favoriteRentals FavoriteRental[]
+  savedMarketplaceSearches SavedMarketplaceSearch[]
   utilityAccounts UtilityAccount[]
   payrollReminders PayrollReminder[]
   tenantPayments TenantPayment[]
@@ -1078,6 +1080,7 @@ model Unit {
   smokingPolicy   String?
   leaseTermsNote  String?
   moveInFeesNote  String?
+  availableOn     DateTime?
   rentDueDay      Int?
   lateFeePolicy   String?
   previousTenantNotes String?
@@ -1414,6 +1417,21 @@ model FavoriteRental {
   @@unique([userId, unitId])
   @@index([userId])
   @@index([unitId])
+  @@index([createdAt])
+}
+
+model SavedMarketplaceSearch {
+  id        String   @id @default(cuid())
+  userId    String
+  label     String
+  query     String?
+  filters   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
   @@index([createdAt])
 }
 

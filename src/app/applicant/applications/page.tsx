@@ -13,7 +13,7 @@ function label(value: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-export default async function ApplicantApplicationsPage({ searchParams }: { searchParams?: { submitted?: string } }) {
+export default async function ApplicantApplicationsPage({ searchParams }: { searchParams?: { submitted?: string; applied?: string; applicationId?: string } }) {
   const user = await requireRole(
     ["APPLICANT", "TENANT"],
     "/applicant/applications",
@@ -62,6 +62,16 @@ export default async function ApplicantApplicationsPage({ searchParams }: { sear
           Browse Listings
         </Link>
       </div>
+      {searchParams?.applied === "1" ? (
+        <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 font-bold text-emerald-900">
+          Application sent. Your reusable renter packet was shared with the rental team and this application is now in your list.
+          {searchParams.applicationId ? (
+            <Link href={`/applicant/applications/${searchParams.applicationId}`} className="ml-2 underline">
+              View details
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
       {searchParams?.submitted === "1" ? (
         <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 font-bold text-emerald-900">
           Application submitted. It is now in the review queue.

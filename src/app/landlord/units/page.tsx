@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { MaintenanceRequestStatus } from "@prisma/client";
+import { MaintenanceRequestStatus, RentalMarketingStatus, UnitStatus } from "@prisma/client";
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";
 import { formatCurrency } from "@/lib/format";
 import { requireRole } from "@/lib/auth";
@@ -12,10 +12,33 @@ function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-export default async function LandlordUnitsPage() {
+export default async function LandlordUnitsPage({ searchParams }: { searchParams?: { q?: string; status?: string; marketing?: string } }) {
   const user = await requireRole(["LANDLORD"], "/landlord");
+  const query = searchParams?.q?.trim() ?? "";
+  const statusValue = searchParams?.status?.trim() ?? "";
+  const marketingValue = searchParams?.marketing?.trim() ?? "";
+  const status = Object.values(UnitStatus).includes(statusValue as UnitStatus) && statusValue !== UnitStatus.ARCHIVED ? statusValue as UnitStatus : "";
+  const marketing = Object.values(RentalMarketingStatus).includes(marketingValue as RentalMarketingStatus) && marketingValue !== RentalMarketingStatus.ARCHIVED ? marketingValue as RentalMarketingStatus : "";
+  const unitWhere = {
+    property: { ownerId: user.userId, isArchived: false },
+    NOT: { status: "ARCHIVED" },
+    ...(status ? { status } : {}),
+    ...(marketing ? { marketingStatus: marketing } : {}),
+    ...(query
+      ? {
+          OR: [
+            { unitNumber: { contains: query, mode: "insensitive" as const } },
+            { marketingHeadline: { contains: query, mode: "insensitive" as const } },
+            { description: { contains: query, mode: "insensitive" as const } },
+            { property: { name: { contains: query, mode: "insensitive" as const } } },
+            { property: { addressLine: { contains: query, mode: "insensitive" as const } } },
+            { property: { city: { contains: query, mode: "insensitive" as const } } }
+          ]
+        }
+      : {})
+  };
   const units = await prisma.unit.findMany({
-    where: { property: { ownerId: user.userId, isArchived: false }, NOT: { status: "ARCHIVED" } },
+    where: unitWhere,
     include: {
       property: true,
       tenantUser: true,
@@ -33,6 +56,32 @@ export default async function LandlordUnitsPage() {
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <LandlordPageHeader title="My Rentals" description="Create rental listings as one record with address, rental type, pricing, photos, tenant links, and marketplace status." actionHref="/landlord/rentals/new" actionLabel="Add Rental" />
+      <form className="mb-6 grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_180px_180px_auto]" action="/landlord/rentals">
+        <label className="grid gap-1 text-xs font-black uppercase text-slate-500">
+          Search rentals
+          <input name="q" defaultValue={query} className="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold normal-case text-slate-900" placeholder="Property, address, city, unit, listing text..." />
+        </label>
+        <label className="grid gap-1 text-xs font-black uppercase text-slate-500">
+          Unit status
+          <select name="status" defaultValue={status} className="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold normal-case text-slate-900">
+            <option value="">All statuses</option>
+            <option value="AVAILABLE">Available</option>
+            <option value="PENDING">Pending</option>
+            <option value="OCCUPIED">Occupied</option>
+            <option value="UNAVAILABLE">Unavailable</option>
+          </select>
+        </label>
+        <label className="grid gap-1 text-xs font-black uppercase text-slate-500">
+          Listing
+          <select name="marketing" defaultValue={marketing} className="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold normal-case text-slate-900">
+            <option value="">All listings</option>
+            <option value="ACTIVE">Public</option>
+            <option value="DRAFT">Draft</option>
+            <option value="PAUSED">Paused</option>
+          </select>
+        </label>
+        <button className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 md:self-end">Filter</button>
+      </form>
       {units.length > 0 ? (
         <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {units.map((unit) => {
