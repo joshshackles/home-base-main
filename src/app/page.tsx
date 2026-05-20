@@ -68,7 +68,8 @@ const starterSlides: HomepageHeroSlideView[] = [
     secondaryLabel: "List Your Property",
     secondaryHref: "/signup?intent=landlord",
     imageAlt: "Modern apartment building at dusk",
-    imageUrl: "/homebase-hero-reference.png"
+    imageUrl: "/homebase-hero-building-slide.png",
+    imagePosition: "center"
   }
 ];
 
@@ -91,14 +92,14 @@ export default async function HomePage() {
 
 function SearchPanel() {
   return (
-    <section className="relative z-10 -mt-16 px-4 sm:px-6 lg:px-8" aria-label="Rental search">
-      <form action="/marketplace" className="mx-auto grid max-w-[1320px] gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-950/10 lg:grid-cols-[1.35fr_1fr_1fr_0.75fr_0.75fr_auto] lg:items-end">
+    <section className="relative z-10 -mt-12 px-5 sm:px-8 lg:px-12" aria-label="Rental search">
+      <form action="/marketplace" className="mx-auto grid max-w-[1380px] gap-5 rounded-md border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-950/10 lg:grid-cols-[1.35fr_1fr_1fr_0.75fr_0.75fr_auto] lg:items-end">
         <SearchField label="Location" icon={<MapPin size={22} />} name="q" placeholder="City, Neighborhood, or ZIP" />
         <SelectField label="Property Type" icon={<Building2 size={21} />} name="propertyType" options={[["", "Any Type"], ...Object.values(RentalPropertyType).map((type) => [type, titleCase(type)])]} />
         <SelectField label="Price Range" icon={<Home size={21} />} name="maxRent" options={[["", "Any Price"], ["1000", "Up to $1,000"], ["1500", "Up to $1,500"], ["2000", "Up to $2,000"], ["2500", "Up to $2,500"], ["3000", "Up to $3,000"]]} />
         <SelectField label="Beds" icon={<BedDouble size={21} />} name="bedrooms" options={[["", "Any"], ["1", "1+"], ["2", "2+"], ["3", "3+"], ["4", "4+"]]} />
         <SelectField label="Baths" icon={<Bath size={21} />} name="bathrooms" options={[["", "Any"], ["1", "1+"], ["1.5", "1.5+"], ["2", "2+"], ["3", "3+"]]} />
-        <button type="submit" className="inline-flex h-14 items-center justify-center gap-2 rounded-md bg-slate-950 px-8 text-sm font-black text-white shadow-lg shadow-slate-950/15 transition hover:bg-slate-800">
+        <button type="submit" className="inline-flex h-14 items-center justify-center gap-2 rounded-md bg-[#061c3f] px-9 text-sm font-black text-white shadow-lg shadow-slate-950/15 transition hover:bg-slate-900">
           <Search size={18} /> Search
         </button>
       </form>
@@ -115,11 +116,11 @@ function TrustStrip() {
   ];
 
   return (
-    <section className="bg-white px-4 pt-9 sm:px-6 lg:px-8">
-      <div className="mx-auto grid max-w-[1320px] gap-6 border-b border-slate-200 pb-8 md:grid-cols-2 xl:grid-cols-4">
+    <section className="bg-white px-5 pt-9 sm:px-8 lg:px-12">
+      <div className="mx-auto grid max-w-[1380px] gap-7 border-b border-slate-200 pb-8 md:grid-cols-2 xl:grid-cols-4">
         {items.map(({ icon: Icon, title, text }) => (
           <div key={title} className="flex items-center gap-5">
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-950 shadow-inner">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-slate-50 text-[#061c3f] shadow-inner">
               <Icon size={29} strokeWidth={2.1} />
             </span>
             <div>
@@ -135,8 +136,8 @@ function TrustStrip() {
 
 function FeaturedListings({ units, dataAvailable }: { units: FeaturedUnit[]; dataAvailable: boolean }) {
   return (
-    <section className="bg-white px-4 py-7 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1320px]">
+    <section className="bg-white px-5 py-7 sm:px-8 lg:px-12">
+      <div className="mx-auto max-w-[1380px]">
         <div className="flex items-end justify-between gap-5">
           <div>
             <h2 className="text-2xl font-black text-slate-950">Featured Rentals</h2>

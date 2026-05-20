@@ -35,6 +35,7 @@ const shellIconMap = {
   ScreeningCheck: ClipboardCheck,
   Shield,
   ShieldCheck,
+  Sparkles,
   TestTube2,
   UserRound,
   Users,

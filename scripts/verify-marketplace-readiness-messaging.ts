@@ -92,12 +92,12 @@ assertIncludes("src/app/landlord/inbox/page.tsx", [
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.61.2\"",
+  "\"version\": \"4.61.4\"",
   "\"marketplace-readiness-messaging:verify\"",
   "admin-ops-marketplace-discovery:verify && npm run marketplace-readiness-messaging:verify"
 ]);
-assertIncludes("src/lib/app-version.ts", ["4.61.2"]);
-assertIncludes("README.md", ["Current package version: **4.61.2**"]);
-assertIncludes("CHANGELOG.md", ["## v4.61.2 - Admin Branding Slide Search Param Fix"]);
+assertIncludes("src/lib/app-version.ts", ["4.61.4"]);
+assertIncludes("README.md", ["Current package version: **4.61.4**"]);
+assertIncludes("CHANGELOG.md", ["## v4.61.4 - Homepage Reference Fidelity Pass"]);
 
 console.log("Marketplace readiness and unified messaging canonicalization verification passed.");

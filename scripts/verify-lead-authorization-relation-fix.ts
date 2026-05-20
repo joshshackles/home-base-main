@@ -37,13 +37,13 @@ assertIncludes("prisma/schema.prisma", [
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.61.2\"",
+  "\"version\": \"4.61.4\"",
   "\"lead-authorization-relation-fix:verify\"",
   "admin-command-center-inspection-title-fix:verify && npm run lead-authorization-relation-fix:verify",
 ]);
-assertIncludes("package-lock.json", ["\"version\": \"4.61.2\""]);
-assertIncludes("src/lib/app-version.ts", ["4.61.2"]);
-assertIncludes("README.md", ["Current package version: **4.61.2**"]);
-assertIncludes("CHANGELOG.md", ["## v4.61.2 - Admin Branding Slide Search Param Fix"]);
+assertIncludes("package-lock.json", ["\"version\": \"4.61.4\""]);
+assertIncludes("src/lib/app-version.ts", ["4.61.4"]);
+assertIncludes("README.md", ["Current package version: **4.61.4**"]);
+assertIncludes("CHANGELOG.md", ["## v4.61.4 - Homepage Reference Fidelity Pass"]);
 
 console.log("Lead authorization relation fix verification passed.");

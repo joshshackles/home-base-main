@@ -16,11 +16,11 @@ function assertContains(path: string, marker: string) {
   if (!source.includes(marker)) throw new Error(`${path} is missing ${marker}`);
 }
 
-assertContains("package.json", '"version": "4.61.2"');
+assertContains("package.json", '"version": "4.61.4"');
 assertContains("package.json", '"homepage-slider-marketplace-refresh:verify": "tsx scripts/verify-homepage-slider-marketplace-refresh.ts"');
-assertContains("CHANGELOG.md", "## v4.61.2 - Admin Branding Slide Search Param Fix");
-assertContains("src/lib/app-version.ts", "4.61.2");
-assertContains("README.md", "Current package version: **4.61.2**");
+assertContains("CHANGELOG.md", "## v4.61.4 - Homepage Reference Fidelity Pass");
+assertContains("src/lib/app-version.ts", "4.61.4");
+assertContains("README.md", "Current package version: **4.61.4**");
 
 assertContains("prisma/schema.prisma", "model HomepageHeroSlide");
 assertContains("prisma/schema.prisma", "@@index([isActive, sortOrder])");
@@ -38,7 +38,7 @@ assertContains("src/app/page.tsx", "Find Your Next Home. Simplified.");
 assertContains("src/app/page.tsx", "HomepageHeroSlider");
 assertContains("src/app/page.tsx", "SearchPanel");
 assertContains("src/app/page.tsx", "Featured Rentals");
-assertContains("src/app/page.tsx", "homebase-hero-reference.png");
+assertContains("src/app/page.tsx", "homebase-hero-building-slide.png");
 assertContains("src/app/page.tsx", "prisma.homepageHeroSlide.findMany");
 
 assertContains("src/app/admin/actions.ts", "uploadHomepageHeroSlideAction");

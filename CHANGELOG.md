@@ -1,3 +1,14 @@
+## v4.61.4 - Homepage Reference Fidelity Pass
+
+- Tightened the public homepage toward the uploaded MLS reference: shorter image-led hero, deep navy overlay, square CTAs, overlapping search panel, wider content rail, and compact trust/listing rhythm.
+- Added a cropped apartment-building starter slide derived from the uploaded image so the fallback slider visual matches the reference instead of showing the full mockup screenshot.
+- Added `homepage-reference-fidelity-pass:verify` to keep the reference-specific hero/search/header markers covered.
+
+## v4.61.3 - Dashboard Shell Sparkles Icon Fix
+
+- Fixed the admin navigation type error caught by Vercel by adding `Sparkles` to the typed `DashboardShell` icon registry.
+- Added `dashboard-shell-sparkles-icon-fix:verify` so new typed shell icons remain covered before `next build`.
+
 ## v4.61.2 - Admin Branding Slide Search Param Fix
 
 - Fixed the `/admin/branding` type error caught by Vercel by adding the `slide` query parameter to the page search params contract.

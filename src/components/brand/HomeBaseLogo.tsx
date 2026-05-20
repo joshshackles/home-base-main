@@ -11,9 +11,9 @@ export function HomeBaseMark({ tone = "dark", ...props }: Omit<LogoProps, "showW
 
   return (
     <svg viewBox="0 0 48 48" aria-hidden="true" {...props}>
-      <rect width="48" height="48" rx="14" fill={tone === "light" ? "#111827" : "#FFFFFF"} />
-      <path d="M13 34V17.7L24 10l11 7.7V34h-7.7V23.5h-6.6V34H13Z" fill={accent} />
-      <path d="M18.6 34V20.9L24 17l5.4 3.9V34h-2.1V23.5h-6.6V34h-2.1Z" fill={foreground} opacity="0.92" />
+      {tone === "light" ? <rect width="48" height="48" rx="14" fill="#111827" /> : null}
+      <path d="M8 23.5 24 11l16 12.5-3.3 4.1-2.7-2.1V39H14V25.5l-2.7 2.1L8 23.5Z" fill={tone === "light" ? accent : "#061c3f"} />
+      <path d="M20.3 39V28.5h7.4V39" fill={tone === "light" ? foreground : "#FFFFFF"} opacity={tone === "light" ? 0.92 : 1} />
     </svg>
   );
 }

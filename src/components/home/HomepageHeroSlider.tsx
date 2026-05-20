@@ -14,6 +14,7 @@ export type HomepageHeroSlideView = {
   secondaryHref: string | null;
   imageAlt: string;
   imageUrl: string;
+  imagePosition?: string;
 };
 
 export function HomepageHeroSlider({ slides }: { slides: HomepageHeroSlideView[] }) {
@@ -31,7 +32,7 @@ export function HomepageHeroSlider({ slides }: { slides: HomepageHeroSlideView[]
   if (!slide) return null;
 
   return (
-    <section className="relative min-h-[520px] overflow-hidden bg-slate-950 text-white lg:min-h-[590px]">
+    <section className="relative min-h-[400px] overflow-hidden bg-slate-950 text-white lg:min-h-[410px]">
       {safeSlides.map((item, index) => (
         <div
           key={item.id}
@@ -39,31 +40,31 @@ export function HomepageHeroSlider({ slides }: { slides: HomepageHeroSlideView[]
           className={`absolute inset-0 transition-opacity duration-700 ${index === active ? "opacity-100" : "opacity-0"}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/82 to-slate-950/10" />
-          <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-white to-transparent" />
+          <img src={item.imageUrl} alt="" className="h-full w-full object-cover" style={{ objectPosition: item.imagePosition ?? "center" }} />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#061c3f] via-[#061c3f]/92 to-[#061c3f]/5" />
+          <div className="absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-[#061c3f]/10 to-transparent" />
         </div>
       ))}
 
-      <div className="relative mx-auto flex min-h-[520px] max-w-7xl flex-col justify-center px-4 py-14 sm:px-6 lg:min-h-[590px] lg:px-8">
+      <div className="relative mx-auto flex min-h-[400px] max-w-[1380px] flex-col justify-center px-5 pb-20 pt-10 sm:px-8 lg:min-h-[410px] lg:px-12">
         <div className="max-w-2xl">
-          <h1 className="text-5xl font-black leading-[1.05] tracking-tight text-white drop-shadow-sm sm:text-6xl lg:text-7xl">
+          <h1 className="max-w-[560px] text-[44px] font-black leading-[1.08] tracking-tight text-white drop-shadow-sm sm:text-[56px] lg:text-[58px]">
             {slide.title}
           </h1>
-          {slide.subtitle ? <p className="mt-6 max-w-xl text-xl leading-8 text-white/90">{slide.subtitle}</p> : null}
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href={slide.ctaHref} className="inline-flex items-center justify-center rounded-md bg-white px-7 py-4 text-sm font-black text-slate-950 shadow-xl shadow-slate-950/20 transition hover:bg-slate-100">
+          {slide.subtitle ? <p className="mt-5 max-w-[520px] text-[20px] leading-8 text-white/92">{slide.subtitle}</p> : null}
+          <div className="mt-7 flex flex-col gap-4 sm:flex-row">
+            <Link href={slide.ctaHref} className="inline-flex h-12 items-center justify-center rounded-md bg-white px-8 text-[15px] font-black text-slate-950 shadow-xl shadow-slate-950/20 transition hover:bg-slate-100">
               {slide.ctaLabel}
             </Link>
             {slide.secondaryLabel && slide.secondaryHref ? (
-              <Link href={slide.secondaryHref} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/70 bg-white/5 px-7 py-4 text-sm font-black text-white transition hover:bg-white/15">
+              <Link href={slide.secondaryHref} className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-white/70 bg-white/5 px-8 text-[15px] font-black text-white transition hover:bg-white/15">
                 {slide.secondaryLabel} <ArrowRight size={16} />
               </Link>
             ) : null}
           </div>
         </div>
 
-        <div className="absolute bottom-16 left-4 flex items-center gap-3 sm:left-6 lg:left-8">
+        <div className="absolute bottom-6 left-5 flex items-center gap-3 sm:left-8 lg:left-12">
           <div className="flex rounded-full bg-white/15 p-1 backdrop-blur">
             {safeSlides.map((item, index) => (
               <button

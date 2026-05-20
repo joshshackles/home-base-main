@@ -19,7 +19,7 @@ function dashboardHref(user: VerifiedUser) {
 export function AppHeader({ user }: { user: VerifiedUser }) {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 text-slate-950 shadow-sm shadow-slate-950/[0.03] backdrop-blur">
-      <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-12">
+      <div className="mx-auto flex h-[70px] max-w-[1440px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-12">
         <Link href="/" className="flex items-center gap-2 font-bold" aria-label="HomeBase MLS homepage">
           <HomeBaseLogo tone="dark" />
         </Link>
@@ -48,7 +48,7 @@ export function AppHeader({ user }: { user: VerifiedUser }) {
           ) : (
             <>
               <Link className="hidden rounded-md px-4 py-2 text-sm font-black text-slate-900 hover:bg-slate-100 sm:inline-flex" href="/login">Log In</Link>
-              <Link className="rounded-md bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-slate-800" href="/signup">Sign Up</Link>
+              <Link className="rounded-md bg-[#061c3f] px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-slate-900" href="/signup">Sign Up</Link>
             </>
           )}
           <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-md text-slate-950 hover:bg-slate-100" aria-label="Open menu">
