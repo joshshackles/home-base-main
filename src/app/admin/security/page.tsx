@@ -1,5 +1,6 @@
 import { ShieldCheck, TriangleAlert, CheckCircle2 } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { requireCapability } from "@/lib/role-capabilities.server";
 
 const completed = [
   "Admin server actions call the same server-side role check as the admin layout.",
@@ -21,7 +22,9 @@ const remaining = [
   "Move the in-memory rate-limit fallback to Redis or another persistent store before deploying on serverless infrastructure."
 ];
 
-export default function SecurityPage() {
+export default async function SecurityPage() {
+  await requireCapability("super-admin.security", "/admin/security");
+
   return (
     <main id="main-content" className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
       <AdminPageHeader

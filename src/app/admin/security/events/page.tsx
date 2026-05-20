@@ -2,8 +2,10 @@ export const dynamic = "force-dynamic";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { prisma } from "@/lib/prisma";
+import { requireCapability } from "@/lib/role-capabilities.server";
 
 export default async function SecurityEventsPage() {
+  await requireCapability("super-admin.security", "/admin/security/events");
   const events = await prisma.securityEvent.findMany({ orderBy: { createdAt: "desc" }, take: 100 });
 
   return (

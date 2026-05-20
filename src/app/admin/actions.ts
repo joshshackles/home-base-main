@@ -134,6 +134,81 @@ export async function saveAdminBrandingAction(formData: FormData) {
   redirect("/admin/branding?saved=1");
 }
 
+export async function uploadHomepageHeroSlideAction(formData: FormData) {
+  const actor = await requireAdminAction();
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) throw new Error("Choose a homepage slider image to upload.");
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error("Homepage slider images must be JPEG, PNG, or WebP.");
+
+  const stored = await saveUploadedDocument(file);
+  const maxOrder = await prisma.homepageHeroSlide.aggregate({ _max: { sortOrder: true } });
+  const title = requiredString(formData, "title", "Slide headline", 120);
+  const imageAlt = requiredString(formData, "imageAlt", "Image alt text", 180);
+
+  const created = await prisma.homepageHeroSlide.create({
+    data: {
+      title,
+      subtitle: optionalString(formData, "subtitle"),
+      ctaLabel: optionalString(formData, "ctaLabel") ?? "Search Rentals",
+      ctaHref: optionalString(formData, "ctaHref") ?? "/marketplace",
+      secondaryLabel: optionalString(formData, "secondaryLabel"),
+      secondaryHref: optionalString(formData, "secondaryHref"),
+      imageAlt,
+      originalName: stored.originalName,
+      mimeType: stored.mimeType,
+      sizeBytes: stored.sizeBytes,
+      storagePath: stored.storagePath,
+      sortOrder: (maxOrder._max.sortOrder ?? 0) + 10,
+      createdById: actor.userId
+    }
+  });
+
+  await writeAuditLog({ actor, action: AuditAction.UPLOAD, entityType: "HomepageHeroSlide", entityId: created.id, message: `Uploaded homepage hero slide ${created.title}.` });
+  revalidatePath("/");
+  revalidatePath("/admin/branding");
+  redirect("/admin/branding?slide=uploaded");
+}
+
+export async function updateHomepageHeroSlideAction(formData: FormData) {
+  const actor = await requireAdminAction();
+  const slideId = requiredString(formData, "slideId", "Slide ID");
+  const sortOrder = Number.parseInt(String(formData.get("sortOrder") ?? "0"), 10);
+
+  const updated = await prisma.homepageHeroSlide.update({
+    where: { id: slideId },
+    data: {
+      title: requiredString(formData, "title", "Slide headline", 120),
+      subtitle: optionalString(formData, "subtitle"),
+      ctaLabel: optionalString(formData, "ctaLabel") ?? "Search Rentals",
+      ctaHref: optionalString(formData, "ctaHref") ?? "/marketplace",
+      secondaryLabel: optionalString(formData, "secondaryLabel"),
+      secondaryHref: optionalString(formData, "secondaryHref"),
+      imageAlt: requiredString(formData, "imageAlt", "Image alt text", 180),
+      sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+      isActive: formData.get("isActive") === "on"
+    }
+  });
+
+  await writeAuditLog({ actor, action: AuditAction.UPDATE, entityType: "HomepageHeroSlide", entityId: updated.id, message: `Updated homepage hero slide ${updated.title}.` });
+  revalidatePath("/");
+  revalidatePath("/admin/branding");
+  redirect("/admin/branding?slide=updated");
+}
+
+export async function deleteHomepageHeroSlideAction(formData: FormData) {
+  const actor = await requireAdminAction();
+  const slideId = requiredString(formData, "slideId", "Slide ID");
+  const slide = await prisma.homepageHeroSlide.findUnique({ where: { id: slideId } });
+  if (!slide) throw new Error("Homepage slide was not found.");
+
+  await prisma.homepageHeroSlide.delete({ where: { id: slideId } });
+  await removeStoredDocument(slide.storagePath);
+  await writeAuditLog({ actor, action: AuditAction.DELETE, entityType: "HomepageHeroSlide", entityId: slide.id, message: `Deleted homepage hero slide ${slide.title}.` });
+  revalidatePath("/");
+  revalidatePath("/admin/branding");
+  redirect("/admin/branding?slide=deleted");
+}
+
 
 function revalidateIntegrationsHubModule(base: "admin" | "landlord" = "admin") {
   for (const path of integrationsHubPaths(base)) revalidatePath(path);

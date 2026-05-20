@@ -1,4 +1,4 @@
-import { AccountAccessRequestStatus, UserRole, type AccountAccessRequest } from "@prisma/client";
+import { AccountAccessRequestStatus, type AccountAccessRequest } from "@prisma/client";
 import type { SessionPayload } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { accessTypeToModule, getDashboardHomeForModule, roleToPrimaryModule, type DashboardModule } from "@/lib/dashboard/role-config";
@@ -18,15 +18,6 @@ export async function getUserDashboardAccess(user: Pick<SessionPayload, "userId"
   });
   const primaryModule = roleToPrimaryModule[user.role];
   const modules = new Set<DashboardModule>([primaryModule]);
-
-  if (user.role === UserRole.ADMIN) {
-    modules.add("admin");
-    modules.add("landlord");
-    modules.add("inspector");
-    modules.add("vendor");
-    modules.add("applicant");
-    modules.add("tenant");
-  }
 
   for (const request of accessRequests) {
     if (request.status === AccountAccessRequestStatus.APPROVED) modules.add(accessTypeToModule[request.type]);

@@ -25,7 +25,7 @@ The protected prefixes live in `src/lib/security/protected-routes.ts` and are co
 
 ## Role Boundary Notes
 
-- Applicant routes now require applicant or tenant role instead of any signed-in user. This keeps landlords/vendors from entering resident application surfaces through direct URLs.
+- Applicant routes now require applicant workspace access instead of any signed-in user. This keeps tenants, landlords, vendors, and inspectors from entering resident application surfaces through direct URLs unless they have explicit approved access.
 - Tenant routes remain tenant-only, preserving the dedicated tenant portal mental model.
 - Vendor routes use a vendor-specific access assertion because vendor portal eligibility can come from invitation or approved access, not only `UserRole.VENDOR`.
 - Admin routes are admin-authenticated by layout, while super-user-only actions such as sample data export remain guarded by `requireSuperUser`.

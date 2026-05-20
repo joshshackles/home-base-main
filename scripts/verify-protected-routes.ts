@@ -53,35 +53,35 @@ assertIncludes("src/middleware.ts", [
 ]);
 assertExcludes("src/middleware.ts", ["const protectedPrefixes = [", "matcher: PROTECTED_ROUTE_MATCHERS"]);
 
-assertIncludes("src/app/admin/layout.tsx", ["requireRole([\"ADMIN\"]"]);
-assertIncludes("src/app/landlord/layout.tsx", ["requireRole([\"LANDLORD\"]"]);
-assertIncludes("src/app/applicant/layout.tsx", ["requireRole([\"APPLICANT\", \"TENANT\"]"]);
-assertIncludes("src/app/tenant/layout.tsx", ["requireRole([\"TENANT\"]"]);
+assertIncludes("src/app/admin/layout.tsx", ["requireWorkspaceAccess(\"admin\"", "filterNavGroupsByCapabilities"]);
+assertIncludes("src/app/landlord/layout.tsx", ["requireWorkspaceAccess(\"landlord\"", "filterNavGroupsByCapabilities"]);
+assertIncludes("src/app/applicant/layout.tsx", ["requireWorkspaceAccess(\"applicant\"", "filterNavGroupsByCapabilities"]);
+assertIncludes("src/app/tenant/layout.tsx", ["requireWorkspaceAccess(\"tenant\"", "filterNavGroupsByCapabilities"]);
 assertIncludes("src/app/vendor/layout.tsx", ["requireUser(\"/vendor\")", "assertVendorPortalAccess(user)"]);
-assertIncludes("src/app/inspector/layout.tsx", ["requireRole([\"INSPECTOR\"]"]);
+assertIncludes("src/app/inspector/layout.tsx", ["requireWorkspaceAccess(\"inspector\"", "filterNavGroupsByCapabilities"]);
 assertIncludes("src/app/dashboard/page.tsx", ["requireUser(\"/dashboard\")", "buildDashboardForUser"]);
 assertIncludes("src/app/documents/page.tsx", ["getVerifiedCurrentUser", "redirect(\"/login?next=/documents\")"]);
 
 assertIncludes("docs/PROTECTED_ROUTE_ACCESS_MANIFEST.md", [
   "Protected Route Access Manifest",
   "Middleware-Protected Workspaces",
-  "Applicant routes now require applicant or tenant role",
+  "Applicant routes now require applicant workspace access",
   "protected-routes:verify",
   "middleware-static:verify"
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.59.5\"",
+  "\"version\": \"4.61.0\"",
   "\"protected-routes:verify\"",
   "\"middleware-static:verify\"",
   "\"environment-contract:verify\"",
   "\"expanded-access:verify\"",
-  "\"verify\": \"npm run first-release:verify && npm run permission-matrix:verify && npm run authorization-runtime:verify && npm run protected-routes:verify && npm run middleware-static:verify && npm run environment-contract:verify && npm run expanded-access:verify && npm run tenant-portal:verify && npm run mobile-flow-drilldowns:verify && npm run admin-ops-marketplace-discovery:verify && npm run marketplace-readiness-messaging:verify && npm run canonical-conversations-workflow-proof:verify && npm run field-workflow-proof-launch-hardening:verify && npm run final-readiness:verify && npm run landlord-units-typecheck-fix:verify && npm run admin-command-center-null-date-fix:verify && npm run admin-command-center-inspection-title-fix:verify && npm run lead-authorization-relation-fix:verify && npm run maintenance-priority-enum-fix:verify && npm run routes:check",
+  "\"verify\": \"npm run first-release:verify && npm run permission-matrix:verify && npm run authorization-runtime:verify && npm run protected-routes:verify && npm run middleware-static:verify && npm run environment-contract:verify && npm run expanded-access:verify && npm run tenant-portal:verify && npm run mobile-flow-drilldowns:verify && npm run admin-ops-marketplace-discovery:verify && npm run marketplace-readiness-messaging:verify && npm run canonical-conversations-workflow-proof:verify && npm run field-workflow-proof-launch-hardening:verify && npm run final-readiness:verify && npm run landlord-units-typecheck-fix:verify && npm run admin-command-center-null-date-fix:verify && npm run admin-command-center-inspection-title-fix:verify && npm run lead-authorization-relation-fix:verify && npm run maintenance-priority-enum-fix:verify && npm run role-visibility-workflow-simplification:verify && npm run homepage-slider-marketplace-refresh:verify && npm run routes:check",
   "\"vercel-build\": \"npm run vercel:preflight && npm run lockfile:verify && npm run clean-install:verify && npm run first-release:verify && npm run permission-matrix:verify && npm run authorization-runtime:verify && npm run protected-routes:verify && npm run middleware-static:verify && npm run environment-contract:verify && npm run expanded-access:verify"
 ]);
 
-assertIncludes("src/lib/app-version.ts", ["4.59.5"]);
-assertIncludes("README.md", ["Current package version: **4.59.5**"]);
-assertIncludes("CHANGELOG.md", ["## v4.59.5 - Maintenance Priority Enum Fix"]);
+assertIncludes("src/lib/app-version.ts", ["4.61.0"]);
+assertIncludes("README.md", ["Current package version: **4.61.0**"]);
+assertIncludes("CHANGELOG.md", ["## v4.61.0 - Homepage Slider Marketplace Refresh"]);
 
 console.log("Protected route access verification passed.");

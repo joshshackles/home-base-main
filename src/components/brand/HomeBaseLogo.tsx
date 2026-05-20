@@ -27,7 +27,7 @@ export function HomeBaseLogo({ tone = "dark", showWordmark = true, className, ..
       {showWordmark ? (
         <span className="leading-none">
           <span className={`block text-base font-black tracking-tight ${text}`}>HomeBase</span>
-          <span className={`block text-[10px] font-black uppercase tracking-[0.22em] ${tone === "light" ? "text-slate-300" : "text-slate-500"}`}>Housing OS</span>
+          <span className={`block text-[10px] font-black uppercase tracking-[0.22em] ${tone === "light" ? "text-slate-300" : "text-slate-500"}`}>MLS</span>
         </span>
       ) : null}
     </span>

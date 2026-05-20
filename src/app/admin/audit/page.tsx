@@ -6,12 +6,14 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Pagination } from "@/components/admin/Pagination";
 import { DEFAULT_PAGE_SIZE, SearchParams, getFilter, getPagination, getSearchQuery } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
+import { requireCapability } from "@/lib/role-capabilities.server";
 
 function niceDate(value: Date) {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(value);
 }
 
 export default async function AuditLogPage({ searchParams }: { searchParams?: SearchParams }) {
+  await requireCapability("super-admin.audit", "/admin/audit");
   const query = getSearchQuery(searchParams);
   const action = getFilter(searchParams, "action");
   const { page, take, skip } = getPagination(searchParams);

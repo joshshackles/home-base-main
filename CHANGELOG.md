@@ -1,3 +1,17 @@
+## v4.61.0 - Homepage Slider Marketplace Refresh
+
+- Rebuilt the public homepage into a reference-style rental marketplace front door with a large image-led hero, prominent search controls, trust strip, featured rentals, role pathways, and stronger calls to action.
+- Added admin-managed homepage hero slider support with `HomepageHeroSlide`, public slide image delivery, upload/update/delete controls in `/admin/branding`, and audit logging.
+- Included the provided apartment-building image as the starter homepage slide while allowing admins to replace or rotate images from the dashboard.
+- Added `homepage-slider-marketplace-refresh:verify` and wired it into local and Vercel release gates.
+
+## v4.60.0 - Role Visibility and Workflow Simplification
+
+- Added a central role capability map for minimum-necessary interface rules across applicant, tenant, landlord/property manager, caseworker, inspector, vendor/maintenance, admin, and super-admin workflows.
+- Updated role layouts to use server-side workspace access checks and filtered navigation so direct URL access and visible UI follow the same permission model.
+- Simplified role navigation by removing duplicate role-home links, consolidating landlord leads into the unified inbox, keeping tenant/applicant experiences separate, and hiding super-admin-only security/audit tools from normal admin navigation.
+- Added `role-visibility-workflow-simplification:verify` and documented the role visibility model in `docs/ROLE_VISIBILITY_WORKFLOW_SIMPLIFICATION.md`.
+
 ## v4.59.5 - Maintenance Priority Enum Fix
 
 - Fixed the unified landlord inbox type error caught by Vercel by replacing the nonexistent `MaintenancePriority.EMERGENCY` reference with the real `MaintenancePriority.URGENT` enum.

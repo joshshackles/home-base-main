@@ -34,13 +34,13 @@ assertExcludes("src/lib/admin/command-center.ts", [
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.59.5\"",
+  "\"version\": \"4.61.0\"",
   "\"admin-command-center-inspection-title-fix:verify\"",
   "admin-command-center-null-date-fix:verify && npm run admin-command-center-inspection-title-fix:verify",
 ]);
-assertIncludes("package-lock.json", ["\"version\": \"4.59.5\""]);
-assertIncludes("src/lib/app-version.ts", ["4.59.5"]);
-assertIncludes("README.md", ["Current package version: **4.59.5**"]);
-assertIncludes("CHANGELOG.md", ["## v4.59.5 - Maintenance Priority Enum Fix"]);
+assertIncludes("package-lock.json", ["\"version\": \"4.61.0\""]);
+assertIncludes("src/lib/app-version.ts", ["4.61.0"]);
+assertIncludes("README.md", ["Current package version: **4.61.0**"]);
+assertIncludes("CHANGELOG.md", ["## v4.61.0 - Homepage Slider Marketplace Refresh"]);
 
 console.log("Admin command center inspection-title fix verification passed.");

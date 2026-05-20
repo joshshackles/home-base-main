@@ -1,13 +1,17 @@
 export const dynamic = "force-dynamic";
 
 import { AdminBrandingThemeMode } from "@prisma/client";
-import { saveAdminBrandingAction } from "@/app/admin/actions";
+import { deleteHomepageHeroSlideAction, saveAdminBrandingAction, updateHomepageHeroSlideAction, uploadHomepageHeroSlideAction } from "@/app/admin/actions";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { OpsPanel } from "@/components/admin/ops/AdminOpsCards";
 import { getBrandingSettings } from "@/lib/admin-ops";
+import { prisma } from "@/lib/prisma";
 
 export default async function AdminBrandingPage({ searchParams }: { searchParams?: { saved?: string } }) {
-  const settings = await getBrandingSettings();
+  const [settings, slides] = await Promise.all([
+    getBrandingSettings(),
+    prisma.homepageHeroSlide.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }] })
+  ]);
 
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -18,6 +22,7 @@ export default async function AdminBrandingPage({ searchParams }: { searchParams
       />
 
       {searchParams?.saved ? <p className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">Brand settings saved and public surfaces revalidated.</p> : null}
+      {searchParams?.slide ? <p className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">Homepage slider updated and public homepage revalidated.</p> : null}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <OpsPanel title="Brand controls" eyebrow="Identity system">
@@ -87,6 +92,79 @@ export default async function AdminBrandingPage({ searchParams }: { searchParams
           </OpsPanel>
         </aside>
       </div>
+
+      <section className="mt-6 grid gap-5 lg:grid-cols-[420px_minmax(0,1fr)]">
+        <OpsPanel title="Homepage image slider" eyebrow="Public homepage">
+          <form action={uploadHomepageHeroSlideAction} encType="multipart/form-data" className="grid gap-4">
+            <Field label="Slide headline" name="title" defaultValue="Find Your Next Home. Simplified." />
+            <label className="grid gap-1.5 text-sm font-bold text-slate-800">
+              Supporting text
+              <textarea name="subtitle" rows={3} defaultValue="The most trusted rental marketplace connecting quality properties with qualified renters." className="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100" />
+            </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Primary CTA label" name="ctaLabel" defaultValue="Search Rentals" />
+              <Field label="Primary CTA URL" name="ctaHref" defaultValue="/marketplace" />
+              <Field label="Secondary CTA label" name="secondaryLabel" defaultValue="List Your Property" />
+              <Field label="Secondary CTA URL" name="secondaryHref" defaultValue="/signup?intent=landlord" />
+            </div>
+            <Field label="Image alt text" name="imageAlt" defaultValue="Modern apartment building at dusk" />
+            <label className="grid gap-1.5 text-sm font-bold text-slate-800">
+              Slider image
+              <input name="image" type="file" accept="image/jpeg,image/png,image/webp" required className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-700" />
+            </label>
+            <button type="submit" className="w-fit rounded-2xl bg-brand-600 px-5 py-3 text-sm font-black text-white hover:bg-brand-700">Upload homepage slide</button>
+            <p className="text-xs font-semibold leading-5 text-slate-500">Use wide images around 2400 x 1100 for the best desktop hero crop. Active slides rotate automatically on the public homepage.</p>
+          </form>
+        </OpsPanel>
+
+        <OpsPanel title="Current slides" eyebrow={`${slides.length} uploaded`}>
+          {slides.length > 0 ? (
+            <div className="grid gap-4">
+              {slides.map((slide) => (
+                <article key={slide.id} className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm xl:grid-cols-[220px_minmax(0,1fr)]">
+                  <div className="overflow-hidden rounded-2xl bg-slate-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/api/homepage-slides/${slide.id}`} alt={slide.imageAlt} className="h-40 w-full object-cover xl:h-full" />
+                  </div>
+                  <form action={updateHomepageHeroSlideAction} className="grid gap-3">
+                    <input type="hidden" name="slideId" value={slide.id} />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Field label="Headline" name="title" defaultValue={slide.title} />
+                      <Field label="Sort order" name="sortOrder" defaultValue={String(slide.sortOrder)} />
+                    </div>
+                    <label className="grid gap-1.5 text-sm font-bold text-slate-800">
+                      Supporting text
+                      <textarea name="subtitle" rows={2} defaultValue={slide.subtitle ?? ""} className="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100" />
+                    </label>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Field label="Primary CTA label" name="ctaLabel" defaultValue={slide.ctaLabel} />
+                      <Field label="Primary CTA URL" name="ctaHref" defaultValue={slide.ctaHref} />
+                      <Field label="Secondary CTA label" name="secondaryLabel" defaultValue={slide.secondaryLabel ?? ""} />
+                      <Field label="Secondary CTA URL" name="secondaryHref" defaultValue={slide.secondaryHref ?? ""} />
+                    </div>
+                    <Field label="Image alt text" name="imageAlt" defaultValue={slide.imageAlt} />
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <Toggle label="Active on homepage" name="isActive" defaultChecked={slide.isActive} />
+                      <div className="flex gap-2">
+                        <button type="submit" className="rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black text-white hover:bg-slate-800">Save slide</button>
+                      </div>
+                    </div>
+                  </form>
+                  <form action={deleteHomepageHeroSlideAction} className="xl:col-start-2">
+                    <input type="hidden" name="slideId" value={slide.id} />
+                    <button type="submit" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-black text-red-700 hover:bg-red-100">Delete slide</button>
+                  </form>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+              <p className="text-lg font-black text-slate-950">No uploaded homepage slides yet</p>
+              <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-600">The public homepage will use the built-in starter image until an admin uploads active slider images here.</p>
+            </div>
+          )}
+        </OpsPanel>
+      </section>
     </main>
   );
 }

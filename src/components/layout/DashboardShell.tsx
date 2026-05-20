@@ -7,6 +7,7 @@ import { Activity, BarChart3, Bell, BriefcaseBusiness, CalendarDays, CheckSquare
 import type { LucideIcon } from "lucide-react";
 import { HomeBaseLogo } from "@/components/brand/HomeBaseLogo";
 import { CommandPalette } from "@/components/ui/system";
+import type { RoleCapabilityKey } from "@/lib/role-capabilities";
 
 const shellIconMap = {
   Activity,
@@ -44,7 +45,7 @@ export type ShellIconName = keyof typeof shellIconMap;
 
 export type ShellNavGroup = {
   label: string;
-  items: Array<{ href: string; label: string; icon: ShellIconName }>;
+  items: Array<{ href: string; label: string; icon: ShellIconName; capability?: RoleCapabilityKey }>;
 };
 
 function getShellIcon(icon: ShellIconName): LucideIcon {

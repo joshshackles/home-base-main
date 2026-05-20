@@ -77,7 +77,7 @@ export async function getVendorAssignableUsers(ownerUserId?: string) {
         {
           accountAccessRequests: {
             some: {
-              type: AccountAccessType.VENDOR,
+              type: { in: [AccountAccessType.VENDOR, AccountAccessType.MAINTENANCE] },
               status: AccountAccessRequestStatus.APPROVED,
             },
           },

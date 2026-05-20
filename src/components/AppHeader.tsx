@@ -1,64 +1,60 @@
 import Link from "next/link";
-import { Building2, FileText, Home, KeyRound, LayoutDashboard, LogIn, LogOut, Search } from "lucide-react";
+import { ChevronDown, LayoutDashboard, LogOut, Menu } from "lucide-react";
 import type { getVerifiedCurrentUser } from "@/lib/auth";
 import { logoutAction } from "@/app/login/actions";
 import { HomeBaseLogo } from "@/components/brand/HomeBaseLogo";
 
 type VerifiedUser = Awaited<ReturnType<typeof getVerifiedCurrentUser>>;
 
+function dashboardHref(user: VerifiedUser) {
+  if (!user) return "/login";
+  if (user.role === "ADMIN") return "/admin";
+  if (user.role === "LANDLORD") return "/landlord";
+  if (user.role === "TENANT") return "/tenant";
+  if (user.role === "INSPECTOR") return "/inspector";
+  if (user.role === "VENDOR") return "/vendor";
+  return "/applicant";
+}
+
 export function AppHeader({ user }: { user: VerifiedUser }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/95 text-white backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2 font-bold">
-          <HomeBaseLogo tone="light" />
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 text-slate-950 shadow-sm shadow-slate-950/[0.03] backdrop-blur">
+      <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between gap-4 px-5 sm:px-8 lg:px-12">
+        <Link href="/" className="flex items-center gap-2 font-bold" aria-label="HomeBase MLS homepage">
+          <HomeBaseLogo tone="dark" />
         </Link>
-        <nav className="flex flex-wrap items-center justify-end gap-2 text-sm font-bold text-slate-300">
-          <Link className="flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-white/10 hover:text-white" href="/marketplace">
-            <Search size={16} /> Marketplace
-          </Link>
-          {user ? (
-            <Link className="flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-white/10 hover:text-white" href="/applicant">
-              <LayoutDashboard size={16} /> Dashboard
-            </Link>
-          ) : null}
-          {user?.role === "ADMIN" ? (
-            <Link className="flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-white/10 hover:text-white" href="/admin">
-              <Building2 size={16} /> Admin
-            </Link>
-          ) : null}
-          {user?.role === "LANDLORD" ? (
-            <Link className="flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-white/10 hover:text-white" href="/landlord">
-              <Home size={16} /> Landlord
-            </Link>
-          ) : null}
-          {user?.role === "APPLICANT" || user?.role === "TENANT" ? (
-            <Link className="flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-white/10 hover:text-white" href="/applicant/applications">
-              <FileText size={16} /> Applications
-            </Link>
-          ) : null}
+
+        <nav className="hidden items-center gap-8 text-sm font-bold text-slate-900 lg:flex">
+          <Link className="inline-flex items-center gap-1 hover:text-blue-700" href="/marketplace">Rent <ChevronDown size={14} /></Link>
+          <Link className="hover:text-blue-700" href="/#how-it-works">How It Works</Link>
+          <Link className="hover:text-blue-700" href="/marketplace">Find a Property</Link>
+          <Link className="inline-flex items-center gap-1 hover:text-blue-700" href="/#resources">Resources <ChevronDown size={14} /></Link>
+          <Link className="hover:text-blue-700" href="/#about">About Us</Link>
+        </nav>
+
+        <div className="flex items-center gap-2 sm:gap-3">
           {user ? (
             <>
-              <Link className="flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-white/10 hover:text-white" href="/account/password">
-                <KeyRound size={16} /> Account
+              <Link href={dashboardHref(user)} className="hidden items-center gap-2 rounded-md px-4 py-2 text-sm font-black text-slate-900 hover:bg-slate-100 sm:inline-flex">
+                <LayoutDashboard size={16} /> Dashboard
               </Link>
-            <form action={logoutAction}>
-              <button className="flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-white/10 hover:text-white" type="submit">
-                <LogOut size={16} /> Logout
-              </button>
-            </form>
+              <form action={logoutAction}>
+                <button className="rounded-md bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800" type="submit">
+                  <span className="hidden sm:inline">Log Out</span>
+                  <LogOut className="sm:hidden" size={16} />
+                </button>
+              </form>
             </>
           ) : (
             <>
-              <Link className="flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-white/10 hover:text-white" href="/signup">
-                <FileText size={16} /> Apply
-              </Link>
-              <Link className="flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-white hover:bg-blue-700" href="/login">
-                <LogIn size={16} /> Login
-              </Link>
+              <Link className="hidden rounded-md px-4 py-2 text-sm font-black text-slate-900 hover:bg-slate-100 sm:inline-flex" href="/login">Log In</Link>
+              <Link className="rounded-md bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-slate-800" href="/signup">Sign Up</Link>
             </>
           )}
-        </nav>
+          <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-md text-slate-950 hover:bg-slate-100" aria-label="Open menu">
+            <Menu size={24} />
+          </button>
+        </div>
       </div>
     </header>
   );
