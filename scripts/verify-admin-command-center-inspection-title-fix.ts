@@ -34,13 +34,13 @@ assertExcludes("src/lib/admin/command-center.ts", [
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.59.3\"",
+  "\"version\": \"4.59.4\"",
   "\"admin-command-center-inspection-title-fix:verify\"",
   "admin-command-center-null-date-fix:verify && npm run admin-command-center-inspection-title-fix:verify",
 ]);
-assertIncludes("package-lock.json", ["\"version\": \"4.59.3\""]);
-assertIncludes("src/lib/app-version.ts", ["4.59.3"]);
-assertIncludes("README.md", ["Current package version: **4.59.3**"]);
-assertIncludes("CHANGELOG.md", ["## v4.59.3 - Admin Command Center Inspection Title Fix"]);
+assertIncludes("package-lock.json", ["\"version\": \"4.59.4\""]);
+assertIncludes("src/lib/app-version.ts", ["4.59.4"]);
+assertIncludes("README.md", ["Current package version: **4.59.4**"]);
+assertIncludes("CHANGELOG.md", ["## v4.59.4 - Lead Authorization Relation Fix"]);
 
 console.log("Admin command center inspection-title fix verification passed.");

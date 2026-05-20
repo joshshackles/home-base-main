@@ -1,3 +1,9 @@
+## v4.59.4 - Lead Authorization Relation Fix
+
+- Fixed the authorization type error caught by Vercel by selecting the `Lead.application` relation instead of a nonexistent `Lead.applicationId` scalar.
+- Updated `canAccessLead` to check `lead.application?.id` before delegating to `canAccessApplication`.
+- Added `lead-authorization-relation-fix:verify` and wired it into local and Vercel release gates.
+
 ## v4.59.3 - Admin Command Center Inspection Title Fix
 
 - Fixed the admin command-center failed-inspections drilldown type error caught by Vercel by replacing the nonexistent `Inspection.title` field with a generated inspection record label.

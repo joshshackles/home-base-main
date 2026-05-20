@@ -221,14 +221,14 @@ export async function canAccessLead(user: AuthorizedUser, leadId: string) {
     where: { id: leadId },
     select: {
       email: true,
-      applicationId: true,
+      application: { select: { id: true } },
       unit: { select: { id: true, property: { select: { ownerId: true, isArchived: true } } } }
     }
   });
 
   if (!lead) return false;
   if (isApplicantLike(user) && lead.email.toLowerCase() === user.email.toLowerCase()) return true;
-  if (lead.applicationId && (await canAccessApplication(user, lead.applicationId))) return true;
+  if (lead.application?.id && (await canAccessApplication(user, lead.application.id))) return true;
   if (!lead.unit.property.isArchived && (await canManageOwnerPortfolio(user, lead.unit.property.ownerId, lead.unit.id))) return true;
   if (!lead.unit.property.isArchived && (await canSupportHousingRecord(user, lead.unit.property.ownerId, lead.unit.id))) return true;
 

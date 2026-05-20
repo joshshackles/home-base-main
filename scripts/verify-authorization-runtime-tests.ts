@@ -35,7 +35,7 @@ assertIncludes("tests/unit/authorization.test.ts", [
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.59.3\"",
+  "\"version\": \"4.59.4\"",
   "\"authorization:runtime:test\"",
   "\"authorization-runtime:verify\"",
   "\"expanded-access:verify\"",
@@ -48,8 +48,8 @@ assertIncludes("docs/PERMISSION_MATRIX_GUESSED_ID_TESTS.md", [
   "central authorization helpers"
 ]);
 
-assertIncludes("src/lib/app-version.ts", ["4.59.3"]);
-assertIncludes("README.md", ["Current package version: **4.59.3**"]);
-assertIncludes("CHANGELOG.md", ["## v4.59.3 - Admin Command Center Inspection Title Fix"]);
+assertIncludes("src/lib/app-version.ts", ["4.59.4"]);
+assertIncludes("README.md", ["Current package version: **4.59.4**"]);
+assertIncludes("CHANGELOG.md", ["## v4.59.4 - Lead Authorization Relation Fix"]);
 
 console.log("Authorization runtime regression test verification passed.");
