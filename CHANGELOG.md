@@ -1,3 +1,8 @@
+## v4.61.1 - Tenant Portal Navigation Gate Fix
+
+- Updated the tenant portal completion release gate to match the role-visibility cleanup, where tenant Tasks and Calendar pages remain available by direct route but are no longer primary navigation items.
+- Added `tenant-nav-minimum-fix:verify` so Vercel catches regressions in the minimum-necessary tenant portal nav model before `next build`.
+
 ## v4.61.0 - Homepage Slider Marketplace Refresh
 
 - Rebuilt the public homepage into a reference-style rental marketplace front door with a large image-led hero, prominent search controls, trust strip, featured rentals, role pathways, and stronger calls to action.

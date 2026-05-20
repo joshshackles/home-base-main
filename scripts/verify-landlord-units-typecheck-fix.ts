@@ -36,13 +36,13 @@ assertExcludes("src/app/landlord/units/page.tsx", [
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.61.0\"",
+  "\"version\": \"4.61.1\"",
   "\"landlord-units-typecheck-fix:verify\"",
   "final-readiness:verify && npm run landlord-units-typecheck-fix:verify",
 ]);
-assertIncludes("package-lock.json", ["\"version\": \"4.61.0\""]);
-assertIncludes("src/lib/app-version.ts", ["4.61.0"]);
-assertIncludes("README.md", ["Current package version: **4.61.0**"]);
-assertIncludes("CHANGELOG.md", ["## v4.61.0 - Homepage Slider Marketplace Refresh"]);
+assertIncludes("package-lock.json", ["\"version\": \"4.61.1\""]);
+assertIncludes("src/lib/app-version.ts", ["4.61.1"]);
+assertIncludes("README.md", ["Current package version: **4.61.1**"]);
+assertIncludes("CHANGELOG.md", ["## v4.61.1 - Tenant Portal Navigation Gate Fix"]);
 
 console.log("Landlord units typecheck fix verification passed.");

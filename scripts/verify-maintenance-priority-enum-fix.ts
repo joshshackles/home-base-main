@@ -31,13 +31,13 @@ assertIncludes("src/lib/messaging/unified-landlord-inbox.ts", [
 assertExcludes("src/lib/messaging/unified-landlord-inbox.ts", ["MaintenancePriority.EMERGENCY"]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.61.0\"",
+  "\"version\": \"4.61.1\"",
   "\"maintenance-priority-enum-fix:verify\"",
   "lead-authorization-relation-fix:verify && npm run maintenance-priority-enum-fix:verify",
 ]);
-assertIncludes("package-lock.json", ["\"version\": \"4.61.0\""]);
-assertIncludes("src/lib/app-version.ts", ["4.61.0"]);
-assertIncludes("README.md", ["Current package version: **4.61.0**"]);
-assertIncludes("CHANGELOG.md", ["## v4.61.0 - Homepage Slider Marketplace Refresh"]);
+assertIncludes("package-lock.json", ["\"version\": \"4.61.1\""]);
+assertIncludes("src/lib/app-version.ts", ["4.61.1"]);
+assertIncludes("README.md", ["Current package version: **4.61.1**"]);
+assertIncludes("CHANGELOG.md", ["## v4.61.1 - Tenant Portal Navigation Gate Fix"]);
 
 console.log("Maintenance priority enum fix verification passed.");

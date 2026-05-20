@@ -22,8 +22,8 @@ function assertNotExists(path: string) {
 }
 
 assertIncludes("package.json", [
-  "\"version\": \"4.61.0\"",
-  "\"verify\": \"npm run first-release:verify && npm run permission-matrix:verify && npm run authorization-runtime:verify && npm run protected-routes:verify && npm run middleware-static:verify && npm run environment-contract:verify && npm run expanded-access:verify && npm run tenant-portal:verify && npm run mobile-flow-drilldowns:verify && npm run admin-ops-marketplace-discovery:verify && npm run marketplace-readiness-messaging:verify && npm run canonical-conversations-workflow-proof:verify && npm run field-workflow-proof-launch-hardening:verify && npm run final-readiness:verify && npm run landlord-units-typecheck-fix:verify && npm run admin-command-center-null-date-fix:verify && npm run admin-command-center-inspection-title-fix:verify && npm run lead-authorization-relation-fix:verify && npm run maintenance-priority-enum-fix:verify && npm run role-visibility-workflow-simplification:verify && npm run homepage-slider-marketplace-refresh:verify && npm run routes:check && npm run package:cleanliness && npm run typecheck && npm run test\"",
+  "\"version\": \"4.61.1\"",
+  "\"verify\": \"npm run first-release:verify && npm run permission-matrix:verify && npm run authorization-runtime:verify && npm run protected-routes:verify && npm run middleware-static:verify && npm run environment-contract:verify && npm run expanded-access:verify && npm run tenant-portal:verify && npm run mobile-flow-drilldowns:verify && npm run admin-ops-marketplace-discovery:verify && npm run marketplace-readiness-messaging:verify && npm run canonical-conversations-workflow-proof:verify && npm run field-workflow-proof-launch-hardening:verify && npm run final-readiness:verify && npm run landlord-units-typecheck-fix:verify && npm run admin-command-center-null-date-fix:verify && npm run admin-command-center-inspection-title-fix:verify && npm run lead-authorization-relation-fix:verify && npm run maintenance-priority-enum-fix:verify && npm run role-visibility-workflow-simplification:verify && npm run homepage-slider-marketplace-refresh:verify && npm run tenant-nav-minimum-fix:verify && npm run routes:check && npm run package:cleanliness && npm run typecheck && npm run test\"",
   "\"first-release:verify\"",
   "\"permission-matrix:verify\"",
   "\"authorization-runtime:verify\"",
@@ -80,9 +80,9 @@ assertIncludes("FIRST_RELEASE_CODEBASE_AUDIT.md", [
   "Live-Release Risks",
   "Recommended Final Architecture"
 ]);
-assertIncludes("src/lib/app-version.ts", ["4.61.0"]);
-assertIncludes("README.md", ["Current package version: **4.61.0**"]);
-assertIncludes("CHANGELOG.md", ["## v4.61.0 - Homepage Slider Marketplace Refresh"]);
+assertIncludes("src/lib/app-version.ts", ["4.61.1"]);
+assertIncludes("README.md", ["Current package version: **4.61.1**"]);
+assertIncludes("CHANGELOG.md", ["## v4.61.1 - Tenant Portal Navigation Gate Fix"]);
 
 assertNotExists("src/components/dashboard/WorkhorseDashboard.tsx");
 assertNotExists("tsconfig.tsbuildinfo");
