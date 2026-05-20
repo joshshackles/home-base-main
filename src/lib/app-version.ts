@@ -1,3 +1,3 @@
-export const APP_VERSION = "4.59.2";
+export const APP_VERSION = "4.59.3";
 export const APP_DISPLAY_NAME = `HomeBase v${APP_VERSION}`;
 export const APP_RELEASE_LABEL = APP_DISPLAY_NAME;

@@ -329,6 +329,11 @@ function formatAdminDate(value: Date | null | undefined, fallback = "Not recorde
   return value ? value.toLocaleDateString() : fallback;
 }
 
+function inspectionRecordTitle(inspection: { inspectorName: string | null; status: InspectionStatus; scheduledFor: Date | null; createdAt: Date }) {
+  if (inspection.inspectorName) return `Inspection by ${inspection.inspectorName}`;
+  return `${inspection.status.replaceAll("_", " ")} inspection - ${formatAdminDate(inspection.scheduledFor ?? inspection.createdAt)}`;
+}
+
 export async function getAdminCommandCenterDrilldown(key: string): Promise<AdminCommandCenterDrilldown> {
   const staleDraftDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
   const staleWorkflowDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -405,7 +410,7 @@ export async function getAdminCommandCenterDrilldown(key: string): Promise<Admin
     }
     case "failed-inspections": {
       const inspections = await prisma.inspection.findMany({ where: { status: { in: [InspectionStatus.FAILED, InspectionStatus.NEEDS_REINSPECTION] } }, include: { unit: { include: { property: true } } }, orderBy: { updatedAt: "desc" }, take: 50 });
-      return { key, title: "Failed inspections unresolved", description: "Failed or reinspection-needed records should have a scheduled next step.", sourceHref: "/admin/inspections", records: inspections.map((inspection) => record(inspection.id, inspection.title, inspection.unit ? `${inspection.unit.property.name} #${inspection.unit.unitNumber}` : "No unit", `/admin/inspections/${inspection.id}`, inspection.status, inspection.updatedAt)) };
+      return { key, title: "Failed inspections unresolved", description: "Failed or reinspection-needed records should have a scheduled next step.", sourceHref: "/admin/inspections", records: inspections.map((inspection) => record(inspection.id, inspectionRecordTitle(inspection), inspection.unit ? `${inspection.unit.property.name} #${inspection.unit.unitNumber}` : "No unit", `/admin/inspections/${inspection.id}`, inspection.status, inspection.updatedAt)) };
     }
     case "blocked-tasks": {
       const tasks = await prisma.taskItem.findMany({ where: { status: { in: [TaskItemStatus.BLOCKED, TaskItemStatus.WAITING] } }, orderBy: { updatedAt: "desc" }, take: 50 });

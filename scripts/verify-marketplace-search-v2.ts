@@ -80,11 +80,11 @@ const checks: Array<{ file: string; markers: string[] }> = [
   },
   {
     file: "package.json",
-    markers: ["\"version\": \"4.59.2\"", "marketplace-search-v2:verify"]
+    markers: ["\"version\": \"4.59.3\"", "marketplace-search-v2:verify"]
   },
   {
     file: "src/lib/app-version.ts",
-    markers: ["4.59.2"]
+    markers: ["4.59.3"]
   }
 ];
 

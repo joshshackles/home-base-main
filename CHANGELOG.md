@@ -1,3 +1,9 @@
+## v4.59.3 - Admin Command Center Inspection Title Fix
+
+- Fixed the admin command-center failed-inspections drilldown type error caught by Vercel by replacing the nonexistent `Inspection.title` field with a generated inspection record label.
+- Added `inspectionRecordTitle` so failed inspection rows use inspector name, status, scheduled date, or created date from real schema fields.
+- Added `admin-command-center-inspection-title-fix:verify` and wired it into local and Vercel release gates.
+
 ## v4.59.2 - Admin Command Center Null Date Fix
 
 - Fixed the admin command-center drilldown type error caught by Vercel by safely formatting nullable message-thread `lastMessageAt` values.

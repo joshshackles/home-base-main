@@ -68,13 +68,13 @@ assertIncludes("docs/FINAL_READINESS_LAYER.md", [
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.59.2\"",
+  "\"version\": \"4.59.3\"",
   "\"final-readiness:verify\"",
   "field-workflow-proof-launch-hardening:verify && npm run final-readiness:verify",
 ]);
-assertIncludes("package-lock.json", ["\"version\": \"4.59.2\""]);
-assertIncludes("src/lib/app-version.ts", ["4.59.2"]);
-assertIncludes("README.md", ["Current package version: **4.59.2**"]);
-assertIncludes("CHANGELOG.md", ["## v4.59.2 - Admin Command Center Null Date Fix"]);
+assertIncludes("package-lock.json", ["\"version\": \"4.59.3\""]);
+assertIncludes("src/lib/app-version.ts", ["4.59.3"]);
+assertIncludes("README.md", ["Current package version: **4.59.3**"]);
+assertIncludes("CHANGELOG.md", ["## v4.59.3 - Admin Command Center Inspection Title Fix"]);
 
 console.log("Final readiness layer verification passed.");
