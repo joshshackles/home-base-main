@@ -325,6 +325,10 @@ function record(id: string, title: string, detail: string, href: string, status?
   return { id, title, detail, href, status, updatedAt };
 }
 
+function formatAdminDate(value: Date | null | undefined, fallback = "Not recorded") {
+  return value ? value.toLocaleDateString() : fallback;
+}
+
 export async function getAdminCommandCenterDrilldown(key: string): Promise<AdminCommandCenterDrilldown> {
   const staleDraftDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
   const staleWorkflowDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -389,7 +393,7 @@ export async function getAdminCommandCenterDrilldown(key: string): Promise<Admin
     }
     case "messages-waiting-staff": {
       const threads = await prisma.messageThread.findMany({ where: { status: MessageThreadStatus.WAITING_ON_STAFF }, orderBy: { lastMessageAt: "desc" }, take: 50 });
-      return { key, title: "Messages waiting on staff", description: "Conversations waiting for a platform-side or landlord-side response.", sourceHref: "/admin/inbox", records: threads.map((thread) => record(thread.id, thread.subject, `Last message ${thread.lastMessageAt.toLocaleDateString()}`, `/admin/inbox?thread=${thread.id}`, thread.status, thread.updatedAt)) };
+      return { key, title: "Messages waiting on staff", description: "Conversations waiting for a platform-side or landlord-side response.", sourceHref: "/admin/inbox", records: threads.map((thread) => record(thread.id, thread.subject, `Last message ${formatAdminDate(thread.lastMessageAt, "not recorded")}`, `/admin/inbox?thread=${thread.id}`, thread.status, thread.updatedAt)) };
     }
     case "unsigned-lease-packets": {
       const packets = await prisma.leasePacket.findMany({ where: { status: LeasePacketStatus.SENT_FOR_SIGNATURE, signatureRequests: { some: { status: SignatureStatus.PENDING } } }, include: { application: { include: { unit: { include: { property: true } } } } }, orderBy: { updatedAt: "desc" }, take: 50 });

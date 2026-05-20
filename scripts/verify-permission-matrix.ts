@@ -148,13 +148,13 @@ assertIncludes("src/app/api/webhooks/quickbooks/route.ts", [
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.59.1\"",
+  "\"version\": \"4.59.2\"",
   "\"permission-matrix:verify\"",
-  "\"verify\": \"npm run first-release:verify && npm run permission-matrix:verify && npm run authorization-runtime:verify && npm run protected-routes:verify && npm run middleware-static:verify && npm run environment-contract:verify && npm run expanded-access:verify && npm run tenant-portal:verify && npm run mobile-flow-drilldowns:verify && npm run admin-ops-marketplace-discovery:verify && npm run marketplace-readiness-messaging:verify && npm run canonical-conversations-workflow-proof:verify && npm run field-workflow-proof-launch-hardening:verify && npm run final-readiness:verify && npm run landlord-units-typecheck-fix:verify && npm run routes:check"
+  "\"verify\": \"npm run first-release:verify && npm run permission-matrix:verify && npm run authorization-runtime:verify && npm run protected-routes:verify && npm run middleware-static:verify && npm run environment-contract:verify && npm run expanded-access:verify && npm run tenant-portal:verify && npm run mobile-flow-drilldowns:verify && npm run admin-ops-marketplace-discovery:verify && npm run marketplace-readiness-messaging:verify && npm run canonical-conversations-workflow-proof:verify && npm run field-workflow-proof-launch-hardening:verify && npm run final-readiness:verify && npm run landlord-units-typecheck-fix:verify && npm run admin-command-center-null-date-fix:verify && npm run routes:check"
 ]);
 
-assertIncludes("src/lib/app-version.ts", ["4.59.1"]);
-assertIncludes("README.md", ["Current package version: **4.59.1**"]);
-assertIncludes("CHANGELOG.md", ["## v4.59.1 - Landlord Units Typecheck Fix"]);
+assertIncludes("src/lib/app-version.ts", ["4.59.2"]);
+assertIncludes("README.md", ["Current package version: **4.59.2**"]);
+assertIncludes("CHANGELOG.md", ["## v4.59.2 - Admin Command Center Null Date Fix"]);
 
 console.log("Permission matrix and guessed-ID security verification passed.");

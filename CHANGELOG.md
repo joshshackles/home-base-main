@@ -1,3 +1,9 @@
+## v4.59.2 - Admin Command Center Null Date Fix
+
+- Fixed the admin command-center drilldown type error caught by Vercel by safely formatting nullable message-thread `lastMessageAt` values.
+- Added `formatAdminDate` so empty or legacy threads display a clear fallback instead of assuming a last-message timestamp exists.
+- Added `admin-command-center-null-date-fix:verify` and wired it into local and Vercel release gates.
+
 ## v4.59.1 - Landlord Units Typecheck Fix
 
 - Fixed the `/landlord/units` Prisma query type error caught by Vercel by typing the unit filter as `Prisma.UnitWhereInput`.
