@@ -17,9 +17,9 @@ function assertNotContains(path: string, marker: string) {
   if (source.includes(marker)) throw new Error(`${path} still contains ${marker}`);
 }
 
-assertContains("package.json", '"version": "4.61.1"');
+assertContains("package.json", '"version": "4.61.2"');
 assertContains("package.json", '"tenant-nav-minimum-fix:verify": "tsx scripts/verify-tenant-nav-minimum-fix.ts"');
-assertContains("CHANGELOG.md", "## v4.61.1 - Tenant Portal Navigation Gate Fix");
+assertContains("CHANGELOG.md", "## v4.61.2 - Admin Branding Slide Search Param Fix");
 assertContains("scripts/verify-tenant-portal-completion.ts", "assertExcludes(\"src/lib/navigation/first-release.ts\"");
 assertContains("src/lib/navigation/first-release.ts", "{ href: \"/tenant/inbox\", label: \"Inbox\"");
 assertNotContains("src/lib/navigation/first-release.ts", "{ href: \"/tenant/tasks\", label: \"Tasks\"");

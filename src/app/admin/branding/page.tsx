@@ -7,7 +7,7 @@ import { OpsPanel } from "@/components/admin/ops/AdminOpsCards";
 import { getBrandingSettings } from "@/lib/admin-ops";
 import { prisma } from "@/lib/prisma";
 
-export default async function AdminBrandingPage({ searchParams }: { searchParams?: { saved?: string } }) {
+export default async function AdminBrandingPage({ searchParams }: { searchParams?: { saved?: string; slide?: string } }) {
   const [settings, slides] = await Promise.all([
     getBrandingSettings(),
     prisma.homepageHeroSlide.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }] })

@@ -16,11 +16,11 @@ function assertContains(path: string, marker: string) {
   if (!source.includes(marker)) throw new Error(`${path} is missing ${marker}`);
 }
 
-assertContains("package.json", '"version": "4.61.1"');
+assertContains("package.json", '"version": "4.61.2"');
 assertContains("package.json", '"homepage-slider-marketplace-refresh:verify": "tsx scripts/verify-homepage-slider-marketplace-refresh.ts"');
-assertContains("CHANGELOG.md", "## v4.61.1 - Tenant Portal Navigation Gate Fix");
-assertContains("src/lib/app-version.ts", "4.61.1");
-assertContains("README.md", "Current package version: **4.61.1**");
+assertContains("CHANGELOG.md", "## v4.61.2 - Admin Branding Slide Search Param Fix");
+assertContains("src/lib/app-version.ts", "4.61.2");
+assertContains("README.md", "Current package version: **4.61.2**");
 
 assertContains("prisma/schema.prisma", "model HomepageHeroSlide");
 assertContains("prisma/schema.prisma", "@@index([isActive, sortOrder])");

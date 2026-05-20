@@ -82,6 +82,6 @@ assertIncludes("package.json", [
   "\"canonical-conversations-workflow-proof:verify\"",
   "marketplace-readiness-messaging:verify && npm run canonical-conversations-workflow-proof:verify",
 ]);
-assertIncludes("CHANGELOG.md", ["## v4.61.1 - Tenant Portal Navigation Gate Fix"]);
+assertIncludes("CHANGELOG.md", ["## v4.61.2 - Admin Branding Slide Search Param Fix"]);
 
 console.log("Canonical conversations and workflow proof verification passed.");

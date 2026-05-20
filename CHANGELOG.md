@@ -1,3 +1,8 @@
+## v4.61.2 - Admin Branding Slide Search Param Fix
+
+- Fixed the `/admin/branding` type error caught by Vercel by adding the `slide` query parameter to the page search params contract.
+- Added `admin-branding-slide-search-param-fix:verify` so the homepage slider confirmation state stays covered by release gates.
+
 ## v4.61.1 - Tenant Portal Navigation Gate Fix
 
 - Updated the tenant portal completion release gate to match the role-visibility cleanup, where tenant Tasks and Calendar pages remain available by direct route but are no longer primary navigation items.
