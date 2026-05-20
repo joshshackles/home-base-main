@@ -40,12 +40,12 @@ assertContains("src/lib/dashboard/coherence.ts", [
   "What changed since last time?"
 ]);
 
-assertContains("src/components/dashboard/WorkhorseDashboard.tsx", [
-  "buildDashboardCoherence",
-  "Operating cockpit",
-  "Every dashboard answers the same questions",
+assertContains("src/components/dashboard/RoleDashboard.tsx", [
+  "model.coherence",
+  "Workflow map",
+  "The same operating questions adapt to each role",
   "Next best action",
-  "operationalCoherence.areas.map"
+  "model.coherence.areas.map"
 ]);
 
 assertContains("src/components/messaging/TextingInbox.tsx", [
@@ -69,11 +69,11 @@ const packageJson = JSON.parse(read("package.json"));
 if (!packageJson.scripts?.["operational-coherence:verify"]) {
   fail("package.json is missing operational-coherence:verify.");
 }
-if (!packageJson.scripts?.["vercel-build"]?.includes("operational-coherence:verify")) {
-  fail("vercel-build must run operational-coherence:verify.");
+if (!packageJson.scripts?.["vercel-build"]?.includes("first-release:verify")) {
+  fail("vercel-build must run first-release:verify.");
 }
-if (!packageJson.scripts?.verify?.includes("operational-coherence:verify")) {
-  fail("verify must run operational-coherence:verify.");
+if (!packageJson.scripts?.verify?.includes("first-release:verify")) {
+  fail("verify must run first-release:verify.");
 }
 
 if (failed) process.exit(1);

@@ -1,3 +1,9 @@
+## v4.46.1 - Vercel First Release Build Gate Fix
+
+- Updated `vercel-build` and `vercel-build:no-migrate` to run the current `first-release:verify` gate instead of the retired operational coherence verifier that expected `WorkhorseDashboard`.
+- Updated the operational coherence verifier so it checks the active `RoleDashboard` and first-release build gate rather than the removed legacy dashboard.
+- Updated release metadata to 4.46.1.
+
 ## v4.46.0 - First Release Codebase Readiness
 
 - Centralized role navigation into a first-release pathway manifest so applicant, tenant, landlord, inspector, vendor, and admin shells share one route architecture.

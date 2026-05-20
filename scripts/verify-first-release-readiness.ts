@@ -22,9 +22,10 @@ function assertNotExists(path: string) {
 }
 
 assertIncludes("package.json", [
-  "\"version\": \"4.46.0\"",
+  "\"version\": \"4.46.1\"",
   "\"verify\": \"npm run first-release:verify && npm run routes:check && npm run package:cleanliness && npm run typecheck && npm run test\"",
-  "\"first-release:verify\""
+  "\"first-release:verify\"",
+  "\"vercel-build\": \"npm run vercel:preflight && npm run lockfile:verify && npm run clean-install:verify && npm run first-release:verify"
 ]);
 
 assertIncludes("src/lib/navigation/first-release.ts", [
@@ -73,9 +74,9 @@ assertIncludes("FIRST_RELEASE_CODEBASE_AUDIT.md", [
   "Live-Release Risks",
   "Recommended Final Architecture"
 ]);
-assertIncludes("src/lib/app-version.ts", ["4.46.0"]);
-assertIncludes("README.md", ["Current package version: **4.46.0**"]);
-assertIncludes("CHANGELOG.md", ["## v4.46.0 - First Release Codebase Readiness"]);
+assertIncludes("src/lib/app-version.ts", ["4.46.1"]);
+assertIncludes("README.md", ["Current package version: **4.46.1**"]);
+assertIncludes("CHANGELOG.md", ["## v4.46.1 - Vercel First Release Build Gate Fix"]);
 
 assertNotExists("src/components/dashboard/WorkhorseDashboard.tsx");
 assertNotExists("tsconfig.tsbuildinfo");

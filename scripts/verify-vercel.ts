@@ -32,8 +32,8 @@ if (scripts["vercel-build"]?.includes("vercel:migration-recovery") || scripts["v
 if (!scripts["vercel-build"]?.includes("clean-install:verify")) {
   fail('package.json must run "clean-install:verify" during Vercel builds.');
 }
-if (!scripts["vercel-build"]?.includes("operational-coherence:verify")) {
-  fail('package.json must run "operational-coherence:verify" during Vercel builds.');
+if (!scripts["vercel-build"]?.includes("first-release:verify")) {
+  fail('package.json must run "first-release:verify" during Vercel builds.');
 }
 if (!scripts["vercel-build"]?.includes("vercel:migrate")) {
   fail('package.json must run "vercel:migrate" during Vercel builds so production Neon migrations are applied automatically.');
