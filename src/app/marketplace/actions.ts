@@ -85,6 +85,20 @@ export async function saveMarketplaceSearch(formData: FormData) {
   redirect(`${returnTo}${returnTo.includes("?") ? "&" : "?"}savedSearch=1`);
 }
 
+export async function deleteMarketplaceSearch(formData: FormData) {
+  const user = await requireUser("/applicant/favorites");
+  const searchId = optionalFormText(formData, "searchId");
+  if (!searchId) throw new Error("Saved search is required.");
+
+  await prisma.savedMarketplaceSearch.deleteMany({
+    where: { id: searchId, userId: user.userId },
+  });
+
+  revalidatePath("/marketplace");
+  revalidatePath("/applicant/favorites");
+  redirect("/applicant/favorites?search=removed");
+}
+
 function enrichLeadMessage(
   formData: FormData,
   message: string | null | undefined,

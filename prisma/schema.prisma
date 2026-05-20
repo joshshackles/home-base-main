@@ -410,6 +410,33 @@ enum MessageThreadStatus {
   CLOSED
 }
 
+enum ConversationSourceType {
+  LEAD
+  APPLICATION
+  MAINTENANCE
+  INSPECTION
+  VENDOR
+  LEASE
+  TENANT
+  GENERAL
+}
+
+enum ConversationStatus {
+  OPEN
+  WAITING_ON_STAFF
+  WAITING_ON_RENTER
+  WAITING_ON_VENDOR
+  WAITING_ON_INSPECTOR
+  CLOSED
+}
+
+enum ConversationEventType {
+  MESSAGE
+  NOTE
+  STATUS_CHANGE
+  SYSTEM
+}
+
 
 enum LedgerEntryType {
   CHARGE
@@ -801,6 +828,9 @@ model User {
   assignedMaintenanceRequests MaintenanceRequest[] @relation("AssignedMaintenanceRequests")
   createdMessageThreads MessageThread[] @relation("CreatedMessageThreads")
   sentMessages Message[] @relation("SentMessages")
+  createdConversations Conversation[] @relation("CreatedConversations")
+  conversationParticipants ConversationParticipant[]
+  conversationEvents ConversationEvent[] @relation("ConversationEventSenders")
   createdLedgerEntries LedgerEntry[] @relation("CreatedLedgerEntries")
   tenantLedgerEntries LedgerEntry[] @relation("TenantLedgerEntries")
   recurringChargeSchedules RecurringChargeSchedule[] @relation("TenantRecurringChargeSchedules")
@@ -1031,6 +1061,7 @@ model Property {
   tasks TaskItem[]
   scheduleEvents ScheduleEvent[]
   notices FormalNotice[]
+  conversations Conversation[]
 
   maintenanceAssets MaintenanceAsset[]
   insurancePolicies InsurancePolicy[]
@@ -1122,6 +1153,7 @@ model Unit {
   financialInsightSnapshots FinancialInsightSnapshot[]
   inspections  Inspection[]
   maintenanceRequests MaintenanceRequest[]
+  conversations Conversation[]
   documents    Document[]
   photos       UnitPhoto[]
   ledgerEntries LedgerEntry[]
@@ -1183,6 +1215,7 @@ model Lead {
   unit        Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
   notes       LeadNote[]
   application Application?
+  conversations Conversation[]
 
   @@index([unitId])
   @@index([status])
@@ -1224,6 +1257,7 @@ model Application {
   inspections Inspection[]
   maintenanceRequests MaintenanceRequest[]
   messageThreads MessageThread[]
+  conversations Conversation[]
   vendorPayouts VendorPayout[]
   ledgerEntries LedgerEntry[]
   recurringChargeSchedules RecurringChargeSchedule[]
@@ -1581,6 +1615,7 @@ model Inspection {
   application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
   assignedTo  User?        @relation("AssignedInspections", fields: [assignedToId], references: [id], onDelete: SetNull)
   checklistItems InspectionChecklistItem[]
+  conversations Conversation[]
 
   @@index([unitId])
   @@index([applicationId])
@@ -1626,6 +1661,7 @@ model MaintenanceRequest {
   requester   User         @relation("RequestedMaintenanceRequests", fields: [requesterId], references: [id], onDelete: Cascade)
   assignedTo  User?        @relation("AssignedMaintenanceRequests", fields: [assignedToId], references: [id], onDelete: SetNull)
   messageThreads MessageThread[]
+  conversations Conversation[]
   vendorPayouts VendorPayout[]
   vendorWorkLogs VendorWorkLog[]
   vendorInvoices VendorInvoice[]
@@ -1657,6 +1693,7 @@ model MessageThread {
   maintenanceRequest MaintenanceRequest? @relation(fields: [maintenanceRequestId], references: [id], onDelete: SetNull)
   createdBy          User                @relation("CreatedMessageThreads", fields: [createdById], references: [id], onDelete: Cascade)
   messages           Message[]
+  conversations      Conversation[]
 
   @@index([type])
   @@index([status])
@@ -1683,6 +1720,92 @@ model Message {
   @@index([senderId])
   @@index([createdAt])
   @@index([isInternal])
+}
+
+model Conversation {
+  id                   String                 @id @default(cuid())
+  sourceType           ConversationSourceType @default(GENERAL)
+  status               ConversationStatus     @default(OPEN)
+  subject              String
+  leadId               String?
+  applicationId         String?
+  maintenanceRequestId String?
+  inspectionId          String?
+  propertyId            String?
+  unitId                String?
+  messageThreadId       String?
+  createdById           String?
+  lastActivityAt        DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  lead               Lead?               @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  application        Application?        @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  maintenanceRequest MaintenanceRequest? @relation(fields: [maintenanceRequestId], references: [id], onDelete: SetNull)
+  inspection         Inspection?         @relation(fields: [inspectionId], references: [id], onDelete: SetNull)
+  property           Property?           @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  unit               Unit?               @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  messageThread      MessageThread?      @relation(fields: [messageThreadId], references: [id], onDelete: SetNull)
+  createdBy          User?               @relation("CreatedConversations", fields: [createdById], references: [id], onDelete: SetNull)
+  participants       ConversationParticipant[]
+  events             ConversationEvent[]
+
+  @@index([sourceType])
+  @@index([status])
+  @@index([leadId])
+  @@index([applicationId])
+  @@index([maintenanceRequestId])
+  @@index([inspectionId])
+  @@index([propertyId])
+  @@index([unitId])
+  @@index([messageThreadId])
+  @@index([createdById])
+  @@index([lastActivityAt])
+}
+
+model ConversationParticipant {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String?
+  displayName    String?
+  email          String?
+  phone          String?
+  roleLabel      String
+  lastReadAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([userId])
+  @@index([email])
+  @@index([roleLabel])
+}
+
+model ConversationEvent {
+  id               String                @id @default(cuid())
+  conversationId   String
+  eventType        ConversationEventType @default(MESSAGE)
+  senderUserId     String?
+  senderName       String?
+  senderEmail      String?
+  body             String
+  isInternal       Boolean               @default(false)
+  legacyMessageId  String?
+  legacyLeadNoteId String?
+  createdAt        DateTime              @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User?        @relation("ConversationEventSenders", fields: [senderUserId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([senderUserId])
+  @@index([legacyMessageId])
+  @@index([legacyLeadNoteId])
+  @@index([eventType])
+  @@index([createdAt])
 }
 
 model LeaseTemplate {

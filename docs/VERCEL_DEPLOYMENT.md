@@ -13,20 +13,28 @@ npm run vercel-build
 That command runs:
 
 1. `npm run vercel:preflight`
-2. `npm run clean-install:verify`
-3. `npm run operational-coherence:verify`
-4. `prisma generate`
-5. `next build`
+2. `npm run lockfile:verify`
+3. `npm run clean-install:verify`
+4. `npm run first-release:verify`
+5. `npm run permission-matrix:verify`
+6. `npm run authorization-runtime:verify`
+7. `npm run protected-routes:verify`
+8. `npm run middleware-static:verify`
+9. `npm run environment-contract:verify`
+10. `npm run payments-production:verify`
+11. `npm run vercel:migrate`
+12. `prisma generate`
+13. `next build`
 
 ## Database migration policy
 
-Vercel builds do **not** run `prisma migrate deploy`. Apply database changes as a deliberate release step before promoting a deployment:
+Vercel builds run the guarded migration runner:
 
 ```bash
-npm run db:deploy
+npm run vercel:migrate
 ```
 
-This keeps build retries, preview deployments, and cache restores from mutating production data.
+The runner is controlled by deployment environment and the `VERCEL_RUN_MIGRATIONS` / `VERCEL_SKIP_MIGRATIONS` flags. Use `VERCEL_SKIP_MIGRATIONS=1` only as an emergency deployment bypass after confirming the database schema is already current.
 
 ## Required production environment variables
 
@@ -102,6 +110,12 @@ Keep the daily schedule while the project remains on Hobby, or deployment can fa
 npm ci
 npm run vercel:preflight
 npm run clean-install:verify
+npm run first-release:verify
+npm run permission-matrix:verify
+npm run authorization-runtime:verify
+npm run protected-routes:verify
+npm run middleware-static:verify
+npm run environment-contract:verify
 npm run migrations:check
 npm run typecheck
 npm run test

@@ -292,7 +292,7 @@ export default async function LandlordTenantsPage({ searchParams }: { searchPara
   const pageHref = (nextPage: number) => `/landlord/tenants?${paramsWithoutPage.toString()}${paramsWithoutPage.toString() ? "&" : ""}page=${nextPage}`;
 
   return (
-    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-10 lg:px-8">
       <LandlordPageHeader title="Tenant Directory" description="Search applicants, leads, and tenants connected to your listings, messages, applications, and occupancy records." actionHref="/landlord/applications" actionLabel="Applications" />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -341,14 +341,14 @@ export default async function LandlordTenantsPage({ searchParams }: { searchPara
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-2xl font-black text-slate-950">{entry.name}</h2>
+                  <h2 className="min-w-0 break-words text-xl font-black text-slate-950 sm:text-2xl">{entry.name}</h2>
                   <span className={`rounded-full px-3 py-1 text-xs font-black uppercase ${relationshipTone(entry.relationship)}`}>{label(entry.relationship)}</span>
                   {entry.applicationStatus ? <WorkflowStatusBadge status={entry.applicationStatus} /> : null}
                   <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-black uppercase ${authTone(entry.authorized)}`}>{entry.authorized ? <ShieldCheck size={13} /> : <Lock size={13} />}{entry.authorized ? "Share authorized" : "Share pending"}</span>
                   {entry.unreadMessage ? <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-black uppercase text-white">Unread message</span> : null}
                 </div>
                 <p className="mt-2 text-sm font-semibold text-slate-700">{entry.unitLabel} - {entry.city} - {formatCurrency(entry.rentAmount)} / month</p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-4">
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <Signal label="Status" value={entry.applicationStatus ? label(entry.applicationStatus) : label(entry.relationship)} />
                   <Signal label="Profile" value={entry.profilePercent !== null ? `${entry.profilePercent}%` : "Locked"} />
                   <Signal label="Move-in" value={entry.moveInDate ? entry.moveInDate.toLocaleDateString() : "Not set"} />

@@ -40,7 +40,7 @@ export default async function LandlordMaintenancePage() {
   const submittedEstimateCount = vendorCenter.invoices.filter((invoice) => invoice.status === "SUBMITTED").length;
 
   return (
-    <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-10 lg:px-8">
       <ProductPageHeader
         eyebrow="Maintenance"
         title="Maintenance Queue"
@@ -49,7 +49,7 @@ export default async function LandlordMaintenancePage() {
         actionLabel="Open Vendor Ops"
       />
 
-      <section className="mb-6 grid gap-4 md:grid-cols-5">
+      <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
         <Metric label="Unassigned" value={unassignedCount} detail="Needs assignment" tone={unassignedCount ? "red" : "green"} />
         <Metric label="Vendor acceptance" value={waitingVendorCount} detail="Waiting on vendor" tone={waitingVendorCount ? "amber" : "green"} />
         <Metric label="SLA risk" value={slaRiskCount} detail="Past target" tone={slaRiskCount ? "red" : "green"} />
@@ -59,7 +59,7 @@ export default async function LandlordMaintenancePage() {
 
       <section className="space-y-4">
         {requests.length === 0 ? <EmptyState title="No maintenance requests yet" detail="Tenant repair requests and landlord-created work orders will appear here. When a request arrives, assign it, set status, and keep messages in the thread." action={<a href="/landlord/rentals" className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white hover:bg-blue-700">Review Units</a>} /> : requests.map((request) => (
-          <article key={request.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <article key={request.id} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-black text-slate-950">{request.subject}</h2>
@@ -85,7 +85,7 @@ export default async function LandlordMaintenancePage() {
                 <option value="">Unassigned</option>
                 {staff.map((member) => <option key={member.id} value={member.id}>{member.name || member.email} ({label(member.role)})</option>)}
               </select>
-              <button className="rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700" type="submit">Update Work Order</button>
+              <button className="min-h-12 rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700" type="submit">Update Work Order</button>
             </form>
 
             {request.vendorInvoices.length ? (

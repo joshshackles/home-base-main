@@ -47,11 +47,11 @@ export function documentAttachmentLabel(document: DocumentCenterDocument) {
   return "Unattached";
 }
 
-export function documentAttachmentHref(document: DocumentCenterDocument, base: "admin" | "landlord" | "applicant") {
+export function documentAttachmentHref(document: DocumentCenterDocument, base: "admin" | "landlord" | "applicant" | "tenant") {
   if (document.application) return `/${base}/applications/${document.application.id}`;
   if (document.leasePacket) return `/${base}/leases/${document.leasePacket.id}`;
-  if (document.unit) return base === "applicant" ? "/applicant/home-tools" : `/${base}/rentals/${document.unit.id}`;
-  if (document.property) return base === "applicant" ? "/applicant/home-tools" : `/${base}/rentals`;
+  if (document.unit) return base === "applicant" ? "/applicant/home-tools" : base === "tenant" ? "/tenant/lease" : `/${base}/rentals/${document.unit.id}`;
+  if (document.property) return base === "applicant" ? "/applicant/home-tools" : base === "tenant" ? "/tenant/lease" : `/${base}/rentals`;
   return `/${base}/documents`;
 }
 

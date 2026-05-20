@@ -92,32 +92,36 @@ export const adminNavGroups: ShellNavGroup[] = [
   { label: "Command", items: [
     { href: "/dashboard", label: "Role Home", icon: "LayoutDashboard" },
     { href: "/admin", label: "Command Center", icon: "Activity" },
-    { href: "/admin/command-center", label: "Super User", icon: "ShieldCheck" },
-    { href: "/admin/users", label: "Users", icon: "Users" },
-    { href: "/admin/workflows", label: "Workflows", icon: "Route" },
-    { href: "/admin/system", label: "System Health", icon: "Database" }
+    { href: "/admin#access-requests", label: "Access Requests", icon: "Users" },
+    { href: "/admin#data-quality", label: "Data Quality", icon: "Database" },
+    { href: "/admin#blocked-workflows", label: "Workflows", icon: "Route" },
+    { href: "/admin#failed-integrations", label: "Integrations", icon: "PlugZap" },
+    { href: "/admin#production-health", label: "Health", icon: "Activity" }
   ] },
   { label: "Operations", items: [
+    { href: "/admin/users", label: "Users", icon: "Users" },
     { href: "/admin/rentals", label: "Rentals", icon: "Home" },
     { href: "/admin/applications", label: "Applications", icon: "ClipboardList" },
     { href: "/admin/inbox", label: "Inbox", icon: "MessageSquare" },
+    { href: "/admin/workflow-proof", label: "Workflow Proof", icon: "ClipboardCheck" },
     { href: "/admin/maintenance", label: "Maintenance", icon: "Wrench" },
     { href: "/admin/inspections", label: "Inspections", icon: "ClipboardCheck" }
   ] },
   { label: "Platform", items: [
-    { href: "/admin/reports", label: "Reports", icon: "BarChart3" },
-    { href: "/admin/audit", label: "Audit Logs", icon: "Shield" },
+    { href: "/admin#sample-data", label: "Sample Data", icon: "Database" },
     { href: "/admin/security", label: "Security", icon: "ShieldCheck" },
-    { href: "/admin/integrations", label: "Integrations", icon: "PlugZap" }
+    { href: "/admin/audit", label: "Audit Logs", icon: "Shield" },
+    { href: "/admin/reports", label: "Reports", icon: "BarChart3" },
+    { href: "/admin/system", label: "System Health", icon: "Database" }
   ] }
 ];
 
 export const firstReleasePathways = [
   "public: homepage -> marketplace -> listing detail -> sign in",
   "applicant: dashboard -> reusable profile -> saved homes -> applications -> inbox -> documents",
-  "tenant: dashboard -> current lease/rent -> maintenance -> inbox -> documents/notices",
+  "tenant: dashboard -> current lease/rent -> maintenance -> inbox -> documents/notices/inspections",
   "landlord: dashboard -> properties/units/listings -> applications -> tenants -> inbox -> maintenance",
   "inspector: dashboard -> assigned inspections -> report workflow",
   "vendor: dashboard -> assigned jobs -> invoices -> contacts",
-  "admin: command center -> users/access -> workflows -> audit/security -> system health"
+  "admin: command center -> access/data quality/workflows/integrations/security/sample data/audit/health"
 ] as const;

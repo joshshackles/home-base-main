@@ -41,8 +41,8 @@ const checks: Array<{ file: string; markers: string[] }> = [
     file: "src/app/marketplace/page.tsx",
     markers: [
       "MarketplaceFilterForm",
-      "Save search",
-      "Sign in to save search",
+      "Save Search",
+      "Sign In to Save Search",
       "No exact matches",
       "Broader real matches",
       "availableBy",
@@ -80,11 +80,11 @@ const checks: Array<{ file: string; markers: string[] }> = [
   },
   {
     file: "package.json",
-    markers: ["\"version\": \"4.41.0\"", "marketplace-search-v2:verify"]
+    markers: ["\"version\": \"4.59.0\"", "marketplace-search-v2:verify"]
   },
   {
     file: "src/lib/app-version.ts",
-    markers: ["4.41.0"]
+    markers: ["4.59.0"]
   }
 ];
 

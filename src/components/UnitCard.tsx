@@ -18,6 +18,7 @@ import {
   saveFavoriteRental,
 } from "@/app/applicant/actions";
 import { formatCurrency } from "@/lib/format";
+import { getPublicLocationLabel } from "@/lib/marketplace/listings";
 
 type UnitCardProps = {
   unit: {
@@ -218,7 +219,7 @@ export function UnitCard({
         <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-slate-500">
           <MapPin size={13} />
           <span className="truncate">
-            {unit.property.addressLine}, {unit.property.zip}
+            {getPublicLocationLabel(unit)}
           </span>
         </div>
 

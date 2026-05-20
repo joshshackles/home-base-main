@@ -11,7 +11,7 @@ const checks: Array<{ file: string; markers: string[] }> = [
       "LocationPreviewPanel",
       "buildAreaGroups",
       "Map preview mode",
-      "Exact interactive markers require latitude and longitude support",
+      "Exact interactive markers require latitude/longitude",
       "Future full map support should add geocoded latitude/longitude fields",
       "xl:grid-cols-[260px_minmax(0,1fr)_420px]"
     ]
@@ -31,11 +31,11 @@ const checks: Array<{ file: string; markers: string[] }> = [
   },
   {
     file: "package.json",
-    markers: ["\"version\": \"4.42.0\"", "marketplace-map-list:verify"]
+    markers: ["\"version\": \"4.59.0\"", "marketplace-map-list:verify"]
   },
   {
     file: "src/lib/app-version.ts",
-    markers: ["4.42.0"]
+    markers: ["4.59.0"]
   }
 ];
 

@@ -355,7 +355,7 @@ export default async function LandlordInboxPage({ searchParams }: { searchParams
         </section>
 
         <section className="mt-4 grid gap-4 lg:grid-cols-[390px_minmax(0,1fr)]">
-          <aside id="threads" className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
+          <aside id="threads" className={`${selectedThreadId ? "hidden lg:block" : "block"} rounded-3xl border border-slate-200 bg-white p-3 shadow-sm`}>
             <div className="flex items-center justify-between gap-3 p-2">
               <div>
                 <p className="text-xs font-black uppercase text-slate-500">Threads</p>
@@ -367,7 +367,7 @@ export default async function LandlordInboxPage({ searchParams }: { searchParams
               {filteredThreads.length === 0 ? (
                 <EmptyState title="No conversations match" detail="Try clearing filters or searching by applicant, property, unit, email, or message text." actionHref="/landlord/inbox" actionLabel="Clear filters" />
               ) : (
-                filteredThreads.map((thread) => <ThreadCard key={thread.id} thread={thread} selected={selectedThread?.id === thread.id} href={inboxHref(searchParams, { thread: thread.id })} />)
+                filteredThreads.map((thread) => <ThreadCard key={thread.id} thread={thread} selected={selectedThread?.id === thread.id} href={`${inboxHref(searchParams, { thread: thread.id })}#conversation`} />)
               )}
             </div>
           </aside>

@@ -7,8 +7,8 @@ function assertIncludes(file: string, expected: string) {
   }
 }
 
-assertIncludes("src/components/dashboard/WorkhorseDashboard.tsx", "sortedTasks");
-assertIncludes("src/components/dashboard/WorkhorseDashboard.tsx", "statusBadgeClass");
+assertIncludes("src/components/dashboard/DashboardTaskList.tsx", "items.length === 0");
+assertIncludes("src/components/ui/system/index.tsx", "WorkflowStatusBadge");
 assertIncludes("src/components/applicant/ProfileDraftSaver.tsx", "localStorage");
 assertIncludes("src/app/applicant/actions.ts", "withdrawApplicantApplication");
 assertIncludes("src/app/applicant/actions.ts", "ApplicationStatus.WITHDRAWN");

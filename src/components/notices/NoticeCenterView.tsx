@@ -9,7 +9,7 @@ type Option = { id: string; label: string };
 type Props = {
   title: string;
   description: string;
-  basePath: "admin" | "landlord" | "applicant";
+  basePath: "admin" | "landlord" | "applicant" | "tenant";
   center: NoticeCenter;
   searchParams?: Record<string, string | string[] | undefined>;
   canCreate?: boolean;
@@ -155,7 +155,7 @@ export function NoticeCenterView({ title, description, basePath, center, searchP
                     <form action={updateFormalNoticeStatus} className="flex gap-2">
                       <input type="hidden" name="id" value={notice.id} />
                       <select name="status" defaultValue={notice.status} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs font-bold">
-                        {(basePath === "applicant" ? [FormalNoticeStatus.ACKNOWLEDGED] : Object.values(FormalNoticeStatus)).map((value) => <option key={value} value={value}>{noticeStatusLabel(value)}</option>)}
+                        {(basePath === "applicant" || basePath === "tenant" ? [FormalNoticeStatus.ACKNOWLEDGED] : Object.values(FormalNoticeStatus)).map((value) => <option key={value} value={value}>{noticeStatusLabel(value)}</option>)}
                       </select>
                       <button className="rounded-xl bg-brand-600 px-3 py-2 text-xs font-black text-white">Save</button>
                     </form>

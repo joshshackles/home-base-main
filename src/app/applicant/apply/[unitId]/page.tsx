@@ -39,29 +39,29 @@ export default async function GuidedApplyPage({ params }: { params: { unitId: st
   return (
     <main id="main-content" className="min-h-screen bg-slate-50">
       <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl px-3 py-4 sm:px-6 lg:px-8">
           <Link href={`/marketplace/${unit.id}`} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-700 hover:bg-slate-50">
             <ArrowLeft size={16} /> Back to listing
           </Link>
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
-        <section className="space-y-6">
-          <div className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-sm sm:p-8">
-            <p className="text-sm font-black uppercase tracking-[0.3em] text-blue-200">Guided apply</p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Apply with your reusable renter packet.</h1>
+      <div className="mx-auto grid max-w-6xl gap-4 px-3 py-5 sm:px-6 sm:py-8 lg:grid-cols-[1fr_380px] lg:px-8">
+        <section className="space-y-4 sm:space-y-6">
+          <div className="rounded-[1.5rem] bg-slate-950 p-5 text-white shadow-sm sm:rounded-[2rem] sm:p-8">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-200 sm:text-sm sm:tracking-[0.3em]">Guided apply</p>
+            <h1 className="mt-3 text-3xl font-black leading-tight tracking-tight sm:text-5xl">Apply with your reusable renter packet.</h1>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">Review what will be shared, authorize HomeBase to send your saved applicant information to this rental team, and submit in a few clicks.</p>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-wide text-blue-700">Step 1</p>
                 <h2 className="mt-1 text-2xl font-black text-slate-950">Reusable packet readiness</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">These are the profile sections landlords receive when you authorize sharing for a specific home.</p>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <p className="text-3xl font-black text-slate-950">{readiness.score}%</p>
                 <p className="text-xs font-bold uppercase text-slate-500">packet ready</p>
               </div>
@@ -82,7 +82,7 @@ export default async function GuidedApplyPage({ params }: { params: { unitId: st
             </div>
           </div>
 
-          <div className="rounded-3xl border border-blue-200 bg-blue-50 p-6 shadow-sm">
+          <div className="rounded-3xl border border-blue-200 bg-blue-50 p-4 shadow-sm sm:p-6">
             <p className="text-xs font-black uppercase tracking-wide text-blue-700">Step 2</p>
             <h2 className="mt-1 text-2xl font-black text-blue-950">Authorize and submit</h2>
             {existingApplication ? (
@@ -99,7 +99,7 @@ export default async function GuidedApplyPage({ params }: { params: { unitId: st
                   <span>I authorize HomeBase to share my saved renter packet, household, income, reusable documents, contact details, and signed acknowledgements with this rental team for this application.</span>
                 </label>
                 <textarea name="message" rows={4} className="rounded-2xl border border-blue-200 px-4 py-3 text-sm font-semibold outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100" placeholder="Optional note for the rental team..." />
-                <button type="submit" className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700">Authorize and Submit Application</button>
+                        <button type="submit" className="min-h-12 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700">Authorize and Submit Application</button>
               </form>
             )}
           </div>

@@ -23,6 +23,8 @@ export type MarketplaceViewer = {
   role: string;
 } | null;
 
+export const MARKETPLACE_RESULT_LIMIT = 48;
+
 export function isApplicantMarketplaceViewer(viewer: MarketplaceViewer) {
   return viewer?.role === "APPLICANT" || viewer?.role === "TENANT";
 }
@@ -77,8 +79,8 @@ export function buildMarketplaceWhere(
         { laundryInfo: { contains: input.q, mode: "insensitive" } },
         { appliancesIncluded: { contains: input.q, mode: "insensitive" } },
         { property: { name: { contains: input.q, mode: "insensitive" } } },
-        { property: { addressLine: { contains: input.q, mode: "insensitive" } } },
         { property: { city: { contains: input.q, mode: "insensitive" } } },
+        { property: { zip: { contains: input.q, mode: "insensitive" } } },
       ],
     });
   }
@@ -94,6 +96,15 @@ export function buildMarketplaceWhere(
   return {
     status: UnitStatus.AVAILABLE,
     marketingStatus: "ACTIVE",
+    rentAmount: { gt: 0 },
+    bedrooms: { gte: 0 },
+    bathrooms: { gt: 0 },
+    OR: [
+      { marketingHeadline: { not: null } },
+      { marketingHighlights: { not: null } },
+      { description: { not: null } },
+      { photos: { some: {} } },
+    ],
     ...(andFilters.length ? { AND: andFilters } : {}),
     ...(rentalType ? { rentalType } : {}),
     property: {
@@ -132,6 +143,7 @@ export async function getMarketplaceListings(
   skip: number,
   sort?: string,
 ) {
+  const safeTake = Math.min(Math.max(take, 1), MARKETPLACE_RESULT_LIMIT);
   return prisma.unit.findMany({
     where,
     include: {
@@ -147,7 +159,7 @@ export async function getMarketplaceListings(
       },
     },
     orderBy: getRentalSort(sort),
-    take,
+    take: safeTake,
     skip,
   });
 }
@@ -160,6 +172,15 @@ export async function getMarketplaceStats() {
   const baseWhere: Prisma.UnitWhereInput = {
     status: UnitStatus.AVAILABLE,
     marketingStatus: "ACTIVE",
+    rentAmount: { gt: 0 },
+    bedrooms: { gte: 0 },
+    bathrooms: { gt: 0 },
+    OR: [
+      { marketingHeadline: { not: null } },
+      { marketingHighlights: { not: null } },
+      { description: { not: null } },
+      { photos: { some: {} } },
+    ],
     property: { isArchived: false },
   };
 
@@ -251,6 +272,41 @@ export function getListingQualityScore(unit: {
   return Math.min(score, 100);
 }
 
+export function getListingQualityGaps(unit: {
+  photos?: unknown[];
+  _count?: { photos?: number };
+  rentAmount: number;
+  bedrooms: number;
+  bathrooms: number;
+  description: string | null;
+  marketingHeadline?: string | null;
+  marketingHighlights?: string | null;
+  availableOn?: Date | null;
+  utilitiesNote: string | null;
+  squareFeet: number | null;
+}) {
+  const photoCount = unit._count?.photos ?? unit.photos?.length ?? 0;
+  return [
+    photoCount === 0 ? "photos" : null,
+    !unit.marketingHeadline ? "headline" : null,
+    !unit.marketingHighlights && !unit.description ? "description" : null,
+    unit.rentAmount <= 0 ? "rent" : null,
+    unit.bedrooms < 0 || unit.bathrooms <= 0 ? "bed/bath" : null,
+    !unit.availableOn ? "availability date" : null,
+    !unit.squareFeet ? "square feet" : null,
+    !unit.utilitiesNote ? "utility notes" : null,
+  ].filter((gap): gap is string => Boolean(gap));
+}
+
+export function getPublicLocationLabel(unit: {
+  neighborhood?: string | null;
+  property: { city: string; state: string; zip?: string | null };
+}) {
+  const area = unit.neighborhood?.trim() || unit.property.city;
+  const zip = unit.property.zip ? ` ${unit.property.zip}` : "";
+  return `${area}, ${unit.property.state}${zip}`;
+}
+
 export function getMonthlyCostEstimate(unit: {
   rentAmount: number;
   deposit: number | null;
@@ -264,8 +320,9 @@ export function getMonthlyCostEstimate(unit: {
 }
 
 export function getMapSearchHref(unit: {
-  property: { addressLine: string; city: string; state: string; zip: string };
+  neighborhood?: string | null;
+  property: { city: string; state: string; zip: string };
 }) {
-  const address = `${unit.property.addressLine}, ${unit.property.city}, ${unit.property.state} ${unit.property.zip}`;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  const area = `${unit.neighborhood ? `${unit.neighborhood}, ` : ""}${unit.property.city}, ${unit.property.state} ${unit.property.zip}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(area)}`;
 }

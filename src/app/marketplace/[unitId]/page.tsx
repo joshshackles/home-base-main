@@ -28,9 +28,11 @@ import { formatCurrency } from "@/lib/format";
 import { getVerifiedCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
+  getListingQualityGaps,
   getListingQualityScore,
   getMapSearchHref,
   getMonthlyCostEstimate,
+  getPublicLocationLabel,
   isApplicantMarketplaceViewer,
 } from "@/lib/marketplace/listings";
 
@@ -108,8 +110,10 @@ export default async function UnitDetailPage({
   const errorMessage = searchParams?.error;
   const headline = unit.marketingHeadline || unit.property.name;
   const qualityScore = getListingQualityScore(unit);
+  const qualityGaps = getListingQualityGaps(unit);
   const monthlyCost = getMonthlyCostEstimate(unit);
   const mapHref = getMapSearchHref(unit);
+  const publicLocation = getPublicLocationLabel(unit);
   const primaryPhoto = unit.photos[0];
   const galleryPhotos = unit.photos.slice(1, 6);
   const availabilityText = unit.availableOn && unit.availableOn > new Date() ? unit.availableOn.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }) : "Available now";
@@ -131,7 +135,7 @@ export default async function UnitDetailPage({
         <div className="min-w-0 space-y-4">
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="grid gap-1 bg-slate-950 p-1 md:grid-cols-[1.4fr_0.6fr]">
-              <div className="relative min-h-[22rem] overflow-hidden rounded-xl bg-slate-900 text-white">
+              <div className="relative min-h-[18rem] overflow-hidden rounded-xl bg-slate-900 text-white sm:min-h-[22rem]">
                 {primaryPhoto ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -157,9 +161,8 @@ export default async function UnitDetailPage({
                     {headline}
                   </h1>
                   <p className="mt-2 flex flex-wrap items-center gap-2 text-sm font-bold text-slate-200">
-                    <MapPin size={16} /> {unit.property.addressLine},{" "}
-                    {unit.property.city}, {unit.property.state}{" "}
-                    {unit.property.zip}
+                    <MapPin size={16} /> {publicLocation}
+                    <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] uppercase tracking-wide text-slate-100">Exact address shared after landlord contact or application authorization</span>
                   </p>
                 </div>
               </div>
@@ -228,7 +231,7 @@ export default async function UnitDetailPage({
                 target="_blank"
                 className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm font-black text-slate-800 hover:bg-slate-50"
               >
-                Map <ExternalLink size={14} />
+                Area map <ExternalLink size={14} />
               </Link>
             </div>
             <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-600">
@@ -246,6 +249,7 @@ export default async function UnitDetailPage({
                 value={formatCurrency(monthlyCost.moveIn)}
               />
               <InfoPill label="Availability" value={availabilityText} />
+              <InfoPill label="Public location" value={publicLocation} />
               <InfoPill
                 label="Deposit"
                 value={unit.deposit ? formatCurrency(unit.deposit) : "Ask"}
@@ -263,6 +267,26 @@ export default async function UnitDetailPage({
                     : "Ask"
                 }
               />
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-wide text-slate-500">Listing readiness</p>
+                <h2 className="mt-1 text-xl font-black text-slate-950">Quality and privacy checks</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-600">HomeBase publishes only active, available rentals with usable marketplace detail. Public pages show area-level location first, while exact address handling stays inside landlord/applicant workflows.</p>
+              </div>
+              <Badge tone={qualityScore >= 75 ? "blue" : "dark"}>{qualityScore}% complete</Badge>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {qualityGaps.length === 0 ? (
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black uppercase text-emerald-700">No major gaps</span>
+              ) : (
+                qualityGaps.slice(0, 6).map((gap) => (
+                  <span key={gap} className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black uppercase text-amber-800">Missing {gap}</span>
+                ))
+              )}
             </div>
           </section>
 
@@ -314,7 +338,7 @@ export default async function UnitDetailPage({
 
         <aside
           id="interest"
-          className="h-fit rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-4"
+          className="scroll-mt-20 h-fit rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-4"
         >
           {leadSubmitted ? (
             <Notice

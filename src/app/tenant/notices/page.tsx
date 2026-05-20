@@ -1,5 +1,33 @@
-import { redirectTenantWorkflow } from "../_redirects";
+export const dynamic = "force-dynamic";
 
-export default async function TenantNoticesRedirectPage() {
-  await redirectTenantWorkflow("/applicant/notices");
+import { requireRole } from "@/lib/auth";
+import { getNoticeCenter } from "@/lib/notices";
+import { NoticeCenterView } from "@/components/notices/NoticeCenterView";
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function getParam(searchParams: SearchParams | undefined, key: string) {
+  const value = searchParams?.[key];
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+}
+
+export default async function TenantNoticesPage({ searchParams }: { searchParams?: SearchParams }) {
+  const user = await requireRole(["TENANT"], "/tenant/notices");
+  const center = await getNoticeCenter(user, {
+    q: getParam(searchParams, "q"),
+    status: getParam(searchParams, "status"),
+    type: getParam(searchParams, "type"),
+    audience: getParam(searchParams, "audience"),
+    scope: "mine"
+  });
+
+  return (
+    <NoticeCenterView
+      title="Resident notices"
+      description="Review and acknowledge formal rent, lease, maintenance, entry, policy, inspection, renewal, and move-out notices tied to your tenancy."
+      basePath="tenant"
+      center={center}
+      searchParams={searchParams}
+    />
+  );
 }

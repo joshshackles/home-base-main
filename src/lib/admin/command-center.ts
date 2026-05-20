@@ -17,6 +17,23 @@ export type AdminCommandCenterIssue = {
   actionLabel: string;
 };
 
+export type AdminCommandCenterDrilldownRecord = {
+  id: string;
+  title: string;
+  detail: string;
+  href: string;
+  status?: string;
+  updatedAt?: Date;
+};
+
+export type AdminCommandCenterDrilldown = {
+  key: string;
+  title: string;
+  description: string;
+  sourceHref: string;
+  records: AdminCommandCenterDrilldownRecord[];
+};
+
 export type AdminCommandCenterModel = {
   access: AdminAccessState;
   generatedAt: Date;
@@ -100,8 +117,12 @@ function severityForCount(count: number, warningAt = 1, criticalAt = 10): AdminS
   return "success";
 }
 
+function commandCenterDrilldownHref(key: string) {
+  return `/admin/command-center/drilldowns?key=${encodeURIComponent(key)}`;
+}
+
 function issue(key: string, title: string, count: number, detail: string, href: string, actionLabel: string, warningAt = 1, criticalAt = 10): AdminCommandCenterIssue {
-  return { key, title, count, detail, href, actionLabel, severity: severityForCount(count, warningAt, criticalAt) };
+  return { key, title, count, detail, href: commandCenterDrilldownHref(key), actionLabel, severity: severityForCount(count, warningAt, criticalAt) };
 }
 
 async function getSamplePayloadCounts() {
@@ -298,4 +319,103 @@ export async function getAdminCommandCenterModel(access: AdminAccessState): Prom
       { title: "Open reports", detail: "Review reporting and analytics exports.", href: "/admin/reports" }
     ]
   };
+}
+
+function record(id: string, title: string, detail: string, href: string, status?: string, updatedAt?: Date): AdminCommandCenterDrilldownRecord {
+  return { id, title, detail, href, status, updatedAt };
+}
+
+export async function getAdminCommandCenterDrilldown(key: string): Promise<AdminCommandCenterDrilldown> {
+  const staleDraftDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  const staleWorkflowDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const oldAccessDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+
+  switch (key) {
+    case "active-units-missing-photos": {
+      const units = await prisma.unit.findMany({ where: { marketingStatus: RentalMarketingStatus.ACTIVE, property: { isArchived: false }, photos: { none: {} } }, include: { property: true }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Active listings missing photos", description: "Public listings need at least one real photo or a deliberate image fallback before launch.", sourceHref: "/admin/units", records: units.map((unit) => record(unit.id, `${unit.property.name} #${unit.unitNumber}`, `${unit.property.city}, ${unit.property.state} - ${unit.bedrooms} bed / ${unit.bathrooms} bath`, `/admin/units/${unit.id}/edit`, unit.marketingStatus, unit.updatedAt)) };
+    }
+    case "active-units-missing-marketing": {
+      const units = await prisma.unit.findMany({ where: { marketingStatus: RentalMarketingStatus.ACTIVE, property: { isArchived: false }, OR: [{ marketingHeadline: null }, { description: null }, { availableOn: null }] }, include: { property: true }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Active listings missing marketplace details", description: "Active listings should have headline, description, and availability before renters make decisions on mobile.", sourceHref: "/admin/rentals", records: units.map((unit) => record(unit.id, `${unit.property.name} #${unit.unitNumber}`, `Missing: ${[unit.marketingHeadline ? null : "headline", unit.description ? null : "description", unit.availableOn ? null : "availability"].filter(Boolean).join(", ")}`, `/admin/rentals/${unit.id}/edit`, unit.marketingStatus, unit.updatedAt)) };
+    }
+    case "zero-rent-units": {
+      const units = await prisma.unit.findMany({ where: { rentAmount: { lte: 0 }, NOT: { status: UnitStatus.ARCHIVED } }, include: { property: true }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Units with zero rent", description: "Zero-rent units can mislead search, reporting, and ledger workflows.", sourceHref: "/admin/units", records: units.map((unit) => record(unit.id, `${unit.property.name} #${unit.unitNumber}`, `${unit.property.city}, ${unit.property.state} - rent is $${unit.rentAmount}`, `/admin/units/${unit.id}/edit`, unit.status, unit.updatedAt)) };
+    }
+    case "properties-without-units": {
+      const properties = await prisma.property.findMany({ where: { isArchived: false, units: { none: {} } }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Properties without units", description: "Properties need units before listings, leases, rent, and maintenance can be managed.", sourceHref: "/admin/properties", records: properties.map((property) => record(property.id, property.name, `${property.addressLine}, ${property.city}, ${property.state}`, `/admin/properties/${property.id}/edit`, "No units", property.updatedAt)) };
+    }
+    case "maintenance-without-unit": {
+      const requests = await prisma.maintenanceRequest.findMany({ where: { unitId: null }, include: { requester: true }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Maintenance requests without a unit", description: "Repair work needs unit context so staff and vendors know where to act.", sourceHref: "/admin/maintenance", records: requests.map((request) => record(request.id, request.subject, `Requested by ${request.requester.name || request.requester.email}`, "/admin/maintenance", request.status, request.updatedAt)) };
+    }
+    case "profiles-missing-basics": {
+      const profiles = await prisma.applicantProfile.findMany({ where: { OR: [{ phone: null }, { currentAddress: null }, { employmentSummary: null }] }, include: { user: true }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Applicant profiles missing basics", description: "Reusable profiles need contact, current address, and employment summary to reduce application friction.", sourceHref: "/admin/users", records: profiles.map((profile) => record(profile.id, profile.legalName || profile.user.name || profile.user.email, `Missing: ${[profile.phone ? null : "phone", profile.currentAddress ? null : "current address", profile.employmentSummary ? null : "employment"].filter(Boolean).join(", ")}`, `/admin/users/${profile.userId}/edit`, "Profile incomplete", profile.updatedAt)) };
+    }
+    case "stale-draft-listings": {
+      const units = await prisma.unit.findMany({ where: { marketingStatus: RentalMarketingStatus.DRAFT, updatedAt: { lt: staleDraftDate }, property: { isArchived: false } }, include: { property: true }, orderBy: { updatedAt: "asc" }, take: 50 });
+      return { key, title: "Stale draft listings", description: "Draft listings older than 14 days should be finished, paused, or archived.", sourceHref: "/admin/rentals", records: units.map((unit) => record(unit.id, `${unit.property.name} #${unit.unitNumber}`, `Last updated ${unit.updatedAt.toLocaleDateString()}`, `/admin/rentals/${unit.id}/edit`, unit.marketingStatus, unit.updatedAt)) };
+    }
+    case "landlords-without-properties": {
+      const users = await prisma.user.findMany({ where: { role: UserRole.LANDLORD, isActive: true, properties: { none: { isArchived: false } } }, orderBy: { createdAt: "desc" }, take: 50 });
+      return { key, title: "Landlords without setup", description: "Active landlord accounts should either have properties or a clear onboarding follow-up.", sourceHref: "/admin/users", records: users.map((user) => record(user.id, user.name || user.email, user.email, `/admin/users/${user.id}/edit`, user.role, user.updatedAt)) };
+    }
+    case "threads-without-context": {
+      const threads = await prisma.messageThread.findMany({ where: { applicationId: null, maintenanceRequestId: null, type: { not: MessageThreadType.GENERAL } }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Message threads missing context", description: "Non-general conversations should stay linked to an application, lease, lead, tenant, or maintenance record.", sourceHref: "/admin/inbox", records: threads.map((thread) => record(thread.id, thread.subject, `Type ${thread.type}`, `/admin/inbox?thread=${thread.id}`, thread.status, thread.updatedAt)) };
+    }
+    case "failed-integration-events": {
+      const events = await prisma.integrationEvent.findMany({ where: { status: IntegrationEventStatus.FAILED }, include: { connection: true }, orderBy: { createdAt: "desc" }, take: 50 });
+      return { key, title: "Failed integration events", description: "Webhook, sync, OAuth, and diagnostic events that reported failure.", sourceHref: "/admin/integrations", records: events.map((event) => record(event.id, event.eventType, event.summary || String(event.connection?.provider || event.provider), "/admin/integrations", event.status, event.createdAt)) };
+    }
+    case "integration-connections-error": {
+      const connections = await prisma.integrationConnection.findMany({ where: { status: IntegrationConnectionStatus.ERROR }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Connections in error", description: "Provider connections that need token, OAuth, webhook, or sync diagnostics.", sourceHref: "/admin/integrations", records: connections.map((connection) => record(connection.id, String(connection.provider), connection.displayName || "Connection needs diagnostics", "/admin/integrations", connection.status, connection.updatedAt)) };
+    }
+    case "failed-queue-jobs": {
+      const jobs = await prisma.adminQueueJob.findMany({ where: { status: { in: [AdminQueueJobStatus.FAILED, AdminQueueJobStatus.RETRYING] } }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Failed or retrying jobs", description: "Background jobs that need review before automations can be trusted.", sourceHref: "/admin/operations", records: jobs.map((job) => record(job.id, job.jobType, job.failureReason || job.queueName, "/admin/operations", job.status, job.updatedAt)) };
+    }
+    case "disabled-connections": {
+      const connections = await prisma.integrationConnection.findMany({ where: { status: IntegrationConnectionStatus.DISABLED }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Disabled integrations", description: "Disabled connections may be intentional, but should be visible before launch.", sourceHref: "/admin/integrations", records: connections.map((connection) => record(connection.id, String(connection.provider), connection.displayName || "Disabled provider connection", "/admin/integrations", connection.status, connection.updatedAt)) };
+    }
+    case "applications-waiting-review": {
+      const applications = await prisma.application.findMany({ where: { status: ApplicationStatus.SUBMITTED }, include: { unit: { include: { property: true } } }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Applications waiting for review", description: "Submitted applications that need landlord or admin decisions.", sourceHref: "/admin/applications", records: applications.map((application) => record(application.id, application.applicantName, `${application.unit.property.name} #${application.unit.unitNumber}`, `/admin/applications/${application.id}`, application.status, application.updatedAt)) };
+    }
+    case "messages-waiting-staff": {
+      const threads = await prisma.messageThread.findMany({ where: { status: MessageThreadStatus.WAITING_ON_STAFF }, orderBy: { lastMessageAt: "desc" }, take: 50 });
+      return { key, title: "Messages waiting on staff", description: "Conversations waiting for a platform-side or landlord-side response.", sourceHref: "/admin/inbox", records: threads.map((thread) => record(thread.id, thread.subject, `Last message ${thread.lastMessageAt.toLocaleDateString()}`, `/admin/inbox?thread=${thread.id}`, thread.status, thread.updatedAt)) };
+    }
+    case "unsigned-lease-packets": {
+      const packets = await prisma.leasePacket.findMany({ where: { status: LeasePacketStatus.SENT_FOR_SIGNATURE, signatureRequests: { some: { status: SignatureStatus.PENDING } } }, include: { application: { include: { unit: { include: { property: true } } } } }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Lease packets unsigned", description: "Signature packets sent to renters or landlords that have not been completed.", sourceHref: "/admin/leases", records: packets.map((packet) => record(packet.id, `Lease packet for ${packet.application.applicantName}`, `${packet.application.unit.property.name} #${packet.application.unit.unitNumber}`, `/admin/leases/${packet.id}`, packet.status, packet.updatedAt)) };
+    }
+    case "stale-maintenance": {
+      const requests = await prisma.maintenanceRequest.findMany({ where: { status: { in: [MaintenanceRequestStatus.NEW, MaintenanceRequestStatus.IN_PROGRESS, MaintenanceRequestStatus.WAITING_ON_TENANT, MaintenanceRequestStatus.WAITING_ON_VENDOR] }, updatedAt: { lt: staleWorkflowDate } }, include: { unit: { include: { property: true } } }, orderBy: { updatedAt: "asc" }, take: 50 });
+      return { key, title: "Maintenance stale over 7 days", description: "Open repair workflows that have not changed in at least a week.", sourceHref: "/admin/maintenance", records: requests.map((request) => record(request.id, request.subject, request.unit ? `${request.unit.property.name} #${request.unit.unitNumber}` : "No unit", "/admin/maintenance", request.status, request.updatedAt)) };
+    }
+    case "failed-inspections": {
+      const inspections = await prisma.inspection.findMany({ where: { status: { in: [InspectionStatus.FAILED, InspectionStatus.NEEDS_REINSPECTION] } }, include: { unit: { include: { property: true } } }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Failed inspections unresolved", description: "Failed or reinspection-needed records should have a scheduled next step.", sourceHref: "/admin/inspections", records: inspections.map((inspection) => record(inspection.id, inspection.title, inspection.unit ? `${inspection.unit.property.name} #${inspection.unit.unitNumber}` : "No unit", `/admin/inspections/${inspection.id}`, inspection.status, inspection.updatedAt)) };
+    }
+    case "blocked-tasks": {
+      const tasks = await prisma.taskItem.findMany({ where: { status: { in: [TaskItemStatus.BLOCKED, TaskItemStatus.WAITING] } }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Blocked or waiting tasks", description: "Task queues explicitly marked blocked or waiting.", sourceHref: "/admin/tasks", records: tasks.map((task) => record(task.id, task.title, task.description || task.type, "/admin/tasks", task.status, task.updatedAt)) };
+    }
+    case "active-listings-without-photos": {
+      const units = await prisma.unit.findMany({ where: { marketingStatus: RentalMarketingStatus.ACTIVE, property: { isArchived: false }, photos: { none: {} } }, include: { property: true }, orderBy: { updatedAt: "desc" }, take: 50 });
+      return { key, title: "Active listings without photos", description: "Active listings should not rely on weak visual fallback states.", sourceHref: "/admin/rentals", records: units.map((unit) => record(unit.id, `${unit.property.name} #${unit.unitNumber}`, `${unit.property.city}, ${unit.property.state}`, `/admin/rentals/${unit.id}/edit`, unit.marketingStatus, unit.updatedAt)) };
+    }
+    case "old-access-requests": {
+      const requests = await prisma.accountAccessRequest.findMany({ where: { status: AccountAccessRequestStatus.PENDING, createdAt: { lt: oldAccessDate } }, include: { user: true }, orderBy: { createdAt: "asc" }, take: 50 });
+      return { key, title: "Access requests pending over 3 days", description: "Permission requests should not stay unresolved.", sourceHref: "/admin/users", records: requests.map((request) => record(request.id, request.user.name || request.user.email, `${request.user.email} requested ${request.type}`, "/admin/users", request.status, request.createdAt)) };
+    }
+    default:
+      return { key, title: "Command center drilldown", description: "This command-center issue does not have a connected drilldown yet.", sourceHref: "/admin/command-center", records: [] };
+  }
 }

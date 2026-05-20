@@ -1,3 +1,104 @@
+## v4.59.0 - Final Readiness Layer
+
+- Added shared `LoadingState` and `ErrorState` primitives, improved empty-state live regions, status aria labels, active-tab semantics, and focus-visible outlines for core shared UI actions.
+- Hardened sample data safety by blocking production seeding unless `ALLOW_SAMPLE_DATA_IN_PRODUCTION=true` is intentionally set for a demo or sandbox environment.
+- Expanded `/admin/system` with a sample-data guard check, workflow-proof shortcut, production-runbook guidance, and final-readiness verifier command.
+- Added `docs/PRODUCTION_RUNBOOK.md`, `docs/FINAL_READINESS_LAYER.md`, and `final-readiness:verify`, then wired the verifier into local and Vercel release gates.
+
+## v4.58.0 - Field Workflow Proof and Launch Hardening
+
+- Upgraded `/admin/workflow-proof` into an operational field workflow proof center for tenant repair intake, landlord review, vendor assignment, vendor acceptance, mobile field updates, estimate/invoice handling, completion, payout readiness, inspection assignment, reports, and reinspections.
+- Added `buildFieldWorkflowProofModel` with Prisma-backed repair and inspection chain counts so launch readiness displays real data with watch states instead of fake proof.
+- Added a launch-hardening section that documents canonical conversations, field workflow proof coverage, release-gate wiring, and the no-fake-proof standard for first release.
+- Added `docs/FIELD_WORKFLOW_PROOF_LAUNCH_HARDENING.md` and `field-workflow-proof-launch-hardening:verify`, then wired the verifier into local and Vercel release gates.
+
+## v4.57.0 - Canonical Conversations and Workflow Proof
+
+- Started the canonical conversation model migration with new `Conversation`, `ConversationParticipant`, and `ConversationEvent` schema/migration support while preserving legacy lead and message-thread records.
+- Added canonical conversation normalization for leads, lead notes, and message threads, then surfaced `canonicalConversationId` through the unified landlord inbox adapter.
+- Added `/admin/workflow-proof` with real maintenance, vendor, and inspector workflow proof counts linked back to source operational pages.
+- Added `docs/CANONICAL_CONVERSATIONS_WORKFLOW_PROOF.md` and `canonical-conversations-workflow-proof:verify`, then wired the verifier into local and Vercel release gates.
+
+## v4.56.0 - Marketplace Readiness and Unified Messaging Canonicalization
+
+- Tightened public marketplace readiness with quality-gated active listings, capped search result loading, privacy-aware location labels, and no street-address keyword matching.
+- Improved discovery recovery with removable no-results filter chips, area-only map-preview language, and saved-search deletion from applicant favorites.
+- Canonicalized landlord messaging by making the older `landlord-unified-inbox` module a compatibility facade over the permission-scoped `unified-landlord-inbox` adapter.
+- Added `docs/MARKETPLACE_READINESS_UNIFIED_MESSAGING.md` and `marketplace-readiness-messaging:verify`, then wired the verifier into local and Vercel release gates.
+
+## v4.55.0 - Admin Operations Authority and Marketplace Discovery Polish
+
+- Made admin navigation point primary platform operations into the command center for access requests, data quality, workflows, integrations, health, sample data, security, and audit logs.
+- Added an authoritative operations directory to the Admin Command Center so admins can triage from one page before opening drilldowns or source tools.
+- Polished marketplace production discovery with availability-date search, quick discovery shortcuts, clickable saved-search labels, and trust messaging for real listings, shareable search URLs, and fast apply.
+- Added `docs/ADMIN_OPS_MARKETPLACE_DISCOVERY.md` and `admin-ops-marketplace-discovery:verify`, then wired the verifier into local and Vercel release gates.
+
+## v4.54.0 - Mobile Flow QA and Admin Command Center Drilldowns
+
+- Added `/admin/command-center/drilldowns` with focused real-record drilldowns for command-center data-quality, failed-integration, and blocked-workflow issues.
+- Updated command-center issue cards to link into focused drilldowns before sending admins into broader source areas.
+- Tightened phone layouts for marketplace listing detail, guided apply, landlord inbox, tenant directory, maintenance queue, vendor field jobs, and admin command-center audit panels.
+- Added `docs/MOBILE_FLOW_ADMIN_DRILLDOWNS.md` and `mobile-flow-drilldowns:verify`, then wired the verifier into local and Vercel release gates.
+
+## v4.53.0 - Tenant Portal Completion
+
+- Replaced applicant-era tenant redirects with native tenant pages for lease, rent, maintenance, inbox, documents, notices, inspections, and ledger.
+- Added resident lease packet routing under `/tenant/leases/[id]` so tenants can review and sign lease packets without leaving the tenant portal.
+- Extended document and notice center routing to support `basePath="tenant"` and resident-safe acknowledgement/document links.
+- Added `tenant-portal:verify` and wired it into local, no-migrate, and Vercel release gates so tenant routes cannot silently drift back to applicant screens.
+
+## v4.52.0 - Property Manager Expanded Access Scoping
+
+- Added scoped expanded-access rules so approved account access opens modules but record access still requires owner relationship, unit assignment, participant relationship, or role-specific active `ProfileConnection`.
+- Added property manager, caseworker, maintenance/vendor, and inspector connection-role checks in central authorization helpers.
+- Added direct unit staff assignment checks for property managers, caseworkers, and maintenance users.
+- Added multi-owner authorization regression tests for connected property managers, unrelated owner denial, caseworker housing scope without ledger access, and inspector denial without assignment.
+- Added expanded access scoping documentation and a release verifier.
+
+## v4.51.0 - Environment Contract Hardening
+
+- Added an environment contract document covering required database, auth, app URL, storage, email, cron, and Stripe deployment settings.
+- Added `environment-contract:verify` to validate environment documentation, `.env.example`, runtime env warnings, Vercel preflight coverage, and release-gate wiring.
+- Updated Vercel deployment documentation so it matches the current first-release, permission, authorization, protected-route, middleware, environment, payments, migration, and build gates.
+- Removed duplicated `.env.example` assignments for Vercel strict mode and email batch size.
+- Wired the environment contract verifier into local and Vercel release gates and bumped release metadata to 4.51.0.
+
+## v4.50.0 - Middleware Static Matcher Hardening
+
+- Changed middleware back to a build-safe static `config.matcher` literal while keeping the shared protected prefix manifest for runtime checks.
+- Added `middleware-static:verify` to compare the middleware matcher literal with `PROTECTED_ROUTE_PREFIXES` and `PROTECTED_ROUTE_MATCHERS` so route protection cannot drift silently.
+- Updated the protected route access manifest to document the Next/Vercel static matcher constraint.
+- Wired the middleware static verifier into local and Vercel release gates.
+- Updated release metadata to 4.50.0.
+
+## v4.49.0 - Protected Route Access Manifest
+
+- Added a shared protected route manifest consumed by middleware so private role workspaces stay in one auditable list.
+- Expanded unauthenticated middleware protection to tenant, vendor, inspector, dashboard, and shared documents routes while preserving server-side role checks as the authorization source of truth.
+- Tightened the applicant workspace layout from any signed-in user to applicant/tenant role access.
+- Added `protected-routes:verify` and wired it into local and Vercel release gates.
+- Documented the route access policy, role boundaries, and follow-up browser redirect tests.
+
+## v4.48.0 - Runtime Authorization Regression Tests
+
+- Added mocked Vitest coverage for the central authorization helpers so guessed-ID risks are tested at runtime, not only through static release markers.
+- Covered cross-landlord application access, cross-applicant application access, private unit access, maintenance participant scope, message thread inheritance, lease signer access, hidden document guesses, denied-access audit logging, property-manager grants, and active profile connections.
+- Added `authorization:runtime:test` and `authorization-runtime:verify` scripts, then wired the runtime verifier into the release gate.
+- Updated the permission matrix with the new runtime coverage summary and bumped release metadata to 4.48.0.
+
+## v4.47.0 - Permission Matrix & Guessed-ID Security Tests
+
+- Added a first-release permission matrix for sensitive record families, high-risk routes, and guessed-ID test strategy.
+- Added a `permission-matrix:verify` release gate that checks document downloads, private unit photos, sample-data export, workflow actions, applicant/landlord detail pages, cron routes, and webhooks for server-side authorization markers.
+- Hardened the sample/demo data export route from general admin access to super-user-only access.
+- Updated release metadata to 4.47.0.
+
+## v4.46.2 - CI Verifier Drift Cleanup
+
+- Updated remaining historical verifier scripts that referenced the removed `WorkhorseDashboard` so they validate the active `RoleDashboard`, first-release navigation, shared status badges, and Admin Command Center instead.
+- Kept the Vercel build path on `first-release:verify` while preserving older verifier scripts as runnable compatibility checks.
+- Updated release metadata to 4.46.2.
+
 ## v4.46.1 - Vercel First Release Build Gate Fix
 
 - Updated `vercel-build` and `vercel-build:no-migrate` to run the current `first-release:verify` gate instead of the retired operational coherence verifier that expected `WorkhorseDashboard`.

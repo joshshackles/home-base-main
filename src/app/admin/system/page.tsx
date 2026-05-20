@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { Activity, BarChart3, CheckCircle2, DatabaseBackup, Palette, ServerCog, TriangleAlert } from "lucide-react";
+import { Activity, BarChart3, CheckCircle2, DatabaseBackup, FileText, Palette, ServerCog, ShieldCheck, TriangleAlert } from "lucide-react";
 import { importDataSnapshotAction } from "@/app/admin/actions";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { prisma } from "@/lib/prisma";
@@ -26,7 +26,8 @@ export default async function SystemStatusPage({ searchParams }: { searchParams?
     { label: "Document storage", ok: warnings.every((warning) => !warning.includes("DOCUMENT_STORAGE_PROVIDER") && !warning.includes("DOCUMENT_S3_")), detail: `Provider: ${process.env.DOCUMENT_STORAGE_PROVIDER || (process.env.NODE_ENV === "production" ? "database" : "local")}${process.env.DOCUMENT_S3_BUCKET ? ` / Bucket: ${process.env.DOCUMENT_S3_BUCKET}` : ""}` },
     { label: "App version", ok: true, detail: APP_RELEASE_LABEL },
     { label: "Email provider", ok: true, detail: process.env.EMAIL_PROVIDER || "console" },
-    { label: "Migration baseline", ok: true, detail: "Baseline and hardening migrations through the current package version are included. Run npm run migrations:check before deployment." }
+    { label: "Migration baseline", ok: true, detail: "Baseline and hardening migrations through the current package version are included. Run npm run migrations:check before deployment." },
+    { label: "Sample data guard", ok: process.env.NODE_ENV !== "production" || process.env.ALLOW_SAMPLE_DATA_IN_PRODUCTION === "true", detail: process.env.NODE_ENV === "production" ? "Production seeding is blocked unless ALLOW_SAMPLE_DATA_IN_PRODUCTION=true is intentionally set for a demo/sandbox environment." : "Seed data is available for local and staging workflow proof." }
   ];
 
   return (
@@ -58,6 +59,16 @@ export default async function SystemStatusPage({ searchParams }: { searchParams?
           <Activity className="text-brand-700" size={24} />
           <h2 className="mt-3 text-lg font-black text-slate-950">Operations center</h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">Monitor readiness, alerts, queue jobs, automation scaffolds, and health snapshots.</p>
+        </Link>
+        <Link href="/admin/workflow-proof" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:bg-slate-50">
+          <ShieldCheck className="text-brand-700" size={24} />
+          <h2 className="mt-3 text-lg font-black text-slate-950">Workflow proof</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Review tenant repair, vendor, invoice, inspection, and reinspection launch proof.</p>
+        </Link>
+        <Link href="/admin/operations" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:bg-slate-50">
+          <FileText className="text-brand-700" size={24} />
+          <h2 className="mt-3 text-lg font-black text-slate-950">Production runbook</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Use the runbook in docs with operations center checks for deployment, incident, rollback, backup, seed safety, and final QA.</p>
         </Link>
       </section>
 
@@ -111,6 +122,7 @@ npm run seed:verify
 npm run workflow:verify
 npm run security:verify
 npm run update12:verify
+npm run final-readiness:verify
 npm run typecheck
 npm run build`}</code></pre>
       </div>

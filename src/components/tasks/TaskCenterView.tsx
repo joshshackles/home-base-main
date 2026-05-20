@@ -10,7 +10,7 @@ type Option = { id: string; label: string };
 type Props = {
   title: string;
   description: string;
-  basePath: "admin" | "landlord" | "applicant";
+  basePath: "admin" | "landlord" | "applicant" | "tenant";
   center: TaskCenter;
   searchParams?: Record<string, string | string[] | undefined>;
   canCreate?: boolean;
@@ -157,7 +157,7 @@ export function TaskCenterView({ title, description, basePath, center, searchPar
                       </select>
                       <button className="rounded-xl bg-brand-600 px-3 py-2 text-xs font-black text-white">Save</button>
                     </form>
-                    {basePath !== "applicant" ? <form action={assignTaskItem} className="flex gap-2"><input type="hidden" name="id" value={task.id} /><select name="assignedToId" defaultValue={task.assignedTo?.id ?? ""} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs font-bold"><option value="">Unassigned</option>{users.map((user) => <option key={user.id} value={user.id}>{user.label}</option>)}</select><button className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white">Assign</button></form> : null}
+                    {basePath !== "applicant" && basePath !== "tenant" ? <form action={assignTaskItem} className="flex gap-2"><input type="hidden" name="id" value={task.id} /><select name="assignedToId" defaultValue={task.assignedTo?.id ?? ""} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs font-bold"><option value="">Unassigned</option>{users.map((user) => <option key={user.id} value={user.id}>{user.label}</option>)}</select><button className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white">Assign</button></form> : null}
                   </div>
                 </div>
               );

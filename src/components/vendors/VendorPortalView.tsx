@@ -29,7 +29,7 @@ function isOpenStatus(status: MaintenanceRequestStatus) {
 
 export function VendorPortalView({ data, active = "overview" }: { data: VendorPortalData; active?: "overview" | "jobs" | "invoices" }) {
   return (
-    <main id="main-content" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-700">Vendor workspace</p>
@@ -82,7 +82,7 @@ export function VendorPortalView({ data, active = "overview" }: { data: VendorPo
                   <form action={acceptVendorMaintenanceJob} className="mt-3 grid gap-2 rounded-xl border border-blue-200 bg-blue-50 p-2 sm:grid-cols-[1fr_auto]">
                     <input type="hidden" name="maintenanceRequestId" value={job.id} />
                     <input name="notes" placeholder="Acceptance note, ETA, or first availability" className="rounded-xl border border-blue-200 px-3 py-2 text-sm" />
-                    <button className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-black text-white hover:bg-blue-700" type="submit">Accept job</button>
+                    <button className="min-h-11 rounded-xl bg-blue-600 px-3 py-2 text-sm font-black text-white hover:bg-blue-700" type="submit">Accept job</button>
                   </form>
                 ) : null}
                 <form action={addVendorWorkLog} className="mt-3 grid gap-2 rounded-xl bg-slate-50 p-2">
@@ -97,7 +97,7 @@ export function VendorPortalView({ data, active = "overview" }: { data: VendorPo
                   <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
                     <input name="laborMinutes" inputMode="numeric" placeholder="Labor minutes" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
                     <input name="materialsCost" inputMode="decimal" placeholder="Materials $" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-                    <button className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-black text-white hover:bg-blue-700" type="submit">Add update</button>
+                    <button className="min-h-11 rounded-xl bg-blue-600 px-3 py-2 text-sm font-black text-white hover:bg-blue-700" type="submit">Add update</button>
                   </div>
                 </form>
                 <div className="mt-3 grid gap-2 lg:grid-cols-2">

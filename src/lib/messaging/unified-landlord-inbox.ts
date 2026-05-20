@@ -1,6 +1,7 @@
 import { LeadStatus, MaintenancePriority, MessageThreadStatus, MessageThreadType, UserRole, type Prisma } from "@prisma/client";
 import type { SessionPayload } from "@/lib/auth";
 import { visibleMessageWhereForUser, visibleThreadWhereForUser } from "@/lib/authorization";
+import { canonicalFromLead, canonicalFromMessageThread } from "@/lib/conversations/canonical";
 import { prisma } from "@/lib/prisma";
 
 export type UnifiedLandlordSourceType = "lead" | "application" | "maintenance" | "lease" | "tenant" | "general";
@@ -44,6 +45,7 @@ export type UnifiedInboxContext = {
 
 export type UnifiedInboxThread = {
   id: string;
+  canonicalConversationId: string;
   sourceId: string;
   sourceType: UnifiedLandlordSourceType;
   title: string;
@@ -156,6 +158,7 @@ type MessageThreadWithContext = Prisma.MessageThreadGetPayload<{
 }>;
 
 function normalizeLead(lead: LeadWithContext): UnifiedInboxThread {
+  const canonical = canonicalFromLead(lead);
   const label = unitLabel(lead.unit);
   const initialMessage = clean(lead.message) ?? "Lead submitted an inquiry without a message.";
   const noteMessages: UnifiedInboxMessage[] = lead.notes.map((note) => {
@@ -196,6 +199,7 @@ function normalizeLead(lead: LeadWithContext): UnifiedInboxThread {
 
   return {
     id: `lead_${lead.id}`,
+    canonicalConversationId: canonical.id,
     sourceId: lead.id,
     sourceType: "lead",
     title: `${lead.name} asked about ${label}`,
@@ -233,6 +237,7 @@ function normalizeLead(lead: LeadWithContext): UnifiedInboxThread {
 }
 
 function normalizeThread(thread: MessageThreadWithContext, currentUserId: string): UnifiedInboxThread {
+  const canonical = canonicalFromMessageThread(thread, currentUserId);
   const sourceType = sourceTypeForThread(thread.type);
   const relatedUnit = thread.application?.unit ?? thread.maintenanceRequest?.unit ?? null;
   const firstExternalSender = thread.messages.find((message) => message.senderId !== currentUserId && !message.isInternal)?.sender ?? null;
@@ -257,6 +262,7 @@ function normalizeThread(thread: MessageThreadWithContext, currentUserId: string
 
   return {
     id: `thread_${thread.id}`,
+    canonicalConversationId: canonical.id,
     sourceId: thread.id,
     sourceType,
     title: thread.subject,

@@ -1,4 +1,4 @@
-import { AccountAccessRequestStatus, AccountAccessType, AuditAction, ConnectionStatus, DocumentVisibility, UserRole } from "@prisma/client";
+import { AccountAccessRequestStatus, AccountAccessType, AuditAction, ConnectionRole, ConnectionStatus, DocumentVisibility, UserRole } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
@@ -34,6 +34,10 @@ const internalNoteAccessTypes: AccountAccessType[] = [
 ];
 
 const internalNoteWriterRoles: UserRole[] = [UserRole.ADMIN, UserRole.INSPECTOR];
+const propertyManagerConnectionRoles = [ConnectionRole.PROPERTY_MANAGER];
+const housingSupportConnectionRoles = [ConnectionRole.CASEWORKER, ConnectionRole.HOUSING_COORDINATOR];
+const maintenanceConnectionRoles = [ConnectionRole.MAINTENANCE_STAFF, ConnectionRole.MAINTENANCE_WORKER, ConnectionRole.PREFERRED_VENDOR, ConnectionRole.VENDOR];
+const inspectionConnectionRoles = [ConnectionRole.INSPECTOR];
 
 export function isAdmin(user: AuthorizedUser) {
   return user.role === UserRole.ADMIN;
@@ -44,7 +48,7 @@ export function isApplicantLike(user: AuthorizedUser) {
 }
 
 
-async function hasActiveProfileConnection(user: AuthorizedUser, landlordUserId: string | null | undefined, unitId?: string | null) {
+async function hasActiveProfileConnection(user: AuthorizedUser, landlordUserId: string | null | undefined, unitId?: string | null, roles: ConnectionRole[] = []) {
   if (!landlordUserId) return false;
 
   const connection = await prisma.profileConnection.findFirst({
@@ -52,6 +56,7 @@ async function hasActiveProfileConnection(user: AuthorizedUser, landlordUserId: 
       landlordUserId,
       targetUserId: user.userId,
       status: ConnectionStatus.ACTIVE,
+      ...(roles.length > 0 ? { assignedRole: { in: roles } } : {}),
       OR: [
         { scopeKey: "PORTFOLIO" },
         ...(unitId ? [{ unitId }] : [])
@@ -61,6 +66,39 @@ async function hasActiveProfileConnection(user: AuthorizedUser, landlordUserId: 
   });
 
   return Boolean(connection);
+}
+
+export function isLandlordOwner(user: AuthorizedUser, ownerId: string | null | undefined) {
+  return user.role === UserRole.LANDLORD && ownerId === user.userId;
+}
+
+export async function canManageOwnerPortfolio(user: AuthorizedUser, ownerId: string | null | undefined, unitId?: string | null) {
+  if (!ownerId) return false;
+  if (isAdmin(user)) return true;
+  if (isLandlordOwner(user, ownerId)) return true;
+  if (!(await hasApprovedAccessType(user, [AccountAccessType.PROPERTY_MANAGER, AccountAccessType.LANDLORD]))) return false;
+  return hasActiveProfileConnection(user, ownerId, unitId, propertyManagerConnectionRoles);
+}
+
+async function canSupportHousingRecord(user: AuthorizedUser, ownerId: string | null | undefined, unitId?: string | null) {
+  if (!ownerId) return false;
+  if (await canManageOwnerPortfolio(user, ownerId, unitId)) return true;
+  if (!(await hasApprovedAccessType(user, [AccountAccessType.CASEWORKER]))) return false;
+  return hasActiveProfileConnection(user, ownerId, unitId, housingSupportConnectionRoles);
+}
+
+async function canSupportMaintenanceRecord(user: AuthorizedUser, ownerId: string | null | undefined, unitId?: string | null) {
+  if (!ownerId) return false;
+  if (await canManageOwnerPortfolio(user, ownerId, unitId)) return true;
+  if (!(await hasApprovedAccessType(user, [AccountAccessType.MAINTENANCE, AccountAccessType.VENDOR]))) return false;
+  return hasActiveProfileConnection(user, ownerId, unitId, maintenanceConnectionRoles);
+}
+
+async function canSupportInspectionRecord(user: AuthorizedUser, ownerId: string | null | undefined, unitId?: string | null) {
+  if (!ownerId) return false;
+  if (await canManageOwnerPortfolio(user, ownerId, unitId)) return true;
+  if (!(await hasApprovedAccessType(user, [AccountAccessType.INSPECTOR]))) return false;
+  return hasActiveProfileConnection(user, ownerId, unitId, inspectionConnectionRoles);
 }
 
 export async function hasApprovedAccessType(user: AuthorizedUser, types: AccountAccessType[]) {
@@ -137,8 +175,7 @@ export async function canAccessProperty(user: AuthorizedUser, propertyId: string
 
   if (!property || property.isArchived) return false;
 
-  if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && property.ownerId === user.userId) return true;
-  if (await hasActiveProfileConnection(user, property.ownerId, null)) return true;
+  if (await canManageOwnerPortfolio(user, property.ownerId, null)) return true;
 
   return false;
 }
@@ -151,6 +188,9 @@ export async function canAccessUnit(user: AuthorizedUser, unitId: string) {
     select: {
       id: true,
       tenantUserId: true,
+      propertyManagerUserId: true,
+      maintenanceUserId: true,
+      caseworkerUserId: true,
       property: { select: { ownerId: true, isArchived: true } },
       applications: { where: { OR: [{ applicantUserId: user.userId }, { applicantEmail: user.email }] }, select: { id: true }, take: 1 },
       occupancies: { where: { userId: user.userId, status: { in: activeOccupancyStatuses() } }, select: { id: true }, take: 1 }
@@ -158,9 +198,14 @@ export async function canAccessUnit(user: AuthorizedUser, unitId: string) {
   });
 
   if (!unit) return false;
-  if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && unit.property.ownerId === user.userId && !unit.property.isArchived) return true;
+  if (await canManageOwnerPortfolio(user, unit.property.ownerId, unit.id) && !unit.property.isArchived) return true;
+  if (unit.propertyManagerUserId === user.userId && !unit.property.isArchived) return true;
+  if (unit.caseworkerUserId === user.userId && !unit.property.isArchived) return true;
+  if (unit.maintenanceUserId === user.userId && !unit.property.isArchived) return true;
   if (isApplicantLike(user) && (unit.tenantUserId === user.userId || unit.occupancies.length > 0 || unit.applications.length > 0)) return true;
-  if (!unit.property.isArchived && (await hasActiveProfileConnection(user, unit.property.ownerId, unit.id))) return true;
+  if (!unit.property.isArchived && (await canSupportHousingRecord(user, unit.property.ownerId, unit.id))) return true;
+  if (!unit.property.isArchived && (await canSupportMaintenanceRecord(user, unit.property.ownerId, unit.id))) return true;
+  if (!unit.property.isArchived && (await canSupportInspectionRecord(user, unit.property.ownerId, unit.id))) return true;
 
   return false;
 }
@@ -184,8 +229,8 @@ export async function canAccessLead(user: AuthorizedUser, leadId: string) {
   if (!lead) return false;
   if (isApplicantLike(user) && lead.email.toLowerCase() === user.email.toLowerCase()) return true;
   if (lead.applicationId && (await canAccessApplication(user, lead.applicationId))) return true;
-  if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && lead.unit.property.ownerId === user.userId && !lead.unit.property.isArchived) return true;
-  if (!lead.unit.property.isArchived && (await hasActiveProfileConnection(user, lead.unit.property.ownerId, lead.unit.id))) return true;
+  if (!lead.unit.property.isArchived && (await canManageOwnerPortfolio(user, lead.unit.property.ownerId, lead.unit.id))) return true;
+  if (!lead.unit.property.isArchived && (await canSupportHousingRecord(user, lead.unit.property.ownerId, lead.unit.id))) return true;
 
   return false;
 }
@@ -205,8 +250,8 @@ export async function canAccessApplication(user: AuthorizedUser, applicationId: 
 
   if (!application) return false;
   if (isApplicantLike(user) && (application.applicantUserId === user.userId || application.applicantEmail.toLowerCase() === user.email.toLowerCase())) return true;
-  if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && application.unit.property.ownerId === user.userId && !application.unit.property.isArchived) return true;
-  if (!application.unit.property.isArchived && (await hasActiveProfileConnection(user, application.unit.property.ownerId, application.unit.id))) return true;
+  if (!application.unit.property.isArchived && (await canManageOwnerPortfolio(user, application.unit.property.ownerId, application.unit.id))) return true;
+  if (!application.unit.property.isArchived && (await canSupportHousingRecord(user, application.unit.property.ownerId, application.unit.id))) return true;
 
   return false;
 }
@@ -228,8 +273,8 @@ export async function canAccessMaintenanceRequest(user: AuthorizedUser, maintena
   if (!request) return false;
   if (request.requesterId === user.userId || request.assignedToId === user.userId) return true;
   if (request.applicationId && (await canAccessApplication(user, request.applicationId))) return true;
-  if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && request.unit?.property.ownerId === user.userId && !request.unit.property.isArchived) return true;
-  if (request.unit && !request.unit.property.isArchived && (await hasActiveProfileConnection(user, request.unit.property.ownerId, request.unit.id))) return true;
+  if (request.unit && !request.unit.property.isArchived && (await canManageOwnerPortfolio(user, request.unit.property.ownerId, request.unit.id))) return true;
+  if (request.unit && !request.unit.property.isArchived && (await canSupportMaintenanceRecord(user, request.unit.property.ownerId, request.unit.id))) return true;
   if (user.role === UserRole.INSPECTOR || (await hasApprovedAccessType(user, [AccountAccessType.MAINTENANCE, AccountAccessType.VENDOR]))) return request.assignedToId === user.userId;
 
   return false;
@@ -388,8 +433,8 @@ export async function canAccessInspection(user: AuthorizedUser, inspectionId: st
   if (!inspection) return false;
   if (inspection.assignedToId === user.userId) return true;
   if (inspection.applicationId && (await canAccessApplication(user, inspection.applicationId))) return true;
-  if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && inspection.unit.property.ownerId === user.userId && !inspection.unit.property.isArchived) return true;
-  if (!inspection.unit.property.isArchived && (await hasActiveProfileConnection(user, inspection.unit.property.ownerId, inspection.unit.id))) return true;
+  if (!inspection.unit.property.isArchived && (await canManageOwnerPortfolio(user, inspection.unit.property.ownerId, inspection.unit.id))) return true;
+  if (!inspection.unit.property.isArchived && (await canSupportInspectionRecord(user, inspection.unit.property.ownerId, inspection.unit.id))) return true;
 
   return false;
 }
@@ -411,8 +456,7 @@ export async function canAccessLedgerEntry(user: AuthorizedUser, ledgerEntryId: 
   if (isApplicantLike(user) && entry.tenantUserId === user.userId) return true;
   if (isApplicantLike(user) && await prisma.occupancy.count({ where: { userId: user.userId, unitId: entry.unit.id, status: { in: activeOccupancyStatuses() } } })) return true;
   if (entry.applicationId && (await canAccessApplication(user, entry.applicationId))) return true;
-  if ((user.role === UserRole.LANDLORD || (await hasApprovedAccessType(user, [AccountAccessType.LANDLORD, AccountAccessType.PROPERTY_MANAGER]))) && entry.unit.property.ownerId === user.userId && !entry.unit.property.isArchived) return true;
-  if (!entry.unit.property.isArchived && (await hasActiveProfileConnection(user, entry.unit.property.ownerId, entry.unit.id))) return true;
+  if (!entry.unit.property.isArchived && (await canManageOwnerPortfolio(user, entry.unit.property.ownerId, entry.unit.id))) return true;
 
   return false;
 }

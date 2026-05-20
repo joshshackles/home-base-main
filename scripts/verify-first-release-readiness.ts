@@ -22,10 +22,16 @@ function assertNotExists(path: string) {
 }
 
 assertIncludes("package.json", [
-  "\"version\": \"4.46.1\"",
-  "\"verify\": \"npm run first-release:verify && npm run routes:check && npm run package:cleanliness && npm run typecheck && npm run test\"",
+  "\"version\": \"4.59.0\"",
+  "\"verify\": \"npm run first-release:verify && npm run permission-matrix:verify && npm run authorization-runtime:verify && npm run protected-routes:verify && npm run middleware-static:verify && npm run environment-contract:verify && npm run expanded-access:verify && npm run tenant-portal:verify && npm run mobile-flow-drilldowns:verify && npm run admin-ops-marketplace-discovery:verify && npm run marketplace-readiness-messaging:verify && npm run canonical-conversations-workflow-proof:verify && npm run field-workflow-proof-launch-hardening:verify && npm run final-readiness:verify && npm run routes:check && npm run package:cleanliness && npm run typecheck && npm run test\"",
   "\"first-release:verify\"",
-  "\"vercel-build\": \"npm run vercel:preflight && npm run lockfile:verify && npm run clean-install:verify && npm run first-release:verify"
+  "\"permission-matrix:verify\"",
+  "\"authorization-runtime:verify\"",
+  "\"protected-routes:verify\"",
+  "\"middleware-static:verify\"",
+  "\"environment-contract:verify\"",
+  "\"expanded-access:verify\"",
+  "\"vercel-build\": \"npm run vercel:preflight && npm run lockfile:verify && npm run clean-install:verify && npm run first-release:verify && npm run permission-matrix:verify && npm run authorization-runtime:verify && npm run protected-routes:verify && npm run middleware-static:verify && npm run environment-contract:verify && npm run expanded-access:verify"
 ]);
 
 assertIncludes("src/lib/navigation/first-release.ts", [
@@ -74,9 +80,9 @@ assertIncludes("FIRST_RELEASE_CODEBASE_AUDIT.md", [
   "Live-Release Risks",
   "Recommended Final Architecture"
 ]);
-assertIncludes("src/lib/app-version.ts", ["4.46.1"]);
-assertIncludes("README.md", ["Current package version: **4.46.1**"]);
-assertIncludes("CHANGELOG.md", ["## v4.46.1 - Vercel First Release Build Gate Fix"]);
+assertIncludes("src/lib/app-version.ts", ["4.59.0"]);
+assertIncludes("README.md", ["Current package version: **4.59.0**"]);
+assertIncludes("CHANGELOG.md", ["## v4.59.0 - Final Readiness Layer"]);
 
 assertNotExists("src/components/dashboard/WorkhorseDashboard.tsx");
 assertNotExists("tsconfig.tsbuildinfo");

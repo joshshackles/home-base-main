@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowRight, ArrowUpRight, CheckCircle2, Inbox, Plus, Search } from "lucide-react";
+import { AlertTriangle, ArrowRight, ArrowUpRight, CheckCircle2, Inbox, Loader2, Plus, RotateCw, Search } from "lucide-react";
 
 type Tone = "slate" | "blue" | "green" | "amber" | "red";
 
@@ -46,7 +46,7 @@ export function MetricTile({ label, value, detail, href, tone = "blue" }: { labe
 }
 
 export function StatusBadge({ children, tone = "slate" }: { children: ReactNode; tone?: Tone }) {
-  return <span className={`inline-flex w-fit items-center rounded-full border px-2 py-0.5 text-[11px] font-black uppercase tracking-wide ${toneClasses[tone]}`}>{children}</span>;
+  return <span className={`inline-flex w-fit items-center rounded-full border px-2 py-0.5 text-[11px] font-black uppercase tracking-wide ${toneClasses[tone]}`} aria-label={`Status: ${children}`}>{children}</span>;
 }
 
 export function statusLabel(value: string | null | undefined) {
@@ -109,7 +109,7 @@ export function WorkflowStatusBadge({ status, className = "" }: { status: string
 }
 
 export function QuickActionButton({ href, children, icon = <Plus size={15} /> }: { href: string; children: ReactNode; icon?: ReactNode }) {
-  return <Link href={href} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white transition hover:bg-blue-700">{icon}{children}</Link>;
+  return <Link href={href} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">{icon}{children}</Link>;
 }
 
 export function ActionBar({ children }: { children: ReactNode }) {
@@ -118,11 +118,32 @@ export function ActionBar({ children }: { children: ReactNode }) {
 
 export function EmptyState({ title, detail, action, icon }: { title: string; detail: string; action?: ReactNode; icon?: ReactNode }) {
   return (
-    <div className="rounded-[var(--hb-radius)] border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+    <div className="rounded-[var(--hb-radius)] border border-dashed border-slate-300 bg-slate-50 p-6 text-center" role="status" aria-live="polite">
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-400 shadow-sm">{icon ?? <Inbox size={24} />}</div>
       <h3 className="mt-3 text-base font-black text-slate-950">{title}</h3>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">{detail}</p>
       {action ? <div className="mt-4">{action}</div> : null}
+    </div>
+  );
+}
+
+export function LoadingState({ title = "Loading", detail = "Preparing the latest information." }: { title?: string; detail?: string }) {
+  return (
+    <div className="rounded-[var(--hb-radius)] border border-slate-200 bg-white p-6 text-center shadow-sm" role="status" aria-live="polite" aria-busy="true">
+      <Loader2 className="mx-auto animate-spin text-blue-600" size={26} />
+      <h3 className="mt-3 text-base font-black text-slate-950">{title}</h3>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">{detail}</p>
+    </div>
+  );
+}
+
+export function ErrorState({ title = "Something needs attention", detail, retryHref, retryLabel = "Try Again" }: { title?: string; detail: string; retryHref?: string; retryLabel?: string }) {
+  return (
+    <div className="rounded-[var(--hb-radius)] border border-red-200 bg-red-50 p-6 text-center text-red-950" role="alert">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-red-600 shadow-sm"><AlertTriangle size={24} /></div>
+      <h3 className="mt-3 text-base font-black">{title}</h3>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-red-800">{detail}</p>
+      {retryHref ? <Link href={retryHref} className="mt-4 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-red-700 px-4 text-sm font-black text-white hover:bg-red-800"><RotateCw size={15} />{retryLabel}</Link> : null}
     </div>
   );
 }
@@ -138,8 +159,8 @@ export function ProductPageHeader({ eyebrow, title, description, actionHref, act
         </div>
         {(actionHref && actionLabel) || (secondaryHref && secondaryLabel) ? (
           <div className="flex flex-col gap-2 sm:flex-row">
-            {secondaryHref && secondaryLabel ? <Link href={secondaryHref} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-black text-slate-900 hover:bg-slate-50">{secondaryLabel}</Link> : null}
-            {actionHref && actionLabel ? <Link href={actionHref} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-black text-white hover:bg-blue-700">{actionLabel}<ArrowRight size={15} /></Link> : null}
+            {secondaryHref && secondaryLabel ? <Link href={secondaryHref} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-black text-slate-900 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700">{secondaryLabel}</Link> : null}
+            {actionHref && actionLabel ? <Link href={actionHref} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-black text-white hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">{actionLabel}<ArrowRight size={15} /></Link> : null}
           </div>
         ) : null}
       </div>
@@ -159,7 +180,7 @@ export function FirstRunChecklist({ title, detail, items, actionHref, actionLabe
             {items.map((item) => <p key={item} className="flex items-start gap-2 text-sm font-bold text-blue-950"><CheckCircle2 className="mt-0.5 shrink-0 text-blue-600" size={16} />{item}</p>)}
           </div>
         </div>
-        <Link href={actionHref} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-black text-white hover:bg-blue-700">{actionLabel}<ArrowRight size={15} /></Link>
+        <Link href={actionHref} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-black text-white hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">{actionLabel}<ArrowRight size={15} /></Link>
       </div>
     </section>
   );
@@ -190,8 +211,8 @@ export function ActivityTimeline({ items }: { items: Array<{ title: string; deta
 
 export function SystemTabs({ tabs }: { tabs: Array<{ href: string; label: string; active?: boolean }> }) {
   return (
-    <nav className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-100 p-1">
-      {tabs.map((tab) => <Link key={tab.href} href={tab.href} className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-black ${tab.active ? "bg-white text-slate-950 shadow-sm" : "text-slate-600 hover:bg-white/70"}`}>{tab.label}</Link>)}
+    <nav className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-100 p-1" aria-label="Section navigation">
+      {tabs.map((tab) => <Link key={tab.href} href={tab.href} aria-current={tab.active ? "page" : undefined} className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${tab.active ? "bg-white text-slate-950 shadow-sm" : "text-slate-600 hover:bg-white/70"}`}>{tab.label}</Link>)}
     </nav>
   );
 }

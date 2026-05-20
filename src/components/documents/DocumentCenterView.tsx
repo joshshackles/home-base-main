@@ -19,7 +19,7 @@ export type DocumentCenterRequest = {
 type Props = {
   title: string;
   description: string;
-  basePath: "admin" | "landlord" | "applicant";
+  basePath: "admin" | "landlord" | "applicant" | "tenant";
   documents: DocumentCenterDocument[];
   requests: DocumentCenterRequest[];
   metrics: { total: number; accepted: number; pending: number; rejected: number; openRequests: number };

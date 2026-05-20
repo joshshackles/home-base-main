@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { messagePotentialLandlord, removeFavoriteRental, saveFavoriteRental } from "@/app/applicant/actions";
+import { deleteMarketplaceSearch } from "@/app/marketplace/actions";
 import { Field, textareaClass } from "@/components/admin/FormFields";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
@@ -19,7 +20,7 @@ function savedSearchHref(filters: unknown) {
   return query ? `/marketplace?${query}` : "/marketplace";
 }
 
-export default async function ApplicantFavoritesPage({ searchParams }: { searchParams?: { message?: string } }) {
+export default async function ApplicantFavoritesPage({ searchParams }: { searchParams?: { message?: string; search?: string } }) {
   const user = await requireRole(["APPLICANT", "TENANT"], "/applicant/favorites");
   const [favorites, savedSearches] = await Promise.all([
     prisma.favoriteRental.findMany({
@@ -44,6 +45,9 @@ export default async function ApplicantFavoritesPage({ searchParams }: { searchP
       {searchParams?.message === "sent" ? (
         <div className="mb-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 font-bold text-emerald-900">Message sent to the landlord lead queue.</div>
       ) : null}
+      {searchParams?.search === "removed" ? (
+        <div className="mb-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 font-bold text-emerald-900">Saved search removed.</div>
+      ) : null}
 
       <section className="mb-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -55,10 +59,19 @@ export default async function ApplicantFavoritesPage({ searchParams }: { searchP
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {savedSearches.length > 0 ? savedSearches.map((search) => (
-            <Link key={search.id} href={savedSearchHref(search.filters)} className="rounded-2xl bg-slate-50 p-4 hover:bg-brand-50">
-              <p className="font-black text-slate-950">{search.label}</p>
-              <p className="mt-1 text-xs font-semibold text-slate-500">Saved {search.createdAt.toLocaleDateString()}</p>
-            </Link>
+            <article key={search.id} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+              <Link href={savedSearchHref(search.filters)} className="block hover:text-brand-700">
+                <p className="font-black text-slate-950">{search.label}</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Saved {search.createdAt.toLocaleDateString()}</p>
+              </Link>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link href={savedSearchHref(search.filters)} className="rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-900 shadow-sm ring-1 ring-slate-200 hover:bg-brand-50">Run search</Link>
+                <form action={deleteMarketplaceSearch}>
+                  <input type="hidden" name="searchId" value={search.id} />
+                  <button type="submit" className="rounded-xl bg-white px-3 py-2 text-xs font-black text-rose-700 shadow-sm ring-1 ring-rose-100 hover:bg-rose-50">Remove</button>
+                </form>
+              </div>
+            </article>
           )) : (
             <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-600 sm:col-span-2 lg:col-span-4">Saved searches will appear here after you save filters from the marketplace.</p>
           )}

@@ -219,18 +219,59 @@ function SecurityPanel({ model }: { model: AdminCommandCenterModel }) {
   );
 }
 
+function OperationsDirectory({ model }: { model: AdminCommandCenterModel }) {
+  const sections = [
+    { href: "#access-requests", title: "Access requests", detail: "Review pending landlord, vendor, inspector, caseworker, admin, and super-user requests.", count: model.metrics.pendingAccessRequests, icon: <Users size={18} /> },
+    { href: "#data-quality", title: "Data quality", detail: "Open missing listing details, incomplete profiles, orphan context, and setup cleanup queues.", count: model.metrics.dataQualityIssues, icon: <Database size={18} /> },
+    { href: "#blocked-workflows", title: "Blocked workflows", detail: "Find stuck applications, leases, messages, maintenance, inspections, and tasks.", count: model.metrics.blockedWorkflows, icon: <Wrench size={18} /> },
+    { href: "#failed-integrations", title: "Integrations", detail: "Diagnose failed syncs, disabled providers, failed jobs, and connection errors.", count: model.metrics.failedIntegrations, icon: <PlugZap size={18} /> },
+    { href: "#production-health", title: "Production health", detail: "Review safe environment, storage, cron, runtime, and deployment readiness checks.", count: model.metrics.productionWarnings, icon: <Activity size={18} /> },
+    { href: "#sample-data", title: "Sample data", detail: "Check demo payload availability and sample-like records before production use.", count: model.metrics.sampleDataRecords, icon: <DatabaseBackup size={18} /> },
+    { href: "#security", title: "Security", detail: "Inspect recent security events, elevated users, and super-user-only controls.", count: model.metrics.criticalSecurityAlerts, icon: <ShieldAlert size={18} /> },
+    { href: "#audit-logs", title: "Audit logs", detail: "Review recent platform trail entries without leaving the command center.", count: model.metrics.recentAuditActivity, icon: <ShieldCheck size={18} /> }
+  ];
+
+  return (
+    <section id="operations-directory" className="mt-5 rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-700">Authoritative operations map</p>
+          <h2 className="mt-1 text-xl font-black text-slate-950">Everything operational starts here.</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">The command center consolidates scattered admin work into one page. Use these anchors for triage, then open drilldowns or source tools only when action is needed.</p>
+        </div>
+        <Link href="/admin/command-center/drilldowns?key=applications-waiting-review" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-2 text-sm font-black text-white hover:bg-slate-800">
+          Open a drilldown
+          <ArrowRight size={15} />
+        </Link>
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {sections.map((section) => (
+          <Link key={section.href} href={section.href} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-brand-200 hover:bg-white hover:shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-brand-700 shadow-sm">{section.icon}</span>
+              <span className={`rounded-full px-2.5 py-1 text-[11px] font-black uppercase ${section.count > 0 ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-800"}`}>{section.count}</span>
+            </div>
+            <h3 className="mt-3 font-black text-slate-950">{section.title}</h3>
+            <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{section.detail}</p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function AdminCommandCenter({ model }: { model: AdminCommandCenterModel }) {
   const superText = model.access.isSuperUser ? (model.access.bootstrapMode ? "Bootstrap super user" : "Super user") : "Admin";
 
   return (
-    <main id="main-content" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <main id="main-content" className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
       <AdminPageHeader
         eyebrow="Platform operations"
         title="Admin Command Center"
         description="Access requests, data quality, failed integrations, blocked workflows, sample-data safety, production health, security alerts, and audit activity in one operations cockpit."
       />
 
-      <section className="mb-5 rounded-[1.5rem] border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
+      <section className="mb-5 rounded-[1.5rem] border border-slate-200 bg-slate-950 p-4 text-white shadow-sm sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -240,7 +281,7 @@ export function AdminCommandCenter({ model }: { model: AdminCommandCenterModel }
             <h2 className="mt-3 text-2xl font-black">Operations needing attention are prioritized first.</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Normal admins can use the command center for visibility. Super-user-only sections protect security events, elevated access, sample payload controls, and sensitive platform operations.</p>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[320px]">
             <Link href="/admin/operations" className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-black text-slate-950 hover:bg-slate-100"><Activity size={15} /> Operations</Link>
             <Link href="/admin/security" className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 px-4 py-2.5 text-sm font-black text-white hover:bg-white/10"><ShieldCheck size={15} /> Security</Link>
           </div>
@@ -258,7 +299,9 @@ export function AdminCommandCenter({ model }: { model: AdminCommandCenterModel }
         <OpsMetric label="Audit activity" value={model.metrics.recentAuditActivity} detail="Recent platform audit entries" />
       </section>
 
-      <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(380px,0.9fr)]">
+      <OperationsDirectory model={model} />
+
+      <section id="access-requests" className="mt-5 scroll-mt-24 grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(380px,0.9fr)]">
         <AccessRequestsPanel model={model} />
         <OpsPanel title="Admin Quick Actions" eyebrow="Command shortcuts">
           <div className="grid gap-3">
@@ -279,18 +322,25 @@ export function AdminCommandCenter({ model }: { model: AdminCommandCenterModel }
       </section>
 
       <section className="mt-5 grid gap-5 xl:grid-cols-2">
-        <OpsPanel title="Data Quality" eyebrow="Cleanup queue" action={<a href="#data-quality" id="data-quality" className="sr-only">Data quality</a>}>
+        <div id="data-quality" className="scroll-mt-24">
+        <OpsPanel title="Data Quality" eyebrow="Cleanup queue">
           <IssueList issues={model.dataQuality} />
         </OpsPanel>
-        <OpsPanel title="Blocked Workflows" eyebrow="Stuck work" action={<a href="#blocked-workflows" id="blocked-workflows" className="sr-only">Blocked workflows</a>}>
+        </div>
+        <div id="blocked-workflows" className="scroll-mt-24">
+        <OpsPanel title="Blocked Workflows" eyebrow="Stuck work">
           <IssueList issues={model.blockedWorkflows} />
         </OpsPanel>
+        </div>
       </section>
 
       <section className="mt-5 grid gap-5 xl:grid-cols-2">
+        <div id="failed-integrations" className="scroll-mt-24">
         <OpsPanel title="Failed Integrations" eyebrow="Real connection health">
           <IssueList issues={model.failedIntegrations} />
         </OpsPanel>
+        </div>
+        <div id="operational-alerts" className="scroll-mt-24">
         <OpsPanel title="Operational Alerts" eyebrow="Platform warnings">
           <div className="space-y-3">
             {model.operationalAlerts.length === 0 ? <EmptyState title="No operational alerts" detail="Readiness and queue alerts will appear here after sync or automated capture." /> : model.operationalAlerts.map((alert) => (
@@ -300,21 +350,26 @@ export function AdminCommandCenter({ model }: { model: AdminCommandCenterModel }
             ))}
           </div>
         </OpsPanel>
+        </div>
       </section>
 
-      <section className="mt-5">
+      <section id="production-health" className="mt-5 scroll-mt-24">
         <ProductionHealthPanel model={model} />
       </section>
 
       <section className="mt-5 grid gap-5 xl:grid-cols-2">
+        <div id="sample-data" className="scroll-mt-24">
         <SampleDataPanel model={model} />
+        </div>
+        <div id="security" className="scroll-mt-24">
         <SecurityPanel model={model} />
+        </div>
       </section>
 
-      <section className="mt-5 grid gap-5 xl:grid-cols-2">
+      <section id="audit-logs" className="mt-5 scroll-mt-24 grid gap-5 xl:grid-cols-2">
         <OpsPanel title="Recent Audit Activity" eyebrow="Platform trail">
-          <div className="overflow-hidden rounded-2xl border border-slate-200">
-            <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200">
+            <table className="min-w-[760px] w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs font-black uppercase text-slate-500"><tr><th className="px-3 py-2">Actor</th><th className="px-3 py-2">Action</th><th className="px-3 py-2">Record</th><th className="px-3 py-2">Time</th></tr></thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {model.auditActivity.length === 0 ? <tr><td colSpan={4} className="px-3 py-6 text-center text-slate-500">No audit activity recorded yet.</td></tr> : model.auditActivity.map((event) => (

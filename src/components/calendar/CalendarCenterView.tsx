@@ -9,7 +9,7 @@ type Option = { id: string; label: string };
 type Props = {
   title: string;
   description: string;
-  basePath: "admin" | "landlord" | "applicant";
+  basePath: "admin" | "landlord" | "applicant" | "tenant";
   center: CalendarCenter;
   searchParams?: Record<string, string | string[] | undefined>;
   canCreate?: boolean;

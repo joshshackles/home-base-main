@@ -33,6 +33,13 @@ const prisma = new PrismaClient();
 
 const DEFAULT_SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || "HomeBaseDemo!2026";
 
+function assertSeedSafety() {
+  if (process.env.NODE_ENV !== "production") return;
+  if (process.env.ALLOW_SAMPLE_DATA_IN_PRODUCTION === "true") return;
+
+  throw new Error("Refusing to seed sample data in production. Set ALLOW_SAMPLE_DATA_IN_PRODUCTION=true only for an intentional demo/sandbox production environment.");
+}
+
 function seedPassword(envName: string) {
   const password = process.env[envName] ?? DEFAULT_SEED_PASSWORD;
   const result = validatePasswordStrength(password);
@@ -52,6 +59,7 @@ const seedPasswords = {
 };
 
 async function main() {
+  assertSeedSafety();
   console.log("Seed user passwords. Override with SEED_DEFAULT_PASSWORD or role-specific SEED_*_PASSWORD env vars if needed.");
   console.table({
     "admin@homebase.local": seedPasswords.admin,

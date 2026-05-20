@@ -29,6 +29,7 @@ import {
   getListingQualityScore,
   getMarketplaceListings,
   getMarketplaceStats,
+  getPublicLocationLabel,
   isApplicantMarketplaceViewer,
 } from "@/lib/marketplace/listings";
 import { Pagination } from "@/components/admin/Pagination";
@@ -368,6 +369,14 @@ export default async function MarketplacePage({
     utilities,
     sort,
   });
+  const quickDiscoveryLinks = [
+    marketplaceStats.voucherFriendlyCount > 0 ? { label: "Voucher-friendly", href: buildMarketplaceQuery({ voucherFriendly: true, sort: "recommended" }), detail: `${marketplaceStats.voucherFriendlyCount} active` } : null,
+    petFriendlyCount > 0 ? { label: "Pet notes", href: buildMarketplaceQuery({ pets: true, sort: "recommended" }), detail: `${petFriendlyCount} active` } : null,
+    marketplaceStats.utilityNoteCount > 0 ? { label: "Utilities noted", href: buildMarketplaceQuery({ utilities: true, sort: "recommended" }), detail: `${marketplaceStats.utilityNoteCount} active` } : null,
+    { label: "Available now", href: buildMarketplaceQuery({ availability: "now", sort: "available-soonest" }), detail: "Move sooner" },
+    { label: "Lowest rent", href: buildMarketplaceQuery({ sort: "rent-asc" }), detail: "Budget first" },
+    cities[0] ? { label: cities[0].city, href: buildMarketplaceQuery({ city: cities[0].city }), detail: cities[0].state } : null
+  ].filter((item): item is { label: string; href: string; detail: string } => Boolean(item));
 
   return (
     <main id="main-content" className="min-h-screen bg-slate-50">
@@ -408,7 +417,7 @@ export default async function MarketplacePage({
 
           <form
             action="/marketplace"
-            className="mt-5 grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 shadow-sm md:grid-cols-[1.4fr_0.65fr_0.45fr_0.45fr_0.7fr_auto]"
+            className="mt-5 grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 shadow-sm md:grid-cols-[1.35fr_0.6fr_0.45fr_0.42fr_0.62fr_0.58fr_auto]"
           >
             <div className="relative">
               <Search
@@ -457,6 +466,13 @@ export default async function MarketplacePage({
               <option value="onOrBefore">Available by date</option>
               <option value="after">Available after date</option>
             </select>
+            <input
+              name="availableBy"
+              type="date"
+              defaultValue={availableByRaw ?? ""}
+              aria-label="Availability date"
+              className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+            />
             <button
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-black text-white hover:bg-blue-700"
               type="submit"
@@ -464,6 +480,15 @@ export default async function MarketplacePage({
               <Search size={16} /> Search
             </button>
           </form>
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+            {quickDiscoveryLinks.map((item) => (
+              <Link key={`${item.label}-${item.href}`} href={item.href} className="rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm transition hover:border-blue-200 hover:bg-blue-50">
+                <span className="block text-sm font-black text-slate-950">{item.label}</span>
+                <span className="mt-0.5 block text-xs font-bold text-slate-500">{item.detail}</span>
+              </Link>
+            ))}
+          </div>
 
           {searchParams?.savedSearch === "1" ? (
             <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900">
@@ -504,7 +529,7 @@ export default async function MarketplacePage({
               <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-slate-600">
                 <span>Saved Searches:</span>
                 {savedSearches.map((search) => (
-                  <span key={search.id} className="rounded-full bg-white px-2.5 py-1 shadow-sm ring-1 ring-slate-200">{search.label}</span>
+                  <Link key={search.id} href="/applicant/favorites" className="rounded-full bg-white px-2.5 py-1 shadow-sm ring-1 ring-slate-200 hover:text-blue-700">{search.label}</Link>
                 ))}
               </div>
             ) : null}
@@ -590,6 +615,14 @@ export default async function MarketplacePage({
               </Link>
             ) : null}
           </div>
+        </div>
+      </section>
+
+      <section className="border-b border-slate-200 bg-white">
+        <div className="mx-auto grid max-w-[96rem] gap-2 px-3 py-3 text-xs font-bold text-slate-600 sm:grid-cols-3 sm:px-5 lg:px-6">
+          <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200"><span className="font-black text-slate-950">Quality-gated listings.</span> Public search only returns active rentals with usable pricing, bed/bath, and marketplace detail.</div>
+          <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200"><span className="font-black text-slate-950">Search state is shareable.</span> Filters, view mode, sort, and availability stay in the URL.</div>
+          <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200"><span className="font-black text-slate-950">Privacy-aware location.</span> Renters see area-level location first; exact address handling stays in authorized workflows.</div>
         </div>
       </section>
 
@@ -739,6 +772,15 @@ export default async function MarketplacePage({
                   <p className="mt-3 text-sm leading-6 text-slate-600">
                     Your search is using {activeFilterCount} active filter{activeFilterCount === 1 ? "" : "s"}. Try clearing filters, expanding rent, checking nearby cities, or saving this search so you can return when new listings are added.
                   </p>
+                  {filterChips.length > 0 ? (
+                    <div className="mt-4 flex flex-wrap justify-center gap-2">
+                      {filterChips.map((chip) => (
+                        <Link key={chip.key} href={clearFilterHref(searchParams, chip.key)} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-800 hover:bg-blue-50 hover:text-blue-800">
+                          Remove {chip.label} <X size={13} />
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
                     <Link href="/marketplace" className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white hover:bg-blue-700">View All Rentals</Link>
                     {maxRent !== undefined ? <Link href={clearFilterHref(searchParams, "maxRent")} className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-black text-slate-900 hover:bg-slate-50">Remove max rent</Link> : null}
@@ -978,7 +1020,7 @@ function LocationPreviewPanel({
             <div>
               <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-200">Map preview mode</p>
               <h2 className="mt-2 text-2xl font-black">Explore listings by area</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-300">Exact interactive markers require latitude and longitude support. For now, HomeBase groups real listings by city, ZIP, and neighborhood without inventing coordinates.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-300">Exact interactive markers require latitude/longitude and address visibility controls. For now, HomeBase groups real listings by city, ZIP, and neighborhood without inventing coordinates or exposing street addresses.</p>
             </div>
             <MapPinned className="shrink-0 text-blue-200" size={28} />
           </div>
@@ -1023,7 +1065,7 @@ function LocationPreviewPanel({
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-black text-slate-950">{unit.marketingHeadline || `${unit.property.name} #${unit.unitNumber}`}</p>
-                <p className="mt-1 text-xs font-semibold text-slate-500">{unit.property.city}, {unit.property.state} / {availabilityText(unit.availableOn)}</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">{getPublicLocationLabel(unit)} / {availabilityText(unit.availableOn)}</p>
                 <p className="mt-1 text-sm font-black text-slate-950">{formatCurrency(unit.rentAmount)} / {unit.bedrooms} bd / {unit.bathrooms} ba</p>
               </div>
             </Link>
@@ -1031,7 +1073,7 @@ function LocationPreviewPanel({
         </div>
 
         <div className="mt-4 rounded-2xl bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-900">
-          Future full map support should add geocoded latitude/longitude fields, address visibility controls, and a client-only map provider. This preview deliberately avoids fake coordinates.
+          Future full map support should add geocoded latitude/longitude fields, address visibility controls, and a client-only map provider. This preview deliberately avoids fake coordinates and exact street disclosure.
         </div>
       </div>
     </section>
