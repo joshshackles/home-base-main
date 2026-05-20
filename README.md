@@ -2,7 +2,7 @@
 
 Premium housing operations platform for properties, units, leads, applications, documents, inspections, lease packets, e-signature evidence, notifications, communication, payments, and ledgers.
 
-Current package version: **4.59.0**
+Current package version: **4.59.1**
 
 ## What is included
 

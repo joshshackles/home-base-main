@@ -68,13 +68,13 @@ assertIncludes("docs/FINAL_READINESS_LAYER.md", [
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.59.0\"",
+  "\"version\": \"4.59.1\"",
   "\"final-readiness:verify\"",
   "field-workflow-proof-launch-hardening:verify && npm run final-readiness:verify",
 ]);
-assertIncludes("package-lock.json", ["\"version\": \"4.59.0\""]);
-assertIncludes("src/lib/app-version.ts", ["4.59.0"]);
-assertIncludes("README.md", ["Current package version: **4.59.0**"]);
-assertIncludes("CHANGELOG.md", ["## v4.59.0 - Final Readiness Layer"]);
+assertIncludes("package-lock.json", ["\"version\": \"4.59.1\""]);
+assertIncludes("src/lib/app-version.ts", ["4.59.1"]);
+assertIncludes("README.md", ["Current package version: **4.59.1**"]);
+assertIncludes("CHANGELOG.md", ["## v4.59.1 - Landlord Units Typecheck Fix"]);
 
 console.log("Final readiness layer verification passed.");

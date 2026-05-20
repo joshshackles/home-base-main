@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { MaintenanceRequestStatus, RentalMarketingStatus, UnitStatus } from "@prisma/client";
+import { MaintenanceRequestStatus, Prisma, RentalMarketingStatus, UnitStatus } from "@prisma/client";
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";
 import { formatCurrency } from "@/lib/format";
 import { requireRole } from "@/lib/auth";
@@ -19,9 +19,9 @@ export default async function LandlordUnitsPage({ searchParams }: { searchParams
   const marketingValue = searchParams?.marketing?.trim() ?? "";
   const status = Object.values(UnitStatus).includes(statusValue as UnitStatus) && statusValue !== UnitStatus.ARCHIVED ? statusValue as UnitStatus : "";
   const marketing = Object.values(RentalMarketingStatus).includes(marketingValue as RentalMarketingStatus) && marketingValue !== RentalMarketingStatus.ARCHIVED ? marketingValue as RentalMarketingStatus : "";
-  const unitWhere = {
+  const unitWhere: Prisma.UnitWhereInput = {
     property: { ownerId: user.userId, isArchived: false },
-    NOT: { status: "ARCHIVED" },
+    NOT: { status: UnitStatus.ARCHIVED },
     ...(status ? { status } : {}),
     ...(marketing ? { marketingStatus: marketing } : {}),
     ...(query
@@ -181,7 +181,7 @@ export default async function LandlordUnitsPage({ searchParams }: { searchParams
                 <td className="px-5 py-4">
                   <div className="flex flex-wrap justify-end gap-2">
                     <Link href={`/landlord/rentals/${unit.id}`} className="rounded-xl border border-slate-300 px-3 py-2 font-bold text-slate-700 hover:bg-white">Open</Link>
-                    {unit.status === "AVAILABLE" ? <Link href={`/marketplace/${unit.id}`} className="rounded-xl border border-slate-300 px-3 py-2 font-bold text-slate-700 hover:bg-white">Public</Link> : null}
+                    {unit.status === UnitStatus.AVAILABLE ? <Link href={`/marketplace/${unit.id}`} className="rounded-xl border border-slate-300 px-3 py-2 font-bold text-slate-700 hover:bg-white">Public</Link> : null}
                     <Link href={`/landlord/rentals/${unit.id}/edit`} className="rounded-xl bg-brand-600 px-3 py-2 font-bold text-white hover:bg-brand-700">Edit</Link>
                   </div>
                 </td>

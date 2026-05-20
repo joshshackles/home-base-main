@@ -1,3 +1,9 @@
+## v4.59.1 - Landlord Units Typecheck Fix
+
+- Fixed the `/landlord/units` Prisma query type error caught by Vercel by typing the unit filter as `Prisma.UnitWhereInput`.
+- Replaced raw unit status strings with `UnitStatus.ARCHIVED` and `UnitStatus.AVAILABLE` so Prisma enum inference stays valid during `next build`.
+- Added `landlord-units-typecheck-fix:verify` and wired it into local and Vercel release gates.
+
 ## v4.59.0 - Final Readiness Layer
 
 - Added shared `LoadingState` and `ErrorState` primitives, improved empty-state live regions, status aria labels, active-tab semantics, and focus-visible outlines for core shared UI actions.

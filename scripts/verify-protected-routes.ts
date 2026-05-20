@@ -71,17 +71,17 @@ assertIncludes("docs/PROTECTED_ROUTE_ACCESS_MANIFEST.md", [
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.59.0\"",
+  "\"version\": \"4.59.1\"",
   "\"protected-routes:verify\"",
   "\"middleware-static:verify\"",
   "\"environment-contract:verify\"",
   "\"expanded-access:verify\"",
-  "\"verify\": \"npm run first-release:verify && npm run permission-matrix:verify && npm run authorization-runtime:verify && npm run protected-routes:verify && npm run middleware-static:verify && npm run environment-contract:verify && npm run expanded-access:verify && npm run tenant-portal:verify && npm run mobile-flow-drilldowns:verify && npm run admin-ops-marketplace-discovery:verify && npm run marketplace-readiness-messaging:verify && npm run canonical-conversations-workflow-proof:verify && npm run field-workflow-proof-launch-hardening:verify && npm run final-readiness:verify && npm run routes:check",
+  "\"verify\": \"npm run first-release:verify && npm run permission-matrix:verify && npm run authorization-runtime:verify && npm run protected-routes:verify && npm run middleware-static:verify && npm run environment-contract:verify && npm run expanded-access:verify && npm run tenant-portal:verify && npm run mobile-flow-drilldowns:verify && npm run admin-ops-marketplace-discovery:verify && npm run marketplace-readiness-messaging:verify && npm run canonical-conversations-workflow-proof:verify && npm run field-workflow-proof-launch-hardening:verify && npm run final-readiness:verify && npm run landlord-units-typecheck-fix:verify && npm run routes:check",
   "\"vercel-build\": \"npm run vercel:preflight && npm run lockfile:verify && npm run clean-install:verify && npm run first-release:verify && npm run permission-matrix:verify && npm run authorization-runtime:verify && npm run protected-routes:verify && npm run middleware-static:verify && npm run environment-contract:verify && npm run expanded-access:verify"
 ]);
 
-assertIncludes("src/lib/app-version.ts", ["4.59.0"]);
-assertIncludes("README.md", ["Current package version: **4.59.0**"]);
-assertIncludes("CHANGELOG.md", ["## v4.59.0 - Final Readiness Layer"]);
+assertIncludes("src/lib/app-version.ts", ["4.59.1"]);
+assertIncludes("README.md", ["Current package version: **4.59.1**"]);
+assertIncludes("CHANGELOG.md", ["## v4.59.1 - Landlord Units Typecheck Fix"]);
 
 console.log("Protected route access verification passed.");
