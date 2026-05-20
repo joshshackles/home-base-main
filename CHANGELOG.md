@@ -1,3 +1,9 @@
+## v4.59.5 - Maintenance Priority Enum Fix
+
+- Fixed the unified landlord inbox type error caught by Vercel by replacing the nonexistent `MaintenancePriority.EMERGENCY` reference with the real `MaintenancePriority.URGENT` enum.
+- Preserved urgent inbox prioritization for urgent maintenance conversations.
+- Added `maintenance-priority-enum-fix:verify` and wired it into local and Vercel release gates.
+
 ## v4.59.4 - Lead Authorization Relation Fix
 
 - Fixed the authorization type error caught by Vercel by selecting the `Lead.application` relation instead of a nonexistent `Lead.applicationId` scalar.

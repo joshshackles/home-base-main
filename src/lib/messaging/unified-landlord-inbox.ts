@@ -123,7 +123,7 @@ function sourceTypeForThread(type: MessageThreadType): UnifiedLandlordSourceType
 }
 
 function messagePriority(input: { status: MessageThreadStatus; unreadCount: number; maintenancePriority?: MaintenancePriority | null }): UnifiedInboxPriority {
-  if (input.maintenancePriority === MaintenancePriority.EMERGENCY) return "urgent";
+  if (input.maintenancePriority === MaintenancePriority.URGENT) return "urgent";
   if (input.maintenancePriority === MaintenancePriority.HIGH || input.status === MessageThreadStatus.WAITING_ON_STAFF || input.unreadCount > 0) return "high";
   return "normal";
 }

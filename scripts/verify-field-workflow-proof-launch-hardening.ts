@@ -67,13 +67,13 @@ assertIncludes("docs/FIELD_WORKFLOW_PROOF_LAUNCH_HARDENING.md", [
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.59.4\"",
+  "\"version\": \"4.59.5\"",
   "\"field-workflow-proof-launch-hardening:verify\"",
   "canonical-conversations-workflow-proof:verify && npm run field-workflow-proof-launch-hardening:verify",
 ]);
-assertIncludes("package-lock.json", ["\"version\": \"4.59.4\""]);
-assertIncludes("src/lib/app-version.ts", ["4.59.4"]);
-assertIncludes("README.md", ["Current package version: **4.59.4**"]);
-assertIncludes("CHANGELOG.md", ["## v4.59.4 - Lead Authorization Relation Fix"]);
+assertIncludes("package-lock.json", ["\"version\": \"4.59.5\""]);
+assertIncludes("src/lib/app-version.ts", ["4.59.5"]);
+assertIncludes("README.md", ["Current package version: **4.59.5**"]);
+assertIncludes("CHANGELOG.md", ["## v4.59.5 - Maintenance Priority Enum Fix"]);
 
 console.log("Field workflow proof and launch hardening verification passed.");
