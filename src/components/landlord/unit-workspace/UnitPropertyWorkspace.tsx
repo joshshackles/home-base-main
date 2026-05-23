@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { MaintenancePriority, MessageThreadType } from "@prisma/client";
+import { Banknote, ClipboardCheck, Clock3, FileText, Home, Inbox, KeyRound, Megaphone, MessageSquare, Users, Wrench } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { addLandlordUnitContact, assignLandlordUnitTenant, createLandlordMaintenanceRequest } from "@/app/landlord/actions";
 import { sendWorkflowMessage } from "@/app/workflow-actions";
 import { formatCurrency } from "@/lib/format";
@@ -30,6 +32,19 @@ function tabHref(unitId: string, tab: UnitWorkspaceTabKey) {
   return `/landlord/units/${unitId}?tab=${tab}`;
 }
 
+const tabIcons: Record<UnitWorkspaceTabKey, LucideIcon> = {
+  listing: Home,
+  "leads-applications": Users,
+  tenant: KeyRound,
+  lease: FileText,
+  ledger: Banknote,
+  maintenance: Wrench,
+  inspections: ClipboardCheck,
+  documents: FileText,
+  timeline: Clock3,
+  "staff-contacts": Inbox
+};
+
 function statusTone(value: string) {
   const normalized = value.toLowerCase();
   if (normalized.includes("active") || normalized.includes("approved") || normalized.includes("posted") || normalized.includes("completed") || normalized.includes("passed")) return "bg-emerald-50 text-emerald-800 ring-emerald-200";
@@ -51,13 +66,16 @@ function ButtonLink({ href, children, variant = "secondary" }: { href: string; c
   return <Link href={href} className={`inline-flex items-center justify-center rounded-xl px-3 py-2 text-xs font-black ${styles}`}>{children}</Link>;
 }
 
-function Card({ id, title, eyebrow, action, focused, children, className = "" }: { id?: string; title: string; eyebrow?: string; action?: ReactNode; focused?: boolean; children: ReactNode; className?: string }) {
+function Card({ id, title, eyebrow, action, focused, icon: Icon, children, className = "" }: { id?: string; title: string; eyebrow?: string; action?: ReactNode; focused?: boolean; icon?: LucideIcon; children: ReactNode; className?: string }) {
   return (
     <section id={id} className={`rounded-3xl border bg-white p-4 shadow-sm ${focused ? "border-brand-300 ring-4 ring-brand-100" : "border-slate-200"} ${className}`}>
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-start gap-2">
+          {Icon ? <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-brand-700"><Icon size={17} /></span> : null}
+          <div className="min-w-0">
           {eyebrow ? <p className="text-[11px] font-black uppercase tracking-wide text-brand-700">{eyebrow}</p> : null}
           <h2 className="truncate text-lg font-black text-slate-950">{title}</h2>
+          </div>
         </div>
         {action}
       </div>
@@ -76,11 +94,11 @@ function EmptyMini({ title, detail, href, action }: { title: string; detail: str
   );
 }
 
-function InfoRow({ label: rowLabel, value }: { label: string; value: ReactNode }) {
+function InfoRow({ label: rowLabel, value, multiline = false }: { label: string; value: ReactNode; multiline?: boolean }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-2.5 last:border-b-0">
+    <div className={`${multiline ? "block" : "flex items-start justify-between gap-4"} border-b border-slate-100 py-2.5 last:border-b-0`}>
       <p className="text-xs font-black uppercase tracking-wide text-slate-500">{rowLabel}</p>
-      <div className="max-w-[60%] text-right text-sm font-bold leading-5 text-slate-900">{value}</div>
+      <div className={`${multiline ? "mt-1 text-left" : "max-w-[60%] text-right"} break-words text-sm font-bold leading-5 text-slate-900`}>{value}</div>
     </div>
   );
 }
@@ -112,6 +130,109 @@ function focusFor(tab: UnitWorkspaceTabKey, targets: UnitWorkspaceTabKey[]) {
   return targets.includes(tab);
 }
 
+function workflowCopy(tab: UnitWorkspaceTabKey, workspace: Workspace) {
+  const { unit, activeLease, primaryApplication, openMaintenance } = workspace;
+  const map: Record<UnitWorkspaceTabKey, { title: string; detail: string; primaryHref: string; primaryLabel: string; secondaryHref: string; secondaryLabel: string }> = {
+    listing: {
+      title: "Listing focus",
+      detail: "Tune the public story, location details, photos, terms, and listing readiness for this unit.",
+      primaryHref: `/landlord/rentals/${unit.id}/edit`,
+      primaryLabel: "Edit listing",
+      secondaryHref: `/marketplace/${unit.id}`,
+      secondaryLabel: "View public listing"
+    },
+    "leads-applications": {
+      title: "Leasing pipeline focus",
+      detail: `${unit.leads.length} lead${unit.leads.length === 1 ? "" : "s"} and ${unit.applications.length} application${unit.applications.length === 1 ? "" : "s"} are tied to this unit.`,
+      primaryHref: "/landlord/applications",
+      primaryLabel: "Review applications",
+      secondaryHref: "/landlord/leads",
+      secondaryLabel: "Open leads"
+    },
+    tenant: {
+      title: "Resident focus",
+      detail: unit.tenantUserId ? "Manage the current tenant, message history, household context, and move-out readiness." : "This unit is open for tenant assignment once an applicant is approved.",
+      primaryHref: primaryApplication ? `/landlord/applications/${primaryApplication.id}` : "/landlord/applications",
+      primaryLabel: primaryApplication ? "View renter profile" : "Review applicants",
+      secondaryHref: "/landlord/inbox",
+      secondaryLabel: "Message"
+    },
+    lease: {
+      title: "Lease focus",
+      detail: activeLease ? `Current lease packet is ${label(activeLease.status)}.` : "Create a lease packet and send it for signature when the unit is ready.",
+      primaryHref: activeLease ? `/landlord/leases/${activeLease.id}` : "/landlord/leases",
+      primaryLabel: activeLease ? "View lease" : "Create lease",
+      secondaryHref: "/landlord/documents",
+      secondaryLabel: "Lease documents"
+    },
+    ledger: {
+      title: "Financial focus",
+      detail: `${formatCurrency(workspace.balance)} current unit balance with ${workspace.ledgerEntries.length} recent ledger transaction${workspace.ledgerEntries.length === 1 ? "" : "s"}.`,
+      primaryHref: "/landlord/payments",
+      primaryLabel: "Record payment",
+      secondaryHref: "/landlord/ledger",
+      secondaryLabel: "Open ledger"
+    },
+    maintenance: {
+      title: "Maintenance focus",
+      detail: `${openMaintenance.length} open work order${openMaintenance.length === 1 ? "" : "s"} need coordination for this unit.`,
+      primaryHref: "/landlord/maintenance",
+      primaryLabel: "Open board",
+      secondaryHref: "/landlord/inbox",
+      secondaryLabel: "Message renter"
+    },
+    inspections: {
+      title: "Inspection focus",
+      detail: `${workspace.activeInspections.length} active inspection${workspace.activeInspections.length === 1 ? "" : "s"} and ${workspace.inspections.length} total record${workspace.inspections.length === 1 ? "" : "s"} are connected.`,
+      primaryHref: "/landlord/inspections",
+      primaryLabel: "Schedule inspection",
+      secondaryHref: "/landlord/documents",
+      secondaryLabel: "Inspection files"
+    },
+    documents: {
+      title: "Document focus",
+      detail: `${workspace.documents.length} document${workspace.documents.length === 1 ? "" : "s"} are connected to the property, unit, application, or lease context.`,
+      primaryHref: "/landlord/documents",
+      primaryLabel: "Upload document",
+      secondaryHref: "/landlord/leases",
+      secondaryLabel: "Lease center"
+    },
+    timeline: {
+      title: "Timeline focus",
+      detail: "Review recent listing, leasing, payment, repair, inspection, document, and message activity in order.",
+      primaryHref: tabHref(unit.id, "timeline"),
+      primaryLabel: "Review activity",
+      secondaryHref: "/landlord/inbox",
+      secondaryLabel: "Open inbox"
+    },
+    "staff-contacts": {
+      title: "Contacts focus",
+      detail: "Manage internal notes, client contacts, renter communication, and assigned support relationships.",
+      primaryHref: `/landlord/rentals/${unit.id}/edit`,
+      primaryLabel: "Edit contacts",
+      secondaryHref: "/landlord/inbox",
+      secondaryLabel: "Message"
+    }
+  };
+  return map[tab];
+}
+
+function focusOrder(tab: UnitWorkspaceTabKey, group: "listing" | "resident" | "financial" | "side") {
+  const priorities: Record<UnitWorkspaceTabKey, Partial<Record<typeof group, string>>> = {
+    listing: { listing: "xl:order-1", financial: "xl:order-3", resident: "xl:order-2", side: "xl:order-4" },
+    "leads-applications": { resident: "xl:order-1", listing: "xl:order-2", side: "xl:order-3", financial: "xl:order-4" },
+    tenant: { resident: "xl:order-1", side: "xl:order-2", financial: "xl:order-3", listing: "xl:order-4" },
+    lease: { resident: "xl:order-1", financial: "xl:order-2", side: "xl:order-3", listing: "xl:order-4" },
+    ledger: { financial: "xl:order-1", resident: "xl:order-2", side: "xl:order-3", listing: "xl:order-4" },
+    maintenance: { financial: "xl:order-1", side: "xl:order-2", resident: "xl:order-3", listing: "xl:order-4" },
+    inspections: { resident: "xl:order-1", side: "xl:order-2", financial: "xl:order-3", listing: "xl:order-4" },
+    documents: { resident: "xl:order-1", side: "xl:order-2", listing: "xl:order-3", financial: "xl:order-4" },
+    timeline: { side: "xl:order-1", resident: "xl:order-2", financial: "xl:order-3", listing: "xl:order-4" },
+    "staff-contacts": { side: "xl:order-1", resident: "xl:order-2", listing: "xl:order-3", financial: "xl:order-4" }
+  };
+  return priorities[tab][group] ?? "";
+}
+
 export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Workspace; activeTab: UnitWorkspaceTabKey }) {
   const {
     unit,
@@ -138,11 +259,13 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
   const approvedApplications = unit.applications.filter((application) => application.status === "APPROVED");
   const deniedApplications = unit.applications.filter((application) => application.status === "DENIED");
   const moveInCost = unit.rentAmount + (unit.deposit ?? 0);
+  const activeWorkflow = workflowCopy(activeTab, workspace);
+  const ActiveIcon = tabIcons[activeTab];
 
   return (
     <main id="main-content" className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1920px] flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-sm shadow-slate-950/[0.03] backdrop-blur">
+        <div className="mx-auto flex max-w-[1920px] flex-wrap items-center gap-3 px-4 py-2.5 sm:px-6">
           <Link href="/landlord/inventory" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-900 hover:bg-slate-50">Back to Inventory</Link>
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-black uppercase tracking-[0.22em] text-brand-700">Property workspace</p>
@@ -155,18 +278,32 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
             <Badge tone="bg-blue-50 text-blue-800 ring-blue-200">{listingHealthScore}% listing health</Badge>
           </div>
         </div>
+        <div className="border-t border-slate-100 bg-slate-50/80">
+          <div className="mx-auto flex max-w-[1920px] flex-wrap items-center gap-3 px-4 py-2.5 sm:px-6">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-950 text-white"><ActiveIcon size={17} /></span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-slate-950">{activeWorkflow.title}</p>
+              <p className="line-clamp-1 text-xs font-semibold text-slate-600">{activeWorkflow.detail}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <ButtonLink href={activeWorkflow.primaryHref} variant="primary">{activeWorkflow.primaryLabel}</ButtonLink>
+              <ButtonLink href={activeWorkflow.secondaryHref}>{activeWorkflow.secondaryLabel}</ButtonLink>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <div className="mx-auto grid max-w-[1920px] gap-4 px-4 py-4 sm:px-6 2xl:grid-cols-[220px_minmax(280px,0.95fr)_minmax(360px,1.15fr)_minmax(320px,0.9fr)_330px]">
-        <aside className="2xl:sticky 2xl:top-[88px] 2xl:h-[calc(100vh-104px)]">
+      <div className="mx-auto grid max-w-[1920px] gap-4 px-4 py-4 sm:px-6 xl:grid-cols-[190px_minmax(0,0.95fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_300px] 2xl:grid-cols-[220px_minmax(0,0.95fr)_minmax(0,1.15fr)_minmax(0,0.9fr)_330px]">
+        <aside className="xl:sticky xl:top-[132px] xl:h-[calc(100vh-148px)]">
           <div className="rounded-3xl border border-slate-200 bg-slate-950 p-3 text-white shadow-sm">
             <p className="px-2 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-blue-200">Workspace focus</p>
-            <nav className="flex gap-2 overflow-x-auto 2xl:block 2xl:space-y-1">
+            <nav className="flex gap-2 overflow-x-auto xl:block xl:space-y-1">
               {unitWorkspaceTabs.map((tab) => {
                 const active = tab.key === activeTab;
+                const Icon = tabIcons[tab.key];
                 return (
                   <Link key={tab.key} href={tabHref(unit.id, tab.key)} aria-current={active ? "page" : undefined} className={`flex shrink-0 items-center justify-between gap-3 rounded-2xl px-3 py-2 text-sm font-black transition ${active ? "bg-white text-slate-950" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}>
-                    <span>{tab.label}</span>
+                    <span className="flex min-w-0 items-center gap-2"><Icon size={15} className="shrink-0" /><span className="truncate">{tab.label}</span></span>
                     {active ? <span className="h-2 w-2 rounded-full bg-brand-500" /> : null}
                   </Link>
                 );
@@ -175,8 +312,8 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
           </div>
         </aside>
 
-        <section className="space-y-4">
-          <Card title="Feature photo" eyebrow="Listing media" focused={focusFor(activeTab, ["listing", "documents"])} action={<ButtonLink href={`/landlord/rentals/${unit.id}/edit`}>Upload</ButtonLink>}>
+        <section className={`space-y-4 ${focusOrder(activeTab, "listing")}`}>
+          <Card title="Feature photo" eyebrow="Listing media" icon={Home} focused={focusFor(activeTab, ["listing", "documents"])} action={<ButtonLink href={`/landlord/rentals/${unit.id}/edit`}>Upload</ButtonLink>}>
             <div className="overflow-hidden rounded-3xl bg-slate-100">
               {featuredPhoto ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -192,19 +329,19 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
             </div>
           </Card>
 
-          <Card title="Property/listing summary" focused={focusFor(activeTab, ["listing"])}>
+          <Card title="Property/listing summary" icon={Megaphone} focused={focusFor(activeTab, ["listing"])}>
             <InfoRow label="Headline" value={unit.marketingHeadline ?? unit.property.name} />
             <InfoRow label="Rent" value={formatCurrency(unit.rentAmount)} />
             <InfoRow label="Deposit" value={unit.deposit ? formatCurrency(unit.deposit) : "Not set"} />
             <InfoRow label="Available" value={dateLabel(unit.availableOn)} />
-            <InfoRow label="Description" value={<span className="line-clamp-3">{unit.description ?? "No public description yet."}</span>} />
+            <InfoRow label="Description" multiline value={<span className="line-clamp-4">{unit.description ?? "No public description yet."}</span>} />
             <div className="mt-3 flex flex-wrap gap-2">
               <ButtonLink href={`/landlord/rentals/${unit.id}/edit`} variant="primary">Edit listing</ButtonLink>
               <ButtonLink href={`/marketplace/${unit.id}`}>Public listing</ButtonLink>
             </div>
           </Card>
 
-          <Card title="Listing and location details" focused={focusFor(activeTab, ["listing"])}>
+          <Card title="Listing and location details" icon={Home} focused={focusFor(activeTab, ["listing"])}>
             <InfoRow label="School district" value={unit.schoolDistrict ?? "Not set"} />
             <InfoRow label="Neighborhood" value={unit.neighborhood ?? "Not set"} />
             <InfoRow label="Year built" value={unit.yearBuilt ?? "Not set"} />
@@ -215,12 +352,12 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
             <InfoRow label="Flooring" value={unit.flooringInfo ?? "Not set"} />
             <InfoRow label="Yard/outdoor" value={unit.yardInfo ?? "Not set"} />
             <InfoRow label="Smoking" value={unit.smokingPolicy ?? "Not set"} />
-            <InfoRow label="Nearby" value={<span className="line-clamp-3">{unit.nearbyFeatures ?? "Not set"}</span>} />
+            <InfoRow label="Nearby" multiline value={<span className="line-clamp-4">{unit.nearbyFeatures ?? "Not set"}</span>} />
           </Card>
         </section>
 
-        <section className="space-y-4">
-          <Card title="Tenant and applicant status" eyebrow="Resident record" focused={focusFor(activeTab, ["tenant", "leads-applications"])}>
+        <section className={`space-y-4 ${focusOrder(activeTab, "resident")}`}>
+          <Card title="Tenant and applicant status" eyebrow="Resident record" icon={Users} focused={focusFor(activeTab, ["tenant", "leads-applications"])}>
             <div className="rounded-3xl bg-slate-950 p-4 text-white">
               <p className="text-[11px] font-black uppercase tracking-wide text-blue-200">{unit.tenantUserId ? "Current tenant" : "Current applicant"}</p>
               <h2 className="mt-1 text-2xl font-black">{tenantName}</h2>
@@ -250,7 +387,7 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
             </details>
           </Card>
 
-          <Card title="Lease status" focused={focusFor(activeTab, ["lease"])}>
+          <Card title="Lease status" icon={FileText} focused={focusFor(activeTab, ["lease"])}>
             {activeLease ? (
               <>
                 <InfoRow label="Status" value={<Badge>{label(activeLease.status)}</Badge>} />
@@ -265,7 +402,7 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
             )}
           </Card>
 
-          <Card title="Payment history and ledger" focused={focusFor(activeTab, ["ledger"])}>
+          <Card title="Payment history and ledger" icon={Banknote} focused={focusFor(activeTab, ["ledger"])}>
             <div className="grid grid-cols-2 gap-2">
               <CompactMetric label="Balance" value={formatCurrency(balance)} />
               <CompactMetric label="Transactions" value={ledgerEntries.length} />
@@ -279,13 +416,13 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
             <div className="mt-3 flex flex-wrap gap-2"><ButtonLink href="/landlord/ledger" variant="primary">Ledger</ButtonLink><ButtonLink href="/landlord/payments">Record payment</ButtonLink></div>
           </Card>
 
-          <Card title="Payment plans" focused={focusFor(activeTab, ["ledger"])}>
+          <Card title="Payment plans" icon={Banknote} focused={focusFor(activeTab, ["ledger"])}>
             {paymentPlans.length > 0 ? paymentPlans.slice(0, 3).map((plan) => (
               <FeedItem key={plan.id} title={plan.name} detail={`${label(plan.status)} - ${plan.installments.length} installments`} meta={dateLabel(plan.createdAt)} />
             )) : <EmptyMini title="No payment plans" detail="Payment plans for deposits, balances, or arrangements will appear here." href="/landlord/payments" action="Open payments" />}
           </Card>
 
-          <Card title="Inspections and documents" focused={focusFor(activeTab, ["inspections", "documents"])}>
+          <Card title="Inspections and documents" icon={ClipboardCheck} focused={focusFor(activeTab, ["inspections", "documents"])}>
             <div className="grid grid-cols-2 gap-2">
               <CompactMetric label="Active inspections" value={activeInspections.length} />
               <CompactMetric label="Documents" value={documents.length} />
@@ -297,7 +434,7 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
             <div className="mt-3 flex flex-wrap gap-2"><ButtonLink href="/landlord/inspections">Inspections</ButtonLink><ButtonLink href="/landlord/documents">Documents</ButtonLink></div>
           </Card>
 
-          <Card title="Rental timeline" focused={focusFor(activeTab, ["timeline"])}>
+          <Card title="Rental timeline" icon={Clock3} focused={focusFor(activeTab, ["timeline"])}>
             <div className="space-y-2">
               {timelineItems.slice(0, 5).map((item) => <FeedItem key={`${item.title}-${item.sortAt.toISOString()}`} title={item.title} detail={item.detail} href={item.href} meta={shortDateTime(item.sortAt)} />)}
               {timelineItems.length === 0 ? <p className="text-sm leading-6 text-slate-600">Timeline activity appears as records are created.</p> : null}
@@ -305,8 +442,8 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
           </Card>
         </section>
 
-        <section className="space-y-4">
-          <Card title="Rent and move-in terms" eyebrow="Financial terms" focused={focusFor(activeTab, ["listing", "lease", "ledger"])}>
+        <section className={`space-y-4 ${focusOrder(activeTab, "financial")}`}>
+          <Card title="Rent and move-in terms" eyebrow="Financial terms" icon={Banknote} focused={focusFor(activeTab, ["listing", "lease", "ledger"])}>
             <InfoRow label="Monthly rent" value={formatCurrency(unit.rentAmount)} />
             <InfoRow label="Deposit" value={unit.deposit ? formatCurrency(unit.deposit) : "Not set"} />
             <InfoRow label="Move-in estimate" value={formatCurrency(moveInCost)} />
@@ -314,12 +451,12 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
             <InfoRow label="Rent due day" value={unit.rentDueDay ? `Day ${unit.rentDueDay}` : "Not set"} />
             <InfoRow label="Average utilities" value={unit.averageUtilityBill ? formatCurrency(unit.averageUtilityBill) : "Not set"} />
             <InfoRow label="Late fee policy" value={unit.lateFeePolicy ?? "Not set"} />
-            <InfoRow label="Lease terms" value={<span className="line-clamp-3">{unit.leaseTermsNote ?? "Not set"}</span>} />
-            <InfoRow label="Move-in fees" value={<span className="line-clamp-3">{unit.moveInFeesNote ?? "Not set"}</span>} />
+            <InfoRow label="Lease terms" multiline value={<span className="line-clamp-4">{unit.leaseTermsNote ?? "Not set"}</span>} />
+            <InfoRow label="Move-in fees" multiline value={<span className="line-clamp-4">{unit.moveInFeesNote ?? "Not set"}</span>} />
             <div className="mt-3 flex flex-wrap gap-2"><ButtonLink href={`/landlord/rentals/${unit.id}/edit`} variant="primary">Edit terms</ButtonLink><ButtonLink href="/landlord/reports">Export</ButtonLink></div>
           </Card>
 
-          <Card title="Repair and maintenance" eyebrow="Work order intake" focused={focusFor(activeTab, ["maintenance"])}>
+          <Card title="Repair and maintenance" eyebrow="Work order intake" icon={Wrench} focused={focusFor(activeTab, ["maintenance"])}>
             <div className="mb-3 grid grid-cols-2 gap-2">
               <CompactMetric label="Open" value={openMaintenance.length} />
               <CompactMetric label="All repairs" value={maintenanceRequests.length} />
@@ -341,20 +478,20 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
           </Card>
         </section>
 
-        <aside className="space-y-4 2xl:sticky 2xl:top-[88px] 2xl:h-[calc(100vh-104px)] 2xl:overflow-y-auto">
-          <Card title="Workflow alerts" eyebrow="Next actions">
+        <aside className={`space-y-4 xl:sticky xl:top-[132px] xl:h-[calc(100vh-148px)] xl:overflow-y-auto ${focusOrder(activeTab, "side")}`}>
+          <Card title="Workflow alerts" eyebrow="Next actions" icon={Megaphone}>
             <div className="space-y-2">
               {actionItems.slice(0, 5).map((item) => <FeedItem key={item.title} title={item.title} detail={item.detail} href={item.href.startsWith("#") ? tabHref(unit.id, item.href.includes("pipeline") ? "leads-applications" : item.href.includes("maintenance") ? "maintenance" : item.href.includes("inspections") ? "inspections" : item.href.includes("documents") ? "documents" : item.href.includes("ledger") ? "ledger" : "listing") : item.href} />)}
               {actionItems.length === 0 ? <p className="rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">No urgent workflow alerts right now.</p> : null}
             </div>
           </Card>
 
-          <Card title="Client notes" focused={focusFor(activeTab, ["staff-contacts"])}>
+          <Card title="Client notes" icon={FileText} focused={focusFor(activeTab, ["staff-contacts"])}>
             <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{unit.clientNotes ?? "No client notes have been saved yet."}</p>
             <ButtonLink href={`/landlord/rentals/${unit.id}/edit`}>Edit notes</ButtonLink>
           </Card>
 
-          <Card title="Message client">
+          <Card title="Message client" icon={MessageSquare}>
             {primaryApplication ? (
               <form action={sendWorkflowMessage} className="grid gap-2">
                 <input type="hidden" name="applicationId" value={primaryApplication.id} />
@@ -366,7 +503,7 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
             ) : <p className="text-sm leading-6 text-slate-600">Link a current application before messaging from this unit.</p>}
           </Card>
 
-          <Card title="Recent messages">
+          <Card title="Recent messages" icon={Inbox}>
             <div className="space-y-2">
               {messageThreads.slice(0, 4).map((thread) => <FeedItem key={thread.id} title={thread.subject} detail={thread.messages[0] ? `${thread.messages[0].sender.name || thread.messages[0].sender.email}: ${thread.messages[0].body}` : label(thread.status)} href="/landlord/inbox" meta={thread.lastMessageAt ? shortDateTime(thread.lastMessageAt) : undefined} />)}
               {messageThreads.length === 0 ? <p className="text-sm leading-6 text-slate-600">No messages are connected to this unit yet.</p> : null}
@@ -374,7 +511,7 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
             <ButtonLink href="/landlord/inbox" variant="primary">Open inbox</ButtonLink>
           </Card>
 
-          <Card title="Important contacts" focused={focusFor(activeTab, ["staff-contacts"])}>
+          <Card title="Important contacts" icon={Users} focused={focusFor(activeTab, ["staff-contacts"])}>
             <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{unit.importantContacts ?? "No important contacts have been saved yet."}</p>
             <details className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
               <summary className="cursor-pointer text-sm font-black text-slate-950">Add contact</summary>
