@@ -58,6 +58,30 @@ export type WorkspaceRelationshipDefinition = {
   description?: string;
 };
 
+export type WorkspaceRelationshipDirection = "outbound" | "inbound" | "both";
+
+export type WorkspaceRelationshipEdge = WorkspaceRelationshipDefinition & {
+  direction: Exclude<WorkspaceRelationshipDirection, "both">;
+  source: WorkspaceEntityType;
+  target: WorkspaceEntityType;
+};
+
+export type WorkspaceRelationshipPath = {
+  from: WorkspaceEntityType;
+  to: WorkspaceEntityType;
+  edges: WorkspaceRelationshipEdge[];
+};
+
+export type WorkspaceRelationshipSummary = {
+  entityType: WorkspaceEntityType;
+  label: string;
+  pluralLabel: string;
+  outboundCount: number;
+  inboundCount: number;
+  relatedTypes: WorkspaceEntityType[];
+  highValueRelationshipKeys: string[];
+};
+
 export type WorkspacePermissionRequirement = {
   anyOf?: string[];
   allOf?: string[];
