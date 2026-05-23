@@ -9,6 +9,7 @@ import {
   supportsWorkspaceMode
 } from "@/lib/workspace/entity-registry";
 import { getWorkspaceRelationshipSummary } from "@/lib/workspace/relationship-graph";
+import { resolveWorkspaceWidgets } from "@/lib/workspace/widget-registry";
 import type {
   WorkspaceAction,
   WorkspaceAlert,
@@ -67,6 +68,12 @@ export function resolveWorkspaceContext(input: ResolveWorkspaceContextInput): Wo
   };
   const widgetKeys = getWorkspaceEntityWidgetKeys(input.entity.type);
   const commandKeys = getWorkspaceEntityCommandKeys(input.entity.type);
+  const widgets = resolveWorkspaceWidgets({
+    keys: widgetKeys,
+    entityType: input.entity.type,
+    mode: resolvedMode,
+    permissions
+  });
 
   return {
     context,
@@ -86,7 +93,7 @@ export function resolveWorkspaceContext(input: ResolveWorkspaceContextInput): Wo
       eventCount: activityStream.visibleCount,
       hasMoreActivity: activityStream.hasMore
     }),
-    widgets: [],
+    widgets,
     panels: [],
     commands: [],
     activity: activityStream.items
