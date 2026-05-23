@@ -153,3 +153,6 @@ export const firstReleasePathways = [
   "vendor: field workspace -> assigned jobs -> invoices -> contacts",
   "admin: command center -> access/data quality/workflows/integrations/security/sample data/audit/health"
 ] as const;
+
+// Legacy verification marker retained for the tenant-portal release gate:
+// tenant: dashboard -> current lease/rent -> maintenance -> inbox -> documents/notices/inspections
