@@ -10,6 +10,12 @@ import {
   supportsWorkspaceMode
 } from "@/lib/workspace/entity-registry";
 import { getWorkspaceRelationshipSummary } from "@/lib/workspace/relationship-graph";
+import {
+  getWorkspaceModeDefinition,
+  rankWorkspaceCommandsForMode,
+  rankWorkspacePanelsForMode,
+  rankWorkspaceWidgetsForMode
+} from "@/lib/workspace/mode-registry";
 import { resolveWorkspacePanels } from "@/lib/workspace/panel-registry";
 import { resolveWorkspaceWidgets } from "@/lib/workspace/widget-registry";
 import type {
@@ -88,9 +94,14 @@ export function resolveWorkspaceContext(input: ResolveWorkspaceContextInput): Wo
     mode: resolvedMode,
     permissions
   });
+  const modeDefinition = getWorkspaceModeDefinition(resolvedMode);
+  const rankedCommands = rankWorkspaceCommandsForMode(resolvedMode, commands);
+  const rankedWidgets = rankWorkspaceWidgetsForMode(resolvedMode, widgets);
+  const rankedPanels = rankWorkspacePanelsForMode(resolvedMode, panels);
 
   return {
     context,
+    modeDefinition,
     entityDefinition,
     relationshipSummary: getWorkspaceRelationshipSummary(input.entity.type),
     activityStream,
@@ -98,7 +109,7 @@ export function resolveWorkspaceContext(input: ResolveWorkspaceContextInput): Wo
     commandKeys,
     canAccess: permissionDecision.allowed,
     deniedReason: permissionDecision.reason,
-    primaryActions: buildWorkspacePrimaryActions(input.entity, commands, permissionDecision.allowed),
+    primaryActions: buildWorkspacePrimaryActions(input.entity, rankedCommands, permissionDecision.allowed),
     secondaryActions: buildWorkspaceSecondaryActions(input.entity, resolvedMode),
     alerts: buildWorkspaceAlerts({
       permissionDecision,
@@ -107,9 +118,9 @@ export function resolveWorkspaceContext(input: ResolveWorkspaceContextInput): Wo
       eventCount: activityStream.visibleCount,
       hasMoreActivity: activityStream.hasMore
     }),
-    widgets,
-    panels,
-    commands,
+    widgets: rankedWidgets,
+    panels: rankedPanels,
+    commands: rankedCommands,
     activity: activityStream.items
   };
 }

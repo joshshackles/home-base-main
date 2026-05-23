@@ -396,6 +396,7 @@ These are future capabilities. The first pass should establish the primitives an
 - Update 8 added the workspace widget registry in `src/lib/workspace/widget-registry.ts`, including reusable widget definitions, data dependencies, actions, entity/mode support, permission filtering, and resolver integration.
 - Update 9 added the workspace panel registry in `src/lib/workspace/panel-registry.ts`, including drawers, inspectors, split panes, docks, modals, bottom sheets, permission filtering, and resolver integration.
 - Update 10 added the workspace command registry in `src/lib/workspace/command-registry.ts`, including command definitions, categories, entity/mode support, permission filtering, audit flags, and resolver integration.
+- Update 11 added the workspace mode registry in `src/lib/workspace/mode-registry.ts`, including mode metadata, intents, preferred surfaces/devices, compact rules, and mode-aware ranking for widgets, panels, and commands.
 
 ## Success Criteria
 

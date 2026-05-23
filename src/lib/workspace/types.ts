@@ -104,6 +104,22 @@ export type WorkspaceContext = WorkspaceContextInput & {
   permissions: string[];
 };
 
+export type WorkspaceModeDefinition = {
+  mode: WorkspaceMode;
+  label: string;
+  description: string;
+  primaryIntent: string;
+  preferredSurfaces: WorkspaceSurface[];
+  preferredDevices: WorkspaceDeviceProfile[];
+  emphasizedWidgetKinds: WorkspaceWidgetKind[];
+  emphasizedCommandCategories: WorkspaceCommandCategory[];
+  emphasizedPanelKinds: WorkspacePanelKind[];
+  priorityWidgetKeys?: string[];
+  priorityCommandKeys?: string[];
+  priorityPanelKeys?: string[];
+  compact?: boolean;
+};
+
 export type WorkspaceActionTone = "primary" | "secondary" | "danger" | "quiet";
 
 export type WorkspaceAction = {
@@ -295,6 +311,7 @@ export type WorkspaceMemoryEntry = {
 
 export type WorkspaceResolvedModel = {
   context: WorkspaceContext;
+  modeDefinition: WorkspaceModeDefinition;
   entityDefinition: WorkspaceEntityDefinition;
   relationshipSummary: WorkspaceRelationshipSummary;
   activityStream: WorkspaceActivityStream;
