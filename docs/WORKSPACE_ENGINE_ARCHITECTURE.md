@@ -384,6 +384,11 @@ These are future capabilities. The first pass should establish the primitives an
 13. Apply engine to Work Order Workspace.
 14. Release QA and workspace developer guide.
 
+## Current Implementation Status
+
+- Update 1 created this architecture definition.
+- Update 2 added the shared TypeScript contract in `src/lib/workspace/types.ts` and public exports in `src/lib/workspace/index.ts`.
+
 ## Success Criteria
 
 HomeBase should feel less like many pages and more like one operational platform where every role opens the right entity workspace, sees the right context, and can take the right action without hunting across unrelated screens.
