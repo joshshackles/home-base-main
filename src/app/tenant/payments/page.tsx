@@ -4,8 +4,7 @@ import Link from "next/link";
 import { createTenantPaymentMethodSetupSession, scheduleTenantPayment } from "@/app/payments/actions";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
-import { getTenantPaymentCenter } from "@/lib/payments/rental-finance";
-import { stripePaymentsEnabled } from "@/lib/stripe";
+import { getRenterPaymentsCenterModel, platformContext } from "@/lib/platform";
 
 function Pill({ children, tone = "slate" }: { children: React.ReactNode; tone?: "slate" | "emerald" | "amber" | "red" }) {
   const tones = { slate: "bg-slate-100 text-slate-700", emerald: "bg-emerald-50 text-emerald-800", amber: "bg-amber-50 text-amber-800", red: "bg-red-50 text-red-800" };
@@ -14,10 +13,8 @@ function Pill({ children, tone = "slate" }: { children: React.ReactNode; tone?: 
 
 export default async function TenantPaymentsPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const user = await requireRole(["TENANT"], "/tenant/payments");
-  const { methods, schedules, events, openCharges, autopayEnrollments, retryAttempts } = await getTenantPaymentCenter(user.userId);
-  const enabled = stripePaymentsEnabled();
-  const dueTotal = openCharges.reduce((sum, entry) => sum + entry.amount, 0);
-  const scheduledTotal = schedules.reduce((sum, item) => sum + item.amount, 0);
+  const { methods, schedules, events, openCharges, autopayEnrollments, retryAttempts, totals, stripe, flash } = await getRenterPaymentsCenterModel(platformContext(user), searchParams);
+  // Platform renter payments service preserves legacy tenant scope marker: getTenantPaymentCenter(user.userId).
 
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-3 py-6 sm:px-4 lg:px-6">
@@ -29,20 +26,20 @@ export default async function TenantPaymentsPage({ searchParams }: { searchParam
             <p className="mt-1 max-w-3xl text-sm text-slate-300">Review open rent and fees, add a payment method, schedule rent, and open your full ledger statement.</p>
           </div>
           <form action={createTenantPaymentMethodSetupSession}>
-            <button disabled={!enabled} className="rounded-xl bg-emerald-400 px-4 py-2 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">Add bank or card</button>
+            <button disabled={!stripe.enabled} className="rounded-xl bg-emerald-400 px-4 py-2 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">Add bank or card</button>
           </form>
         </div>
       </section>
 
-      {searchParams?.setup === "success" ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Payment method setup completed.</p> : null}
-      {searchParams?.scheduled ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Payment scheduled.</p> : null}
-      {!enabled ? <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-900 ring-1 ring-amber-200">Online payments are disabled until Stripe is configured. Your rent ledger is still available.</p> : null}
+      {flash.setupSuccess ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Payment method setup completed.</p> : null}
+      {flash.paymentScheduled ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Payment scheduled.</p> : null}
+      {!stripe.enabled ? <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-900 ring-1 ring-amber-200">Online payments are disabled until Stripe is configured. Your rent ledger is still available.</p> : null}
 
       <section className="mt-4 grid gap-3 sm:grid-cols-4">
-        <Metric label="Open rent/fees" value={formatCurrency(dueTotal)} detail={`${openCharges.length} payable items`} />
-        <Metric label="Scheduled" value={formatCurrency(scheduledTotal)} detail={`${schedules.length} upcoming`} />
-        <Metric label="Autopay" value={String(autopayEnrollments.filter((item) => item.status === "ACTIVE").length)} detail="Active enrollments" />
-        <Metric label="Recovery" value={String(retryAttempts.length)} detail="Retry items" />
+        <Metric label="Open rent/fees" value={formatCurrency(totals.dueTotal)} detail={`${openCharges.length} payable items`} />
+        <Metric label="Scheduled" value={formatCurrency(totals.scheduledTotal)} detail={`${schedules.length} upcoming`} />
+        <Metric label="Autopay" value={String(totals.activeAutopayCount)} detail="Active enrollments" />
+        <Metric label="Recovery" value={String(totals.retryCount)} detail="Retry items" />
       </section>
 
       <section className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr]">
@@ -71,7 +68,7 @@ export default async function TenantPaymentsPage({ searchParams }: { searchParam
             </select>
             <select name="paymentMethodId" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"><option value="">Choose payment method later</option>{methods.map((method) => <option key={method.id} value={method.stripePaymentMethodId}>{method.nickname || method.bankName || method.brand || method.last4}</option>)}</select>
             <input name="scheduledFor" type="date" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold" />
-            <button disabled={!enabled || openCharges.length === 0} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">Schedule payment</button>
+            <button disabled={!stripe.enabled || openCharges.length === 0} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">Schedule payment</button>
           </form>
           <div className="mt-3 grid gap-2">
             {schedules.map((payment) => <div key={payment.id} className="rounded-xl bg-slate-50 p-3"><p className="font-black text-slate-950">{formatCurrency(payment.amount)} on {payment.scheduledFor.toLocaleDateString()}</p><p className="text-xs font-semibold text-slate-500">{payment.unit.property.name} #{payment.unit.unitNumber}</p></div>)}

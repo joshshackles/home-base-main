@@ -2,20 +2,21 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import type { Prisma } from "@prisma/client";
 import {
   AlertTriangle,
   ArrowRight,
-  BarChart3,
   Building2,
   CheckCircle2,
   ClipboardList,
+  DollarSign,
   Home,
   Inbox,
   MessageSquare,
   Plus,
   Search,
-  ShieldAlert,
-  Users
+  Users,
+  Wrench
 } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
@@ -23,7 +24,6 @@ import { prisma } from "@/lib/prisma";
 
 const activeApplicationStatuses = ["STARTED", "SUBMITTED", "UNDER_REVIEW"] as const;
 const openMaintenanceStatuses = ["NEW", "IN_PROGRESS", "WAITING_ON_TENANT", "WAITING_ON_VENDOR"] as const;
-const activeTaskStatuses = ["TODO", "IN_PROGRESS", "BLOCKED", "WAITING"] as const;
 
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
@@ -38,17 +38,17 @@ function timeAgo(date: Date) {
 }
 
 function statusTone(status: string) {
-  if (["NEW", "SUBMITTED", "WAITING_ON_STAFF", "BLOCKED", "DRAFT"].includes(status)) return "border-amber-200 bg-amber-50 text-amber-900";
-  if (["UNDER_REVIEW", "IN_PROGRESS", "APPLICATION_PENDING", "LEAD_ACTIVITY"].includes(status)) return "border-blue-200 bg-blue-50 text-blue-900";
+  if (["NEW", "SUBMITTED", "DRAFT", "WAITING_ON_TENANT", "WAITING_ON_VENDOR"].includes(status)) return "border-amber-200 bg-amber-50 text-amber-900";
+  if (["STARTED", "UNDER_REVIEW", "IN_PROGRESS", "PENDING"].includes(status)) return "border-blue-200 bg-blue-50 text-blue-900";
   if (["AVAILABLE", "ACTIVE", "APPROVED", "OCCUPIED"].includes(status)) return "border-emerald-200 bg-emerald-50 text-emerald-900";
-  if (["PAUSED", "UNAVAILABLE", "WAITING"].includes(status)) return "border-slate-200 bg-slate-100 text-slate-800";
+  if (["PAUSED", "UNAVAILABLE"].includes(status)) return "border-slate-200 bg-slate-100 text-slate-800";
   return "border-slate-200 bg-white text-slate-800";
 }
 
 export default async function LandlordDashboardPage() {
   const user = await requireRole(["LANDLORD"], "/landlord");
-  const unitScope = { property: { ownerId: user.userId, isArchived: false } };
-  const propertyScope = { ownerId: user.userId, isArchived: false };
+  const unitScope: Prisma.UnitWhereInput = { property: { ownerId: user.userId, isArchived: false }, NOT: { status: "ARCHIVED" } };
+  const propertyScope: Prisma.PropertyWhereInput = { ownerId: user.userId, isArchived: false };
 
   const [
     properties,
@@ -57,9 +57,10 @@ export default async function LandlordDashboardPage() {
     recentApplications,
     recentThreads,
     unreadThreadCount,
-    openTasks,
     maintenanceRequests,
     leaseTaskCount,
+    chargeTotals,
+    paymentTotals,
     accessRequests
   ] = await Promise.all([
     prisma.property.findMany({
@@ -79,7 +80,7 @@ export default async function LandlordDashboardPage() {
       orderBy: { name: "asc" }
     }),
     prisma.unit.findMany({
-      where: { ...unitScope, NOT: { status: "ARCHIVED" } },
+      where: unitScope,
       include: {
         property: true,
         photos: { select: { id: true }, take: 1 },
@@ -88,24 +89,23 @@ export default async function LandlordDashboardPage() {
         maintenanceRequests: { where: { status: { in: [...openMaintenanceStatuses] } }, select: { id: true } }
       },
       orderBy: [{ updatedAt: "desc" }],
-      take: 100
+      take: 12
     }),
     prisma.lead.findMany({
       where: { unit: unitScope, status: "NEW" },
       include: { unit: { include: { property: true } } },
       orderBy: { createdAt: "desc" },
-      take: 5
+      take: 4
     }),
     prisma.application.findMany({
       where: { unit: unitScope, status: { in: [...activeApplicationStatuses] } },
       include: {
         unit: { include: { property: true } },
         applicationDetail: true,
-        messageThreads: { select: { id: true, status: true, lastMessageAt: true }, orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }], take: 1 },
-        notes: { select: { id: true } }
+        messageThreads: { select: { id: true, status: true, lastMessageAt: true }, orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }], take: 1 }
       },
       orderBy: [{ updatedAt: "desc" }],
-      take: 6
+      take: 4
     }),
     prisma.messageThread.findMany({
       where: {
@@ -117,10 +117,10 @@ export default async function LandlordDashboardPage() {
       include: {
         application: { include: { unit: { include: { property: true } } } },
         maintenanceRequest: { include: { unit: { include: { property: true } } } },
-        messages: { include: { sender: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "desc" }, take: 1 }
+        messages: { orderBy: { createdAt: "desc" }, take: 1 }
       },
       orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }],
-      take: 5
+      take: 4
     }),
     prisma.messageThread.count({
       where: {
@@ -131,20 +131,6 @@ export default async function LandlordDashboardPage() {
         messages: { some: { senderId: { not: user.userId }, isInternal: false, readByStaffAt: null } }
       }
     }),
-    prisma.taskItem.findMany({
-      where: {
-        OR: [
-          { createdById: user.userId },
-          { assignedToId: user.userId },
-          { unit: unitScope },
-          { property: propertyScope }
-        ],
-        status: { in: [...activeTaskStatuses] }
-      },
-      include: { unit: { include: { property: true } }, application: true },
-      orderBy: [{ priority: "desc" }, { dueAt: "asc" }, { createdAt: "desc" }],
-      take: 6
-    }),
     prisma.maintenanceRequest.findMany({
       where: { unit: unitScope, status: { in: [...openMaintenanceStatuses] } },
       include: { unit: { include: { property: true } } },
@@ -154,68 +140,67 @@ export default async function LandlordDashboardPage() {
     prisma.leasePacket.count({
       where: { application: { unit: unitScope }, status: { in: ["DRAFT", "READY_FOR_REVIEW", "SENT_FOR_SIGNATURE"] } }
     }),
-    prisma.accountAccessRequest.findMany({ where: { userId: user.userId }, orderBy: { createdAt: "desc" } })
+    prisma.ledgerEntry.aggregate({
+      where: { unit: unitScope, status: "POSTED", type: { in: ["CHARGE", "ADJUSTMENT"] } },
+      _sum: { amount: true }
+    }),
+    prisma.ledgerEntry.aggregate({
+      where: { unit: unitScope, status: "POSTED", type: { in: ["PAYMENT", "CREDIT"] } },
+      _sum: { amount: true }
+    }),
+    prisma.accountAccessRequest.findMany({ where: { userId: user.userId }, orderBy: { createdAt: "desc" }, take: 3 })
   ]);
 
-  const unitCount = units.length;
-  const vacantUnits = units.filter((unit) => unit.status === "AVAILABLE");
-  const occupiedUnits = units.filter((unit) => unit.status === "OCCUPIED");
-  const draftListings = units.filter((unit) => unit.marketingStatus === "DRAFT" || unit.marketingStatus === "PAUSED");
-  const incompleteUnits = units.filter((unit) => !unit.marketingHeadline || !unit.description || unit.photos.length === 0 || !unit.leaseTermsNote);
-  const activeApplications = recentApplications.length;
-  const totalNewLeads = properties.reduce((sum, property) => sum + property.units.reduce((unitSum, unit) => unitSum + unit.leads.length, 0), 0);
-  const totalOpenApplications = properties.reduce((sum, property) => sum + property.units.reduce((unitSum, unit) => unitSum + unit.applications.length, 0), 0);
-  const totalOpenMaintenance = properties.reduce((sum, property) => sum + property.units.reduce((unitSum, unit) => unitSum + unit.maintenanceRequests.length, 0), 0);
-  const attentionCount = totalNewLeads + totalOpenApplications + unreadThreadCount + incompleteUnits.length + leaseTaskCount + openTasks.length;
+  const allUnits = properties.flatMap((property) => property.units);
+  const unitCount = allUnits.length;
+  const vacantUnits = allUnits.filter((unit) => unit.status === "AVAILABLE");
+  const occupiedUnits = allUnits.filter((unit) => unit.status === "OCCUPIED");
+  const draftListings = allUnits.filter((unit) => unit.marketingStatus === "DRAFT" || unit.marketingStatus === "PAUSED");
+  const incompleteUnits = allUnits.filter((unit) => !unit.marketingHeadline || !unit.description || unit.photos.length === 0 || !unit.leaseTermsNote);
+  const totalNewLeads = allUnits.reduce((sum, unit) => sum + unit.leads.length, 0);
+  const totalOpenApplications = allUnits.reduce((sum, unit) => sum + unit.applications.length, 0);
+  const totalOpenMaintenance = allUnits.reduce((sum, unit) => sum + unit.maintenanceRequests.length, 0);
+  const chargeAmount = chargeTotals._sum.amount ?? 0;
+  const receivedAmount = paymentTotals._sum.amount ?? 0;
+  const outstandingAmount = Math.max(0, chargeAmount - receivedAmount);
+  const attentionCount = totalNewLeads + totalOpenApplications + unreadThreadCount + totalOpenMaintenance + incompleteUnits.length + leaseTaskCount;
   const occupancyRate = unitCount > 0 ? Math.round((occupiedUnits.length / unitCount) * 100) : 0;
-  const vacancyRate = unitCount > 0 ? Math.round((vacantUnits.length / unitCount) * 100) : 0;
-
-  const unitsNeedingAction = units
-    .filter((unit) => unit.status === "AVAILABLE" || unit.marketingStatus !== "ACTIVE" || !unit.marketingHeadline || !unit.description || unit.photos.length === 0 || unit.applications.length > 0 || unit.leads.length > 0 || unit.maintenanceRequests.length > 0)
-    .slice(0, 7);
-
-  const propertyHealth = properties.slice(0, 5).map((property) => {
-    const available = property.units.filter((unit) => unit.status === "AVAILABLE").length;
-    const occupied = property.units.filter((unit) => unit.status === "OCCUPIED").length;
-    const action = property.units.reduce((sum, unit) => sum + unit.leads.length + unit.applications.length + unit.maintenanceRequests.length + (unit.marketingStatus !== "ACTIVE" || unit.photos.length === 0 ? 1 : 0), 0);
-    return { property, available, occupied, action };
-  });
-
-  const pipeline = [
-    { label: "Started", count: recentApplications.filter((application) => application.status === "STARTED").length, href: "/landlord/applications" },
-    { label: "Submitted", count: recentApplications.filter((application) => application.status === "SUBMITTED").length, href: "/landlord/applications" },
-    { label: "Under review", count: recentApplications.filter((application) => application.status === "UNDER_REVIEW").length, href: "/landlord/applications" },
-    { label: "Lease tasks", count: leaseTaskCount, href: "/landlord/leases" }
-  ];
-
   const isNewLandlord = properties.length === 0 || unitCount === 0;
+
+  const todayItems = [
+    unreadThreadCount > 0 ? { title: "Reply to messages", detail: `${unreadThreadCount} unread conversation${unreadThreadCount === 1 ? "" : "s"} need a response.`, href: "/landlord/inbox", cta: "Open messages", icon: <MessageSquare size={18} />, tone: "amber" as const } : null,
+    totalOpenApplications > 0 ? { title: "Review applications", detail: `${totalOpenApplications} application${totalOpenApplications === 1 ? "" : "s"} are started, submitted, or under review.`, href: "/landlord/applications", cta: "Review", icon: <ClipboardList size={18} />, tone: "blue" as const } : null,
+    totalNewLeads > 0 ? { title: "Follow up with leads", detail: `${totalNewLeads} new lead${totalNewLeads === 1 ? "" : "s"} are waiting on your rentals.`, href: "/landlord/inbox", cta: "Reply", icon: <Inbox size={18} />, tone: "amber" as const } : null,
+    totalOpenMaintenance > 0 ? { title: "Check maintenance", detail: `${totalOpenMaintenance} repair request${totalOpenMaintenance === 1 ? "" : "s"} are open.`, href: "/landlord/maintenance", cta: "View repairs", icon: <Wrench size={18} />, tone: "rose" as const } : null,
+    incompleteUnits.length > 0 ? { title: "Finish listing details", detail: `${incompleteUnits.length} rental${incompleteUnits.length === 1 ? "" : "s"} need photos, lease terms, headline, or description.`, href: "/landlord/rentals", cta: "Fix listings", icon: <AlertTriangle size={18} />, tone: "amber" as const } : null
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item));
 
   return (
     <main id="main-content" className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-[1500px] px-3 py-4 sm:px-5 lg:px-6">
-        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <div className="mx-auto max-w-7xl px-3 py-4 sm:px-5 lg:px-6">
+        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-700">Landlord operating console</p>
-              <h1 className="mt-2 max-w-4xl text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-700">Landlord home</p>
+              <h1 className="mt-2 max-w-3xl text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
                 Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {user.name || "landlord"}.
               </h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
-                Today you have {attentionCount} item{attentionCount === 1 ? "" : "s"} needing attention across applicant questions, applications, listing health, leases, tasks, and maintenance.
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
+                Your rentals, messages, applications, maintenance, and payments are organized around what needs your attention today.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <ActionButton href="/landlord/inbox" icon={<MessageSquare size={16} />}>Reply to messages</ActionButton>
-              <ActionButton href="/landlord/applications" icon={<ClipboardList size={16} />}>Review applications</ActionButton>
               <ActionButton href="/landlord/rentals/new" icon={<Plus size={16} />} primary>Add rental</ActionButton>
+              <ActionButton href="/landlord/inbox" icon={<MessageSquare size={16} />}>Messages</ActionButton>
+              <ActionButton href="/landlord/property-management" icon={<Building2 size={16} />}>Property Management</ActionButton>
             </div>
           </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <MetricCard title="Needs attention" value={attentionCount} detail={`${unreadThreadCount} unread message threads`} href="#needs-attention" icon={<AlertTriangle size={18} />} tone="amber" />
-            <MetricCard title="Applications" value={totalOpenApplications} detail={`${activeApplications} recently active`} href="/landlord/applications" icon={<ClipboardList size={18} />} tone="blue" />
-            <MetricCard title="Vacancy" value={`${vacancyRate}%`} detail={`${vacantUnits.length} of ${unitCount} units available`} href="/landlord/rentals" icon={<Home size={18} />} tone="slate" />
-            <MetricCard title="Occupancy" value={`${occupancyRate}%`} detail={`${occupiedUnits.length} occupied units`} href="/landlord/tenants" icon={<Users size={18} />} tone="green" />
-            <MetricCard title="Listing work" value={incompleteUnits.length + draftListings.length} detail={`${draftListings.length} draft or paused`} href="/landlord/rentals" icon={<Building2 size={18} />} tone="rose" />
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCard title="Needs attention" value={attentionCount} detail="Messages, leads, applications, repairs, listing work" href="#today" icon={<AlertTriangle size={18} />} tone="amber" />
+            <MetricCard title="Rentals" value={unitCount} detail={`${vacantUnits.length} vacant / ${occupiedUnits.length} occupied`} href="#rentals" icon={<Home size={18} />} tone="blue" />
+            <MetricCard title="Occupancy" value={`${occupancyRate}%`} detail={`${draftListings.length} draft or paused listings`} href="/landlord/rentals" icon={<Users size={18} />} tone="green" />
+            <MetricCard title="Payments" value={formatCurrency(outstandingAmount)} detail={`${formatCurrency(receivedAmount)} received`} href="/landlord/payments" icon={<DollarSign size={18} />} tone={outstandingAmount > 0 ? "rose" : "slate"} />
           </div>
         </section>
 
@@ -223,49 +208,73 @@ export default async function LandlordDashboardPage() {
           <section className="mt-4 rounded-[1.5rem] border border-blue-200 bg-blue-50 p-5 shadow-sm">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-2xl font-black text-blue-950">Set up your first rental workspace</h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-blue-900">Start with a property or unit, add pricing and photos, then publish it to the marketplace so leads and applications land here.</p>
+                <h2 className="text-2xl font-black text-blue-950">Set up your first rental</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-blue-900">Add the home or unit, include rent and photos, then publish when you are ready to receive leads and applications.</p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <ActionButton href="/landlord/rentals/new" icon={<Plus size={16} />} primary>Add rental</ActionButton>
-                <ActionButton href="/landlord/rentals" icon={<Home size={16} />}>View rentals</ActionButton>
-              </div>
+              <ActionButton href="/landlord/rentals/new" icon={<Plus size={16} />} primary>Add rental</ActionButton>
             </div>
           </section>
         ) : null}
 
-        <section id="needs-attention" className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
-          <Panel title="Needs attention" detail="Highest-value work first: messages, applicant questions, waiting applications, listing gaps, and lease tasks." actionHref="/landlord/tasks" actionLabel="All tasks">
+        <section id="today" className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <Panel title="Today" detail="Start here. These are the things most likely to need your response.">
             <div className="grid gap-3">
-              {newLeads.slice(0, 3).map((lead) => (
-                <AttentionRow key={lead.id} icon={<Inbox size={17} />} title={`${lead.name} asked about ${lead.unit.property.name} #${lead.unit.unitNumber}`} detail={lead.message || "New marketplace lead with no message."} meta={timeAgo(lead.createdAt)} href={`/landlord/inbox?thread=lead_${lead.id}`} cta="Reply" tone="amber" />
+              {todayItems.length === 0 ? (
+                <EmptyState title="No urgent landlord work" detail="Messages, applications, listing health, payment issues, and maintenance are clear right now." />
+              ) : todayItems.slice(0, 5).map((item) => (
+                <ActionRow key={item.title} {...item} />
               ))}
-              {recentApplications.slice(0, 3).map((application) => (
-                <AttentionRow key={application.id} icon={<ClipboardList size={17} />} title={`${application.applicantName} is ${label(application.status)}`} detail={`${application.unit.property.name} #${application.unit.unitNumber} - ${application.applicationDetail?.signedAt ? "packet signed" : "signature still needed"}`} meta={timeAgo(application.updatedAt)} href={`/landlord/applications/${application.id}`} cta="Review" tone={application.status === "SUBMITTED" ? "blue" : "slate"} />
-              ))}
-              {incompleteUnits.slice(0, 3).map((unit) => (
-                <AttentionRow key={unit.id} icon={<ShieldAlert size={17} />} title={`${unit.property.name} #${unit.unitNumber} listing needs work`} detail={missingListingCopy(unit)} meta={label(unit.marketingStatus)} href={`/landlord/rentals/${unit.id}/edit`} cta="Fix listing" tone="rose" />
-              ))}
-              {newLeads.length === 0 && recentApplications.length === 0 && incompleteUnits.length === 0 ? (
-                <EmptyState title="No urgent landlord work" detail="You are clear for now. New messages, submitted applications, listing issues, lease tasks, and maintenance items are summarized here when they need action." />
-              ) : null}
             </div>
           </Panel>
 
-          <Panel title="Recent messages and questions" detail="Threads are linked to the relevant application, repair, property, or unit." actionHref="/landlord/inbox" actionLabel="Open inbox">
+          <Panel title="Quick actions" detail="Common tasks without searching through menus.">
+            <div className="grid gap-2">
+              <QuickAction href="/landlord/rentals/new" icon={<Plus size={18} />} title="Add rental" detail="Create a new rental listing or unit." />
+              <QuickAction href="/landlord/rentals" icon={<Search size={18} />} title="Edit listings" detail="Update photos, rent, availability, or public status." />
+              <QuickAction href="/landlord/applications" icon={<ClipboardList size={18} />} title="Review applications" detail="Open active application packets." />
+              <QuickAction href="/landlord/payments" icon={<DollarSign size={18} />} title="Open payments" detail="Review rent, balances, and payment setup." />
+            </div>
+          </Panel>
+        </section>
+
+        <section id="rentals" className="mt-4">
+          <Panel title="My rentals" detail="A simple view of each rental, public status, leasing activity, and repair needs." actionHref="/landlord/rentals" actionLabel="Manage rentals">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {units.length === 0 ? (
+                <div className="md:col-span-2 xl:col-span-3"><EmptyState title="No rentals yet" detail="Add your first rental to start tracking listings, applications, residents, maintenance, and payments." /></div>
+              ) : units.slice(0, 6).map((unit) => (
+                <RentalCard key={unit.id} unit={unit} />
+              ))}
+            </div>
+          </Panel>
+        </section>
+
+        <section className="mt-4 grid gap-4 xl:grid-cols-2">
+          <Panel title="Leads and applications" detail="Prospects and active application packets for your rentals." actionHref="/landlord/applications" actionLabel="All applications">
+            <div className="space-y-3">
+              {newLeads.slice(0, 2).map((lead) => (
+                <ActionRow key={lead.id} icon={<Inbox size={18} />} title={`${lead.name} asked about ${lead.unit.property.name} #${lead.unit.unitNumber}`} detail={lead.message || "New marketplace lead with no message."} href={`/landlord/inbox?thread=lead_${lead.id}`} cta="Reply" tone="amber" />
+              ))}
+              {recentApplications.slice(0, 3).map((application) => (
+                <ActionRow key={application.id} icon={<ClipboardList size={18} />} title={`${application.applicantName} is ${label(application.status)}`} detail={`${application.unit.property.name} #${application.unit.unitNumber} / ${application.applicationDetail?.signedAt ? "sharing authorized" : "signature still needed"}`} href={`/landlord/applications/${application.id}`} cta="Review" tone="blue" />
+              ))}
+              {newLeads.length === 0 && recentApplications.length === 0 ? <EmptyState title="No active leads or applications" detail="New renter questions and application packets are listed here when they arrive." /> : null}
+            </div>
+          </Panel>
+
+          <Panel title="Messages" detail="Recent conversations tied to applications, renters, and repairs." actionHref="/landlord/inbox" actionLabel="Open inbox">
             <div className="space-y-3">
               {recentThreads.length === 0 ? <EmptyState title="No message threads yet" detail="Applicant and maintenance conversations are listed here after renters or tenants write in." /> : recentThreads.map((thread) => {
                 const last = thread.messages[0];
                 const relatedUnit = thread.application?.unit ?? thread.maintenanceRequest?.unit;
-                const unread = last && last.senderId !== user.userId && !last.readByStaffAt;
                 return (
-                  <Link key={thread.id} href={`/landlord/inbox?thread=${thread.id}`} className={`block rounded-2xl border p-4 transition hover:bg-white ${unread ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-slate-50"}`}>
+                  <Link key={thread.id} href={`/landlord/inbox?thread=${thread.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-white">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate font-black text-slate-950">{thread.subject}</p>
                         <p className="mt-1 truncate text-xs font-bold text-slate-500">{relatedUnit ? `${relatedUnit.property.name} #${relatedUnit.unitNumber}` : "General conversation"}</p>
                       </div>
-                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-black uppercase ${unread ? "bg-blue-600 text-white" : "bg-white text-slate-600"}`}>{unread ? "Unread" : label(thread.status)}</span>
+                      <Badge status={thread.status} />
                     </div>
                     <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-700">{last?.body || "No messages yet."}</p>
                   </Link>
@@ -275,124 +284,45 @@ export default async function LandlordDashboardPage() {
           </Panel>
         </section>
 
-        <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <Panel title="Applications pipeline" detail="Applicants, packet status, message context, and next review action in one list." actionHref="/landlord/applications" actionLabel="All applications">
-            <div className="mb-4 grid gap-2 sm:grid-cols-4">
-              {pipeline.map((stage) => (
-                <Link key={stage.label} href={stage.href} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 hover:bg-white">
-                  <p className="text-2xl font-black text-slate-950">{stage.count}</p>
-                  <p className="text-xs font-black uppercase text-slate-500">{stage.label}</p>
-                </Link>
-              ))}
-            </div>
-            <div className="overflow-hidden rounded-2xl border border-slate-200">
-              {recentApplications.length === 0 ? <EmptyState title="No active applications" detail="No renter applications are active right now. New packets are listed here with unit, signature, document, and message context." /> : recentApplications.map((application) => (
-                <Link key={application.id} href={`/landlord/applications/${application.id}`} className="grid gap-3 border-b border-slate-100 bg-white p-4 last:border-b-0 hover:bg-slate-50 md:grid-cols-[1fr_auto] md:items-center">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-black text-slate-950">{application.applicantName}</p>
-                      <Badge status={application.status} />
-                      {application.applicationDetail?.signedAt ? <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-black uppercase text-emerald-800">Authorized packet</span> : <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-black uppercase text-amber-900">Needs signature</span>}
-                    </div>
-                    <p className="mt-1 text-sm text-slate-600">{application.unit.property.name} #{application.unit.unitNumber} - {application.applicantEmail}</p>
-                    <p className="mt-1 text-xs text-slate-500">{application.messageThreads[0] ? `${label(application.messageThreads[0].status)} message thread` : "No message thread yet"} - {application.notes.length} notes</p>
-                  </div>
-                  <span className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white">Open packet <ArrowRight size={14} /></span>
-                </Link>
-              ))}
-            </div>
-          </Panel>
-
-          <Panel title="Quick actions" detail="Daily landlord shortcuts without hunting through navigation.">
-            <div className="grid gap-2">
-              <QuickAction href="/landlord/rentals/new" icon={<Plus size={18} />} title="Add rental or unit" detail="Create house, apartment, duplex, or mobile home listing." />
-              <QuickAction href="/landlord/rentals" icon={<Search size={18} />} title="Find a unit" detail="Open rentals, edit listing details, check public status." />
-              <QuickAction href="/landlord/leads" icon={<Inbox size={18} />} title="Reply to applicant question" detail={`${totalNewLeads} new lead${totalNewLeads === 1 ? "" : "s"} waiting.`} />
-              <QuickAction href="/landlord/tenants" icon={<Users size={18} />} title="Open tenant records" detail="See renter details, unit, lease, packet, and income." />
-              <QuickAction href="/landlord/reports" icon={<BarChart3 size={18} />} title="Portfolio reports" detail="Occupancy, funnel, cash flow, maintenance, vendors." />
-            </div>
-          </Panel>
-        </section>
-
-        <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
-          <Panel title="Property and unit health" detail="Vacancy, listing status, applications, lead activity, and missing information." actionHref="/landlord/rentals" actionLabel="Manage rentals">
-            <div className="grid gap-3">
-              {propertyHealth.length === 0 ? <EmptyState title="No properties yet" detail="Add the first rental and HomeBase will organize units under the property automatically." /> : propertyHealth.map(({ property, available, occupied, action }) => (
-                <div key={property.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-black text-slate-950">{property.name}</p>
-                      <p className="mt-1 text-sm text-slate-600">{property.addressLine}, {property.city}, {property.state}</p>
-                    </div>
-                    <span className={`rounded-full px-3 py-1 text-xs font-black uppercase ${action > 0 ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-800"}`}>{action} actions</span>
-                  </div>
-                  <div className="mt-4 grid grid-cols-4 gap-2 text-center text-xs font-bold text-slate-700">
-                    <span className="rounded-xl bg-white p-2">{property.units.length}<br />units</span>
-                    <span className="rounded-xl bg-white p-2">{available}<br />vacant</span>
-                    <span className="rounded-xl bg-white p-2">{occupied}<br />occupied</span>
-                    <span className="rounded-xl bg-white p-2">{property.units.filter((unit) => unit.marketingStatus === "ACTIVE").length}<br />public</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Panel>
-
-          <Panel title="Units needing action" detail="Draft, vacant, incomplete, active-lead, application, and maintenance signals." actionHref="/landlord/units" actionLabel="All units">
-            <div className="space-y-2">
-              {unitsNeedingAction.length === 0 ? <EmptyState title="Unit health looks good" detail="Listings, vacancies, applications, leads, and repair items are clear right now." /> : unitsNeedingAction.map((unit) => (
-                <Link key={unit.id} href={`/landlord/rentals/${unit.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50 p-3 hover:bg-white">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-black text-slate-950">{unit.property.name} #{unit.unitNumber}</p>
-                      <p className="mt-1 truncate text-xs text-slate-600">{formatCurrency(unit.rentAmount)} - {unit.bedrooms} bd / {unit.bathrooms} ba</p>
-                    </div>
-                    <Badge status={unit.marketingStatus} />
-                  </div>
-                  <p className="mt-2 text-xs font-semibold text-slate-600">{missingListingCopy(unit)}</p>
-                </Link>
-              ))}
-            </div>
-          </Panel>
-        </section>
-
         <section className="mt-4 grid gap-4 xl:grid-cols-2">
-          <Panel title="Tasks, leases, and documents" detail="Upcoming operational work connected to units and applications." actionHref="/landlord/tasks" actionLabel="Task queue">
-            <div className="space-y-2">
-              {openTasks.length === 0 ? <EmptyState title="No open landlord tasks" detail="Lease, document, collection, move-in, and follow-up tasks are clear right now." /> : openTasks.map((task) => (
-                <Link key={task.id} href="/landlord/tasks" className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 hover:bg-white sm:grid-cols-[1fr_auto]">
-                  <div>
-                    <p className="font-black text-slate-950">{task.title}</p>
-                    <p className="mt-1 text-xs text-slate-600">{task.unit ? `${task.unit.property.name} #${task.unit.unitNumber}` : task.application?.applicantName || "General landlord task"}</p>
-                  </div>
-                  <span className={`h-fit rounded-full px-3 py-1 text-xs font-black uppercase ${statusTone(task.status)}`}>{label(task.priority)}</span>
-                </Link>
+          <Panel title="Maintenance" detail="Open repair requests and next repair follow-up." actionHref="/landlord/maintenance" actionLabel="Maintenance">
+            <div className="space-y-3">
+              {maintenanceRequests.length === 0 ? <EmptyState title="No open maintenance" detail="Open repair requests are listed here with unit, priority, and status." /> : maintenanceRequests.map((request) => (
+                <ActionRow key={request.id} icon={<Wrench size={18} />} title={request.subject} detail={`${request.unit ? `${request.unit.property.name} #${request.unit.unitNumber}` : "No unit linked"} / ${label(request.priority)} / updated ${timeAgo(request.updatedAt)}`} href="/landlord/maintenance" cta="Open" tone="rose" />
               ))}
             </div>
           </Panel>
 
-          <Panel title="Maintenance snapshot" detail="Open work orders with property context and priority." actionHref="/landlord/maintenance" actionLabel="Maintenance">
-            <div className="space-y-2">
-              {maintenanceRequests.length === 0 ? <EmptyState title="No open maintenance" detail="Open repair requests are listed here with unit, status, and next step." /> : maintenanceRequests.map((request) => (
-                <Link key={request.id} href="/landlord/maintenance" className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 hover:bg-white sm:grid-cols-[1fr_auto]">
-                  <div>
-                    <p className="font-black text-slate-950">{request.subject}</p>
-                    <p className="mt-1 text-xs text-slate-600">{request.unit ? `${request.unit.property.name} #${request.unit.unitNumber}` : "No unit linked"} - {timeAgo(request.updatedAt)}</p>
-                  </div>
-                  <span className={`h-fit rounded-full px-3 py-1 text-xs font-black uppercase ${statusTone(request.status)}`}>{label(request.priority)}</span>
-                </Link>
-              ))}
+          <Panel title="Payments snapshot" detail="A plain-English view of payment activity. Detailed ledger tools stay in Payments.">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <FinanceTile label="Received" value={formatCurrency(receivedAmount)} detail="Posted payments and credits" />
+              <FinanceTile label="Outstanding" value={formatCurrency(outstandingAmount)} detail="Posted charges minus payments" warning={outstandingAmount > 0} />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <ActionButton href="/landlord/payments" icon={<DollarSign size={16} />} primary>Open payments</ActionButton>
+              <ActionButton href="/landlord/ledger" icon={<Building2 size={16} />}>Account history</ActionButton>
             </div>
           </Panel>
+        </section>
+
+        <section className="mt-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-slate-950">Need portfolio-grade tools?</h2>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">Open Property Management Console for inventory, leasing pipelines, residents, maintenance operations, financials, documents, reports, and advanced controls.</p>
+            </div>
+            <ActionButton href="/landlord/property-management" icon={<Building2 size={16} />}>Open console</ActionButton>
+          </div>
         </section>
 
         {accessRequests.length > 0 ? (
           <section className="mt-4 rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="text-xl font-black text-slate-950">Account access</h2>
             <div className="mt-3 grid gap-2 md:grid-cols-3">
-              {accessRequests.slice(0, 3).map((request) => (
+              {accessRequests.map((request) => (
                 <div key={request.id} className="rounded-2xl bg-slate-50 p-3 text-sm">
                   <p className="font-black text-slate-950">{label(request.type)}</p>
-                  <p className="mt-1 text-xs text-slate-600">{label(request.status)} - {request.createdAt.toLocaleDateString()}</p>
+                  <p className="mt-1 text-xs text-slate-600">{label(request.status)} / {request.createdAt.toLocaleDateString()}</p>
                 </div>
               ))}
             </div>
@@ -401,29 +331,6 @@ export default async function LandlordDashboardPage() {
       </div>
     </main>
   );
-}
-
-function missingListingCopy(unit: {
-  marketingStatus: string;
-  marketingHeadline: string | null;
-  description: string | null;
-  leaseTermsNote: string | null;
-  photos: Array<{ id: string }>;
-  leads: Array<{ id: string }>;
-  applications: Array<{ id: string }>;
-  maintenanceRequests: Array<{ id: string }>;
-}) {
-  const issues = [
-    unit.marketingStatus !== "ACTIVE" ? `${label(unit.marketingStatus)} listing` : null,
-    !unit.marketingHeadline ? "missing headline" : null,
-    !unit.description ? "missing description" : null,
-    unit.photos.length === 0 ? "no photo" : null,
-    !unit.leaseTermsNote ? "lease terms missing" : null,
-    unit.leads.length > 0 ? `${unit.leads.length} new lead${unit.leads.length === 1 ? "" : "s"}` : null,
-    unit.applications.length > 0 ? `${unit.applications.length} active application${unit.applications.length === 1 ? "" : "s"}` : null,
-    unit.maintenanceRequests.length > 0 ? `${unit.maintenanceRequests.length} repair${unit.maintenanceRequests.length === 1 ? "" : "s"}` : null
-  ].filter(Boolean);
-  return issues.length ? issues.join(" / ") : "No obvious issues.";
 }
 
 function ActionButton({ href, icon, children, primary = false }: { href: string; icon: ReactNode; children: ReactNode; primary?: boolean }) {
@@ -471,7 +378,7 @@ function Panel({ title, detail, children, actionHref, actionLabel }: { title: st
   );
 }
 
-function AttentionRow({ icon, title, detail, meta, href, cta, tone }: { icon: ReactNode; title: string; detail: string; meta: string; href: string; cta: string; tone: "amber" | "blue" | "rose" | "slate" }) {
+function ActionRow({ icon, title, detail, href, cta, tone }: { icon: ReactNode; title: string; detail: string; href: string; cta: string; tone: "amber" | "blue" | "rose" | "slate" }) {
   const iconTone = {
     amber: "bg-amber-100 text-amber-900",
     blue: "bg-blue-100 text-blue-900",
@@ -484,7 +391,6 @@ function AttentionRow({ icon, title, detail, meta, href, cta, tone }: { icon: Re
       <span className="min-w-0">
         <span className="block truncate font-black text-slate-950">{title}</span>
         <span className="mt-1 block line-clamp-2 text-sm leading-6 text-slate-600">{detail}</span>
-        <span className="mt-1 block text-xs font-bold text-slate-500">{meta}</span>
       </span>
       <span className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white">{cta}</span>
     </Link>
@@ -500,6 +406,56 @@ function QuickAction({ href, icon, title, detail }: { href: string; icon: ReactN
         <span className="mt-1 block text-sm leading-6 text-slate-600">{detail}</span>
       </span>
     </Link>
+  );
+}
+
+function RentalCard({ unit }: { unit: {
+  id: string;
+  unitNumber: string;
+  status: string;
+  marketingStatus: string;
+  marketingHeadline: string | null;
+  rentAmount: number;
+  bedrooms: number;
+  bathrooms: number;
+  property: { name: string; city: string; state: string };
+  photos: Array<{ id: string }>;
+  leads: Array<{ id: string }>;
+  applications: Array<{ id: string; status: string }>;
+  maintenanceRequests: Array<{ id: string }>;
+} }) {
+  const issueCount = unit.leads.length + unit.applications.length + unit.maintenanceRequests.length + (unit.marketingStatus !== "ACTIVE" || unit.photos.length === 0 ? 1 : 0);
+  return (
+    <Link href={`/landlord/rentals/${unit.id}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-white hover:shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="truncate font-black text-slate-950">{unit.property.name} #{unit.unitNumber}</h3>
+          <p className="mt-1 text-xs font-semibold text-slate-500">{unit.property.city}, {unit.property.state}</p>
+        </div>
+        <Badge status={unit.status} />
+      </div>
+      <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-700">{unit.marketingHeadline || "Add a listing headline before publishing."}</p>
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs font-bold text-slate-700">
+        <span className="rounded-xl bg-white p-2">{formatCurrency(unit.rentAmount)}<br />rent</span>
+        <span className="rounded-xl bg-white p-2">{unit.bedrooms} / {unit.bathrooms}<br />bed/bath</span>
+        <span className="rounded-xl bg-white p-2">{issueCount}<br />actions</span>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Badge status={unit.marketingStatus} />
+        {unit.photos.length === 0 ? <Badge status="No Photo" /> : null}
+        {unit.leads.length > 0 ? <Badge status={`${unit.leads.length} Lead${unit.leads.length === 1 ? "" : "s"}`} /> : null}
+      </div>
+    </Link>
+  );
+}
+
+function FinanceTile({ label, value, detail, warning = false }: { label: string; value: string; detail: string; warning?: boolean }) {
+  return (
+    <div className={`rounded-2xl border p-4 ${warning ? "border-amber-200 bg-amber-50 text-amber-900" : "border-slate-200 bg-slate-50 text-slate-900"}`}>
+      <p className="text-xs font-black uppercase tracking-wide opacity-75">{label}</p>
+      <p className="mt-1 text-3xl font-black">{value}</p>
+      <p className="mt-1 text-xs font-semibold opacity-80">{detail}</p>
+    </div>
   );
 }
 

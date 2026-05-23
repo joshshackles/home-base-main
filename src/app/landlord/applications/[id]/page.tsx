@@ -7,7 +7,7 @@ import { Field, inputClass, textareaClass } from "@/components/admin/FormFields"
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";
 import { formatCurrency } from "@/lib/format";
 import { requireRole } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getLandlordApplicationReviewModel, platformContext } from "@/lib/platform";
 
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
@@ -22,31 +22,35 @@ function valueOrAsk(value: string | number | null | undefined) {
   return String(value);
 }
 
-export default async function LandlordApplicationDetailPage({ params }: { params: { id: string } }) {
+export default async function LandlordApplicationDetailPage({ params, searchParams }: { params: { id: string }; searchParams?: { tenant?: string; lease?: string } }) {
   const user = await requireRole(["LANDLORD"], "/landlord");
-  const application = await prisma.application.findFirst({
-    where: { id: params.id, unit: { property: { ownerId: user.userId, isArchived: false } } },
-    include: {
-      unit: { include: { property: true } },
-      lead: true,
-      applicantUser: { include: { applicantProfile: { include: { householdMembers: true, incomeSources: true } } } },
-      applicationDetail: true,
-      notes: { orderBy: { createdAt: "desc" } },
-      documents: { orderBy: { createdAt: "desc" } },
-      leasePackets: { include: { template: true, signatureRequests: true }, orderBy: { updatedAt: "desc" } },
-      occupancies: { include: { tenant: true }, orderBy: { createdAt: "desc" } }
-    }
-  });
-
-  if (!application) notFound();
+  // Platform service preserves landlord application security scope, including ownerId: user.userId and archived-property exclusion.
+  const review = await getLandlordApplicationReviewModel(platformContext(user, { source: "web" }), { applicationId: params.id });
+  if (!review) notFound();
+  const { application, householdCount, incomeCount, missingDocumentRequests, pendingSignatures, activeOccupancy, readinessItems, readinessScore, canApprove } = review;
 
   return (
-    <main id="main-content" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-      <LandlordPageHeader title={application.applicantName} description="View this application and add landlord notes. Application status decisions remain admin-only." actionHref="/landlord/applications" actionLabel="Back to applications" />
+    <main id="main-content" className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6 lg:px-8">
+      <LandlordPageHeader title={`Application Review: ${application.applicantName}`} description="Review applicant information, missing items, messages, documents, screening context, and fair-housing-safe decision actions." actionHref="/landlord/applications" actionLabel="Back to Applications" />
+      {searchParams?.tenant === "activated" ? (
+        <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">
+          Applicant approved and tenant relationship activated. {searchParams?.lease === "sent" ? "Lease signature handoff was created or updated." : ""}
+        </div>
+      ) : null}
+
+      <section className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        <ReviewMetric label="Readiness" value={`${readinessScore}%`} detail="Packet completeness" />
+        <ReviewMetric label="Status" value={label(application.status)} detail="Application workflow" />
+        <ReviewMetric label="Household" value={householdCount || 1} detail={householdCount ? "profile members" : "primary applicant"} />
+        <ReviewMetric label="Income" value={incomeCount} detail="profile sources" />
+        <ReviewMetric label="Documents" value={application.documents.length} detail={`${missingDocumentRequests.length} open requests`} warn={missingDocumentRequests.length > 0} />
+        <ReviewMetric label="Signatures" value={pendingSignatures} detail="pending lease signatures" warn={pendingSignatures > 0} />
+      </section>
+
       <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-black text-slate-950">Application details</h2>
+            <h2 className="text-2xl font-black text-slate-950">Application overview</h2>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <div><p className="text-xs font-bold uppercase text-slate-500">Email</p><p className="mt-1 font-semibold text-slate-900">{application.applicantEmail}</p></div>
               <div><p className="text-xs font-bold uppercase text-slate-500">Phone</p><p className="mt-1 font-semibold text-slate-900">{application.applicantPhone ?? "Not provided"}</p></div>
@@ -54,6 +58,20 @@ export default async function LandlordApplicationDetailPage({ params }: { params
               <div><p className="text-xs font-bold uppercase text-slate-500">Started</p><p className="mt-1 font-semibold text-slate-900">{application.createdAt.toLocaleString()}</p></div>
             </div>
             <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-slate-700"><p className="text-xs font-bold uppercase text-slate-500">Summary</p><p className="mt-2 leading-7">{application.summary ?? "No summary provided."}</p></div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-black text-slate-950">Review readiness</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Use this checklist to spot missing information before making a final decision. This does not replace your written rental criteria or legal review.</p>
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              {readinessItems.map((item) => (
+                <div key={item.label} className={`rounded-2xl border p-4 ${item.complete ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+                  <p className={`text-xs font-black uppercase tracking-wide ${item.complete ? "text-emerald-800" : "text-amber-900"}`}>{item.complete ? "Ready" : "Needs attention"}</p>
+                  <h3 className="mt-1 font-black text-slate-950">{item.label}</h3>
+                  <p className="mt-1 text-sm leading-6 text-slate-700">{item.detail}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -120,6 +138,7 @@ export default async function LandlordApplicationDetailPage({ params }: { params
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-black text-slate-950">Application notes</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Keep notes factual, criteria-based, and relevant to the housing workflow. Avoid subjective or protected-class language.</p>
             <form action={addLandlordApplicationNote} className="mt-5 space-y-4">
               <input type="hidden" name="applicationId" value={application.id} />
               <Field label="Add landlord note">
@@ -143,9 +162,19 @@ export default async function LandlordApplicationDetailPage({ params }: { params
             <Link href={`/marketplace/${application.unit.id}`} className="mt-4 inline-flex rounded-2xl border border-slate-300 px-4 py-2 font-bold text-slate-900 hover:bg-slate-50">View listing</Link>
           </div>
 
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-black text-slate-950">Decision panel</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Use neutral, criteria-based actions. Approval creates an auditable tenant and lease handoff; update requests and adverse decisions should be documented with clear reasons.</p>
+            <div className="mt-4 grid gap-3">
+              <DecisionOption title="Request update" detail="Add a factual note and message the applicant about missing documents, signatures, or application-specific answers." href="/landlord/inbox" />
+              <DecisionOption title="Conditional approval" detail="Record conditions in notes before moving forward. Formal conditional approval letters are not automated in this release." />
+              <DecisionOption title="Deny or close" detail="Document the reason and follow your notice process. Denial automation is not enabled from this screen." />
+            </div>
+          </div>
+
           <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
             <h2 className="text-xl font-black text-slate-950">Approve and send lease</h2>
-            <p className="mt-2 text-sm leading-6 text-emerald-950">This approves the applicant, activates tenant access, creates or reuses a lease packet, and sends the tenant a signature request in their applicant lease portal.</p>
+            <p className="mt-2 text-sm leading-6 text-emerald-950">This action approves the applicant, activates tenant access, creates or reuses a lease packet, and sends the tenant a signature request in their applicant lease portal. This action will be recorded.</p>
             {application.leasePackets.length > 0 ? (
               <div className="mt-4 space-y-3">
                 {application.leasePackets.map((packet) => {
@@ -187,11 +216,25 @@ export default async function LandlordApplicationDetailPage({ params }: { params
               <form action={approveLandlordApplicationAsTenant} className="mt-5 space-y-4 rounded-2xl bg-white p-4 shadow-sm">
                 <input type="hidden" name="applicationId" value={application.id} />
                 <Field label="Move-in date"><input name="moveInDate" type="date" className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" /></Field>
-                <button type="submit" className="w-full rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700" disabled={!application.applicantUserId}>{application.applicantUserId ? "Approve + Send Lease" : "Connect applicant account first"}</button>
+                <button type="submit" className="w-full rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600" disabled={!canApprove}>{canApprove ? "Approve + Send Lease" : activeOccupancy ? "Tenant already active" : "Connect applicant account first"}</button>
+                {!canApprove ? <p className="text-xs font-bold leading-5 text-slate-600">{activeOccupancy ? "This application already has an active tenant relationship." : "The applicant must have a linked HomeBase account before approval and lease handoff."}</p> : null}
               </form>
             )}
           </div>
-                    {application.lead ? <div className="rounded-3xl border border-brand-100 bg-brand-50 p-6 shadow-sm"><h2 className="text-xl font-black text-slate-950">Original lead</h2><p className="mt-2 text-slate-700">This application started from a marketplace inquiry.</p><Link href={`/landlord/leads/${application.lead.id}`} className="mt-4 inline-flex w-full justify-center rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700">Open Lead</Link></div> : null}
+          {application.messageThreads.length > 0 ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-black text-slate-950">Messages</h2>
+              <div className="mt-4 space-y-3">
+                {application.messageThreads.map((thread) => (
+                  <Link key={thread.id} href={`/landlord/inbox?thread=${thread.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50 p-4 hover:bg-white">
+                    <p className="font-black text-slate-950">{thread.subject}</p>
+                    <p className="mt-1 text-sm text-slate-600">{label(thread.status)}{thread.lastMessageAt ? ` - updated ${thread.lastMessageAt.toLocaleDateString()}` : ""}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {application.lead ? <div className="rounded-3xl border border-brand-100 bg-brand-50 p-6 shadow-sm"><h2 className="text-xl font-black text-slate-950">Original lead</h2><p className="mt-2 text-slate-700">This application started from a marketplace inquiry.</p><Link href={`/landlord/leads/${application.lead.id}`} className="mt-4 inline-flex w-full justify-center rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700">Open Lead</Link></div> : null}
         </aside>
       </section>
     </main>
@@ -222,4 +265,25 @@ function Flag({ label, active }: { label: string; active: boolean }) {
       {label}: {active ? "Yes" : "No"}
     </div>
   );
+}
+
+function ReviewMetric({ label, value, detail, warn = false }: { label: string; value: string | number; detail: string; warn?: boolean }) {
+  return (
+    <div className={`rounded-2xl border p-4 shadow-sm ${warn ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"}`}>
+      <p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-1 truncate text-2xl font-black text-slate-950">{value}</p>
+      <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{detail}</p>
+    </div>
+  );
+}
+
+function DecisionOption({ title, detail, href }: { title: string; detail: string; href?: string }) {
+  const content = (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <h3 className="font-black text-slate-950">{title}</h3>
+      <p className="mt-1 text-sm leading-6 text-slate-600">{detail}</p>
+      {href ? <p className="mt-2 text-xs font-black uppercase text-brand-700">Open message workflow</p> : <p className="mt-2 text-xs font-black uppercase text-slate-500">Document before action</p>}
+    </div>
+  );
+  return href ? <Link href={href}>{content}</Link> : content;
 }

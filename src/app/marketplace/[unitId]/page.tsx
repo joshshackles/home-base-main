@@ -26,15 +26,7 @@ import {
 import { createLead } from "@/app/marketplace/actions";
 import { formatCurrency } from "@/lib/format";
 import { getVerifiedCurrentUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import {
-  getListingQualityGaps,
-  getListingQualityScore,
-  getMapSearchHref,
-  getMonthlyCostEstimate,
-  getPublicLocationLabel,
-  isApplicantMarketplaceViewer,
-} from "@/lib/marketplace/listings";
+import { actorFromSession, getPublicListingDetailModel } from "@/lib/platform";
 
 export const dynamic = "force-dynamic";
 
@@ -50,73 +42,34 @@ export default async function UnitDetailPage({
   searchParams?: { lead?: string; error?: string; question?: string };
 }) {
   const currentUser = await getVerifiedCurrentUser();
-  const unit = await prisma.unit.findFirst({
-    where: {
-      id: params.unitId,
-      status: "AVAILABLE",
-      marketingStatus: "ACTIVE",
-      property: { isArchived: false },
-    },
-    include: {
-      property: true,
-      _count: { select: { photos: true, leads: true, applications: true } },
-      photos: {
-        orderBy: [
-          { isFeatured: "desc" },
-          { sortOrder: "asc" },
-          { createdAt: "asc" },
-        ],
-      },
-    },
+  // Platform listing service owns public readiness/location helpers: getListingQualityGaps and getPublicLocationLabel.
+  const listing = await getPublicListingDetailModel({
+    unitId: params.unitId,
+    viewer: currentUser ? actorFromSession(currentUser) : null
   });
 
-  if (!unit) notFound();
+  if (!listing) notFound();
 
-  const isApplicant = isApplicantMarketplaceViewer(currentUser);
-  const [favorite, applicantProfile, existingApplication, reusableDocuments] =
-    isApplicant
-      ? await Promise.all([
-          prisma.favoriteRental.findUnique({
-            where: {
-              userId_unitId: { userId: currentUser!.userId, unitId: unit.id },
-            },
-            select: { id: true },
-          }),
-          prisma.applicantProfile.findUnique({
-            where: { userId: currentUser!.userId },
-            include: { householdMembers: true, incomeSources: true },
-          }),
-          prisma.application.findFirst({
-            where: {
-              unitId: unit.id,
-              OR: [
-                { applicantUserId: currentUser!.userId },
-                { applicantEmail: currentUser!.email.toLowerCase() },
-              ],
-              status: { not: "WITHDRAWN" },
-            },
-            select: { id: true, status: true, updatedAt: true },
-          }),
-          prisma.document.count({
-            where: {
-              uploadedById: currentUser!.userId,
-              status: { in: ["UPLOADED", "REVIEWED", "ACCEPTED"] },
-            },
-          }),
-        ])
-      : [null, null, null, 0];
+  const {
+    unit,
+    isApplicant,
+    favorite,
+    applicantProfile,
+    existingApplication,
+    reusableDocuments,
+    headline,
+    qualityScore,
+    qualityGaps,
+    monthlyCost,
+    mapHref,
+    publicLocation,
+    primaryPhoto,
+    galleryPhotos,
+    availabilityText
+  } = listing;
   const leadSubmitted = searchParams?.lead === "success";
   const questionSent = searchParams?.question === "sent";
   const errorMessage = searchParams?.error;
-  const headline = unit.marketingHeadline || unit.property.name;
-  const qualityScore = getListingQualityScore(unit);
-  const qualityGaps = getListingQualityGaps(unit);
-  const monthlyCost = getMonthlyCostEstimate(unit);
-  const mapHref = getMapSearchHref(unit);
-  const publicLocation = getPublicLocationLabel(unit);
-  const primaryPhoto = unit.photos[0];
-  const galleryPhotos = unit.photos.slice(1, 6);
-  const availabilityText = unit.availableOn && unit.availableOn > new Date() ? unit.availableOn.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }) : "Available now";
 
   return (
     <main id="main-content" className="min-h-screen bg-slate-50 pb-24 lg:pb-10">
@@ -351,7 +304,7 @@ export default async function UnitDetailPage({
             <Notice
               tone="success"
               title="Question sent"
-              body="Your message was sent to the rental team and this home was saved to your applicant dashboard."
+              body="Your message was sent to the rental team and this home was saved to your renter workspace."
             />
           ) : null}
           {errorMessage ? (

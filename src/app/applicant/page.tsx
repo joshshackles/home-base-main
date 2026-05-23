@@ -357,7 +357,7 @@ status: { in: activeOccupancyStatuses() }
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-black uppercase tracking-[0.35em] text-brand-200">Tenant home</p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Your home dashboard</h1>
+            <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Your home workspace</h1>
             <div className="mt-4 inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-wide text-brand-100">{primaryOccupancy ? `${label(primaryOccupancy.status)} relationship` : "Legacy tenant assignment"}</div>
             <p className="mt-3 max-w-3xl text-base leading-7 text-slate-300">Payments, maintenance, inspections, lease documents, notices, and messages are now surfaced on the first screen so tenants can act quickly and dig in when needed.</p>
           </div>

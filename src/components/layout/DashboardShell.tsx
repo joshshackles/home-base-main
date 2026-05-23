@@ -78,7 +78,29 @@ function ShellNavigation({ groups, onNavigate }: { groups: ShellNavGroup[]; onNa
   );
 }
 
-export function DashboardShell({ children, groups, title, accountLabel, inboxHref = "/applicant/inbox", quickCreateHref = "/marketplace", quickCreateLabel = "Quick Action" }: { children: ReactNode; groups: ShellNavGroup[]; title: string; accountLabel: string; inboxHref?: string; quickCreateHref?: string; quickCreateLabel?: string }) {
+export function DashboardShell({
+  children,
+  groups,
+  title,
+  accountLabel,
+  shellDescription,
+  inboxHref = "/applicant/inbox",
+  quickCreateHref = "/marketplace",
+  quickCreateLabel = "Quick Action",
+  modeSwitchHref,
+  modeSwitchLabel
+}: {
+  children: ReactNode;
+  groups: ShellNavGroup[];
+  title: string;
+  accountLabel: string;
+  shellDescription?: string;
+  inboxHref?: string;
+  quickCreateHref?: string;
+  quickCreateLabel?: string;
+  modeSwitchHref?: string;
+  modeSwitchLabel?: string;
+}) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const flatItems = useMemo(() => groups.flatMap((group) => group.items), [groups]);
@@ -120,7 +142,7 @@ export function DashboardShell({ children, groups, title, accountLabel, inboxHre
         </aside>
 
         {drawerOpen ? (
-          <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Dashboard navigation">
+          <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Workspace navigation">
             <button className="absolute inset-0 bg-slate-950/70" type="button" aria-label="Close navigation" onClick={() => setDrawerOpen(false)} />
             <aside className="relative flex h-full w-[min(86vw,340px)] flex-col overflow-y-auto border-r border-slate-800 bg-slate-950 p-3 text-white shadow-2xl">
               <div className="mb-4 flex items-center justify-between gap-3">
@@ -144,7 +166,7 @@ export function DashboardShell({ children, groups, title, accountLabel, inboxHre
             <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl">
               <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
                 <Search size={16} />
-                <span className="font-bold">Jump to a workflow</span>
+                <span className="font-bold">Jump to a workspace area</span>
                 <button type="button" onClick={() => setPaletteOpen(false)} className="ml-auto rounded-xl p-1 text-slate-500 hover:bg-slate-200" aria-label="Close command palette"><X size={16} /></button>
               </div>
               <div className="mt-2 grid gap-1">
@@ -157,7 +179,7 @@ export function DashboardShell({ children, groups, title, accountLabel, inboxHre
           </div>
         ) : null}
 
-        <div className="min-w-0" data-dashboard-scroll-root>
+        <div className="min-w-0" data-dashboard-scroll-root data-workspace-scroll-root>
           <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
             <div className="flex items-center gap-2 px-3 py-2 sm:px-4 lg:px-5">
               <button className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-700 lg:hidden" type="button" aria-label="Open navigation" onClick={() => setDrawerOpen(true)}>
@@ -165,21 +187,34 @@ export function DashboardShell({ children, groups, title, accountLabel, inboxHre
               </button>
               <div className="min-w-0">
                 <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">{accountLabel}</p>
-                <h1 className="truncate text-base font-black text-slate-950">{title}</h1>
+                <div className="flex min-w-0 items-center gap-2">
+                  <h1 className="truncate text-base font-black text-slate-950">{title}</h1>
+                  {shellDescription ? <span className="hidden rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-500 xl:inline-flex">{shellDescription}</span> : null}
+                </div>
               </div>
               <button type="button" onClick={() => setPaletteOpen(true)} className="ml-auto hidden min-w-[260px] max-w-md flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 md:flex">
                 <Search size={15} />
-                <span className="font-semibold">Search rentals, tenants, payments, messages</span>
+                <span className="font-semibold">Search workspace records, messages, and actions</span>
                 <kbd className="ml-auto rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-black">Cmd K</kbd>
               </button>
               <Link href={inboxHref} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50" aria-label="Inbox">
                 <Bell size={17} />
               </Link>
+              {modeSwitchHref && modeSwitchLabel ? (
+                <Link href={modeSwitchHref} className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 xl:inline-flex">
+                  <Route size={15} /> {modeSwitchLabel}
+                </Link>
+              ) : null}
               <Link href={quickCreateHref} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white hover:bg-blue-700">
                 <Sparkles size={15} /> {quickCreateLabel}
               </Link>
             </div>
             <nav className="flex gap-1 overflow-x-auto border-t border-slate-100 px-3 py-1.5 lg:hidden">
+              {modeSwitchHref && modeSwitchLabel ? (
+                <Link href={modeSwitchHref} className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-black text-slate-700">
+                  <Route size={14} />{modeSwitchLabel}
+                </Link>
+              ) : null}
               {flatItems.slice(0, 10).map((item) => {
                 const Icon = getShellIcon(item.icon);
                 return <Link key={item.href} href={item.href} className="flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-black text-slate-700 hover:bg-slate-100"><Icon size={14} />{item.label}</Link>;
@@ -192,3 +227,7 @@ export function DashboardShell({ children, groups, title, accountLabel, inboxHre
     </div>
   );
 }
+
+// WorkspaceShell is the forward-facing name for role work areas. DashboardShell
+// remains exported for older route groups and verification scripts.
+export const WorkspaceShell = DashboardShell;

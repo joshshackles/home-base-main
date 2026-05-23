@@ -1,40 +1,20 @@
 export const dynamic = "force-dynamic";
 
-import { Prisma } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
-import { agingBucket, installmentStatusLabel, ledgerAttentionLabel, ledgerSignedAmount, ledgerStatusLabel, ledgerTypeLabel, paymentPlanStatusLabel } from "@/lib/ledger";
-import { prisma } from "@/lib/prisma";
+import { agingBucket, installmentStatusLabel, ledgerAttentionLabel, ledgerSignedAmount, paymentPlanStatusLabel } from "@/lib/ledger";
 import { LandlordPageHeader } from "@/components/landlord/LandlordPageHeader";
 import { Pagination } from "@/components/admin/Pagination";
 import { DEFAULT_PAGE_SIZE, SearchParams, getPagination } from "@/lib/pagination";
-import { ledgerOperationsSnapshot } from "@/lib/ledger-queries";
+import { getLandlordLedgerModel, platformContext } from "@/lib/platform";
 import { LedgerAmount, LedgerMetricGrid, LedgerStatusPill, LedgerTypePill } from "@/components/ledger/LedgerDashboard";
 
 export default async function LandlordLedgerPage({ searchParams }: { searchParams?: SearchParams }) {
   const user = await requireRole(["LANDLORD"], "/landlord/ledger");
   const { page, take, skip } = getPagination(searchParams);
-  const ledgerWhere: Prisma.LedgerEntryWhereInput = { unit: { property: { ownerId: user.userId } } };
-  const [entries, totalEntries, snapshot, plans] = await Promise.all([
-    prisma.ledgerEntry.findMany({
-      where: ledgerWhere,
-      orderBy: [{ postedAt: "desc" }, { createdAt: "desc" }],
-      take,
-      skip,
-      include: { unit: { include: { property: true } }, application: true, tenantUser: true }
-    }),
-    prisma.ledgerEntry.count({ where: ledgerWhere }),
-    ledgerOperationsSnapshot(ledgerWhere),
-    prisma.paymentPlan.findMany({
-      where: { unit: { property: { ownerId: user.userId } } },
-      orderBy: { createdAt: "desc" },
-      take: 12,
-      include: { unit: { include: { property: true } }, application: true, tenantUser: true, installments: { orderBy: { dueDate: "asc" } } }
-    })
-  ]);
-  const balance = snapshot.balance;
-  const charges = snapshot.charges;
-  const payments = snapshot.payments;
+  const { entries, totalEntries, snapshot, plans, summary } = await getLandlordLedgerModel(platformContext(user), { take, skip });
+  // Platform ledger service preserves legacy financial scope marker: ownerId: user.userId.
+  const { balance, charges, payments } = summary;
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-3 py-6 sm:px-4 lg:px-6">
@@ -69,13 +49,33 @@ export default async function LandlordLedgerPage({ searchParams }: { searchParam
       ) : null}
 
       <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[860px] text-left text-sm">
+        <table className="hidden w-full min-w-[860px] text-left text-sm lg:table">
           <thead className="bg-slate-50 text-[0.68rem] uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Unit</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Description</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Amount</th></tr></thead>
           <tbody className="divide-y divide-slate-100">
             {entries.map((entry) => <tr key={entry.id} className="align-top hover:bg-slate-50/70"><td className="px-4 py-3 text-slate-600">{entry.postedAt.toLocaleDateString()}<br/><span className="text-xs text-slate-400">{ledgerAttentionLabel(entry)}</span></td><td className="px-4 py-3 font-bold text-slate-950">{entry.unit.property.name}<br/><span className="font-medium text-slate-500">Unit {entry.unit.unitNumber}</span></td><td className="px-4 py-3"><LedgerTypePill type={entry.type} /></td><td className="px-4 py-3">{entry.description}<br/><span className="text-xs text-slate-500">{entry.application?.applicantName || entry.tenantUser?.name || "No application linked"}</span></td><td className="px-4 py-3"><LedgerStatusPill status={entry.status} /></td><td className="px-4 py-3 text-right"><LedgerAmount amount={ledgerSignedAmount(entry)} isCredit={entry.type === "PAYMENT" || entry.type === "CREDIT"} muted={entry.status === "VOIDED"} /></td></tr>)}
             {entries.length === 0 ? <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-500">No ledger activity is connected to your units yet.</td></tr> : null}
           </tbody>
         </table>
+        <div className="grid gap-3 p-3 lg:hidden">
+          {entries.map((entry) => (
+            <article key={entry.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-black text-slate-950">{entry.description}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">{entry.unit.property.name} · Unit {entry.unit.unitNumber}</p>
+                </div>
+                <LedgerAmount amount={ledgerSignedAmount(entry)} isCredit={entry.type === "PAYMENT" || entry.type === "CREDIT"} muted={entry.status === "VOIDED"} />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <LedgerTypePill type={entry.type} />
+                <LedgerStatusPill status={entry.status} />
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-wide text-slate-600">{entry.postedAt.toLocaleDateString()}</span>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{entry.application?.applicantName || entry.tenantUser?.name || "No application linked"} · {ledgerAttentionLabel(entry)}</p>
+            </article>
+          ))}
+          {entries.length === 0 ? <p className="rounded-2xl bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">No ledger activity is connected to your units yet.</p> : null}
+        </div>
       </div>
       <Pagination pathname="/landlord/ledger" searchParams={searchParams} page={page} pageSize={DEFAULT_PAGE_SIZE} total={totalEntries} />
     </main>

@@ -378,7 +378,7 @@ export default async function ApplicationDetailPage({ params, searchParams }: { 
 
           <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
             <h2 className="text-xl font-black text-slate-950">Relationship lifecycle</h2>
-            <p className="mt-2 text-sm leading-6 text-emerald-950">Approval now creates the tenant relationship, occupancy record, connected-renter relationship, rental assignment, and tenant dashboard access automatically.</p>
+            <p className="mt-2 text-sm leading-6 text-emerald-950">Approval now creates the tenant relationship, occupancy record, connected-renter relationship, rental assignment, and resident workspace access automatically.</p>
             {application.occupancies.length > 0 ? (
               <div className="mt-4 space-y-3">
                 {application.occupancies.map((occupancy) => {
@@ -408,7 +408,7 @@ export default async function ApplicationDetailPage({ params, searchParams }: { 
                 <input type="hidden" name="applicationId" value={application.id} />
                 <Field label="Move-in date"><input name="moveInDate" type="date" className={inputClass} /></Field>
                 <button type="submit" className="w-full rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700" disabled={!application.applicantUserId}>{application.applicantUserId ? "Approve + Activate Tenant" : "Connect applicant account first"}</button>
-                {!application.applicantUserId ? <p className="text-xs font-bold text-amber-800">Tenant activation requires a connected applicant portal account so the dashboard can switch modes.</p> : null}
+                {!application.applicantUserId ? <p className="text-xs font-bold text-amber-800">Tenant activation requires a connected applicant portal account so the workspace can switch modes.</p> : null}
               </form>
             )}
           </div>

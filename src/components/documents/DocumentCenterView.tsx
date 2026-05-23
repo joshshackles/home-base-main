@@ -25,6 +25,7 @@ type Props = {
   metrics: { total: number; accepted: number; pending: number; rejected: number; openRequests: number };
   searchParams?: Record<string, string | string[] | undefined>;
   uploadPanel?: React.ReactNode;
+  workflowPanel?: React.ReactNode;
   canReview?: boolean;
 };
 
@@ -37,7 +38,7 @@ function metric(label: string, value: number, detail: string) {
   return <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-2xl font-black text-slate-950">{value}</p><p className="mt-1 text-xs font-black uppercase tracking-wide text-slate-500">{label}</p><p className="mt-1 text-xs text-slate-500">{detail}</p></div>;
 }
 
-export function DocumentCenterView({ title, description, basePath, documents, requests, metrics, searchParams, uploadPanel, canReview }: Props) {
+export function DocumentCenterView({ title, description, basePath, documents, requests, metrics, searchParams, uploadPanel, workflowPanel, canReview }: Props) {
   const q = getParam(searchParams, "q");
   const category = getParam(searchParams, "category");
   const status = getParam(searchParams, "status");
@@ -62,6 +63,8 @@ export function DocumentCenterView({ title, description, basePath, documents, re
         {metric("Rejected", metrics.rejected, "Needs replacement")}
         {metric("Requests", metrics.openRequests, "Open checklist items")}
       </section>
+
+      {workflowPanel ? <section className="mt-5">{workflowPanel}</section> : null}
 
       <section className="mt-5 grid gap-5 lg:grid-cols-[360px_1fr]">
         <aside className="space-y-5">

@@ -54,7 +54,7 @@ export async function createApplicationClaimToken(applicationId: string, actor?:
 export async function createApplicantAccountAndClaimMatches(input: { name: string; email: string; phone?: string | null; password: string }) {
   const email = input.email.toLowerCase();
   const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) throw new Error("An account already exists for this email. Sign in instead, then use Claim Matching Applications from your applicant dashboard.");
+  if (existing) throw new Error("An account already exists for this email. Sign in instead, then use Claim Matching Applications from your renter workspace.");
 
   const user = await prisma.$transaction(async (tx) => {
     const created = await tx.user.create({

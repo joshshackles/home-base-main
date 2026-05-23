@@ -198,7 +198,7 @@ export function CalendarCenterView({ title, description, basePath, center, searc
           <div className="rounded-3xl border border-slate-200 bg-slate-950 p-4 text-white shadow-sm">
             <p className="text-lg font-black">Scheduling best practices</p>
             <ul className="mt-3 space-y-2 text-sm leading-5 text-slate-300"><li>Attach every event to a rental, task, or property group when possible.</li><li>Use confirmed for events the participant has acknowledged.</li><li>Keep move-ins, inspections, lease signings, payment deadlines, and maintenance windows visible in one place.</li></ul>
-            <Link href={`/${basePath}`} className="mt-4 inline-flex rounded-2xl bg-white px-4 py-2 text-sm font-black text-slate-950">Back to dashboard</Link>
+            <Link href={`/${basePath}`} className="mt-4 inline-flex rounded-2xl bg-white px-4 py-2 text-sm font-black text-slate-950">Back to workspace</Link>
           </div>
         </aside>
       </section>

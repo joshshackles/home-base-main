@@ -126,7 +126,7 @@ export function RoleDashboard({ model }: { model: RoleDashboardModel }) {
           <Panel id="tools" title="Tools and shortcuts" detail="Only modules available to this role or approved account access are shown." count={`${model.tools.length} tools`}>
             <DashboardToolGrid tools={model.tools} />
           </Panel>
-          <Panel id="activity" title="Recent activity" detail="Latest work signals from your authorized dashboard scope.">
+          <Panel id="activity" title="Recent activity" detail="Latest work signals from your authorized workspace scope.">
             <DashboardActivityFeed activity={model.activity} />
           </Panel>
         </section>
@@ -135,7 +135,7 @@ export function RoleDashboard({ model }: { model: RoleDashboardModel }) {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-2xl font-black text-slate-950">Account access</h2>
-              <p className="mt-1 text-sm leading-6 text-slate-600">Your dashboard modules are based on role plus approved account access requests.</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">Your workspace modules are based on role plus approved account access requests.</p>
             </div>
             <Link href="/account/password" className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-black text-slate-800 hover:bg-slate-50">Account security</Link>
           </div>

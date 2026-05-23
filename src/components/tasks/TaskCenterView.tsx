@@ -196,7 +196,7 @@ export function TaskCenterView({ title, description, basePath, center, searchPar
               <li>Attach every task to a rental, application, document, lease, or repair when possible.</li>
               <li>Use blocked/waiting states instead of leaving stale tasks open.</li>
             </ul>
-            <Link href={`/${basePath}`} className="mt-4 inline-flex rounded-2xl bg-white px-4 py-2 text-sm font-black text-slate-950">Back to dashboard</Link>
+            <Link href={`/${basePath}`} className="mt-4 inline-flex rounded-2xl bg-white px-4 py-2 text-sm font-black text-slate-950">Back to workspace</Link>
           </div>
         </aside>
       </section>

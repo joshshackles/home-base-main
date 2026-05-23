@@ -37,6 +37,8 @@ assertIncludes("package.json", [
 assertIncludes("src/lib/navigation/first-release.ts", [
   "applicantNavGroups",
   "tenantNavGroups",
+  "simpleLandlordNavGroups",
+  "propertyManagementNavGroups",
   "landlordNavGroups",
   "inspectorNavGroups",
   "vendorNavGroups",
@@ -47,7 +49,7 @@ assertIncludes("src/lib/navigation/first-release.ts", [
 for (const [path, marker] of [
   ["src/app/applicant/layout.tsx", "applicantNavGroups"],
   ["src/app/tenant/layout.tsx", "tenantNavGroups"],
-  ["src/app/landlord/layout.tsx", "landlordNavGroups"],
+  ["src/app/landlord/layout.tsx", "getLandlordExperienceConfig"],
   ["src/app/inspector/layout.tsx", "inspectorNavGroups"],
   ["src/app/vendor/layout.tsx", "vendorNavGroups"],
   ["src/app/admin/layout.tsx", "adminNavGroups"]

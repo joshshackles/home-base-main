@@ -1,15 +1,27 @@
-import { DashboardShell } from "@/components/layout/DashboardShell";
-import { landlordNavGroups } from "@/lib/navigation/first-release";
+import { WorkspaceShell } from "@/components/layout/DashboardShell";
+import { getLandlordExperienceConfig, resolveLandlordExperienceMode } from "@/lib/landlord/experience-mode";
 import { filterNavGroupsByCapabilities } from "@/lib/role-capabilities";
 import { requireWorkspaceAccess } from "@/lib/role-capabilities.server";
 
 export default async function LandlordLayout({ children }: { children: React.ReactNode }) {
-  const { capabilitySet } = await requireWorkspaceAccess("landlord", "/landlord");
-  const groups = filterNavGroupsByCapabilities(landlordNavGroups, capabilitySet.capabilities);
+  const { user, capabilitySet } = await requireWorkspaceAccess("landlord", "/landlord");
+  const mode = await resolveLandlordExperienceMode(user.userId, capabilitySet.approvedAccessTypes);
+  const config = getLandlordExperienceConfig(mode);
+  const groups = filterNavGroupsByCapabilities(config.navGroups, capabilitySet.capabilities);
 
   return (
-    <DashboardShell groups={groups} title="Landlord command center" accountLabel="Housing operations" inboxHref="/landlord/inbox" quickCreateHref="/landlord/rentals/new" quickCreateLabel="Create Listing">
+    <WorkspaceShell
+      groups={groups}
+      title={config.title}
+      accountLabel={config.accountLabel}
+      shellDescription={config.shellDescription}
+      inboxHref="/landlord/inbox"
+      quickCreateHref={config.quickCreateHref}
+      quickCreateLabel={config.quickCreateLabel}
+      modeSwitchHref={config.modeSwitchHref}
+      modeSwitchLabel={config.modeSwitchLabel}
+    >
       {children}
-    </DashboardShell>
+    </WorkspaceShell>
   );
 }

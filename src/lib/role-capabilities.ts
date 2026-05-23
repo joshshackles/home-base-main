@@ -40,6 +40,14 @@ export type RoleCapabilityKey =
   | "landlord.inspections"
   | "landlord.vendors"
   | "landlord.reports"
+  | "landlord.payments"
+  | "landlord.ledger"
+  | "landlord.tasks"
+  | "landlord.contacts"
+  | "landlord.calendar"
+  | "landlord.integrations"
+  | "landlord.compliance"
+  | "landlord.screening"
   | "caseworker.dashboard"
   | "caseworker.clients"
   | "caseworker.applications"
@@ -104,7 +112,7 @@ export const ROLE_CAPABILITY_MAP: Record<RoleWorkspace, RoleCapabilityProfile> =
     label: "Landlord / Property Manager",
     landingPath: "/landlord",
     description: "Property, unit, listing, applicant, tenant, inbox, lease, maintenance, inspection, vendor, and reporting workflows.",
-    capabilities: ["landlord.dashboard", "landlord.properties", "landlord.units", "landlord.listings", "landlord.applications", "landlord.tenants", "landlord.inbox", "landlord.leases", "landlord.documents", "landlord.maintenance", "landlord.inspections", "landlord.vendors", "landlord.reports"],
+    capabilities: ["landlord.dashboard", "landlord.properties", "landlord.units", "landlord.listings", "landlord.applications", "landlord.tenants", "landlord.inbox", "landlord.leases", "landlord.documents", "landlord.maintenance", "landlord.inspections", "landlord.vendors", "landlord.reports", "landlord.payments", "landlord.ledger", "landlord.tasks", "landlord.contacts", "landlord.calendar", "landlord.integrations", "landlord.compliance", "landlord.screening"],
     hiddenServices: ["platform-wide user management", "sample data controls", "security audit logs", "unassigned vendor queues"]
   },
   caseworker: {

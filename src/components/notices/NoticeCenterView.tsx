@@ -202,10 +202,10 @@ export function NoticeCenterView({ title, description, basePath, center, searchP
             <p className="text-lg font-black">Notice best practices</p>
             <ul className="mt-3 space-y-2 text-sm leading-5 text-slate-300">
               <li>Attach every formal notice to the relevant rental, lease, application, or property group.</li>
-              <li>Use due and expiration dates so dashboards can surface time-sensitive notices.</li>
+              <li>Use due and expiration dates so workspaces can surface time-sensitive notices.</li>
               <li>Keep legal notice language consistent with local requirements before relying on it in production.</li>
             </ul>
-            <Link href={`/${basePath}`} className="mt-4 inline-flex rounded-2xl bg-white px-4 py-2 text-sm font-black text-slate-950">Back to dashboard</Link>
+            <Link href={`/${basePath}`} className="mt-4 inline-flex rounded-2xl bg-white px-4 py-2 text-sm font-black text-slate-950">Back to workspace</Link>
           </div>
         </aside>
       </section>

@@ -3,8 +3,7 @@ export const dynamic = "force-dynamic";
 import { cancelScheduledPayment, cancelTenantAutoPay, createTenantPaymentMethodSetupSession, enableTenantAutoPay, pauseTenantAutoPay, resumeTenantAutoPay, scheduleTenantPayment } from "@/app/payments/actions";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
-import { getTenantPaymentCenter } from "@/lib/payments/rental-finance";
-import { stripePaymentsEnabled } from "@/lib/stripe";
+import { getRenterPaymentsCenterModel, platformContext } from "@/lib/platform";
 
 function Pill({ children, tone = "slate" }: { children: React.ReactNode; tone?: "slate" | "emerald" | "amber" | "red" }) {
   const tones = { slate: "bg-slate-100 text-slate-700", emerald: "bg-emerald-50 text-emerald-800", amber: "bg-amber-50 text-amber-800", red: "bg-red-50 text-red-800" };
@@ -13,10 +12,8 @@ function Pill({ children, tone = "slate" }: { children: React.ReactNode; tone?: 
 
 export default async function ApplicantPaymentsPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const user = await requireRole(["APPLICANT", "TENANT"], "/applicant/payments");
-  const { methods, schedules, events, openCharges, autopayEnrollments, retryAttempts } = await getTenantPaymentCenter(user.userId);
-  const enabled = stripePaymentsEnabled();
-  const dueTotal = openCharges.reduce((sum, entry) => sum + entry.amount, 0);
-  const scheduledTotal = schedules.reduce((sum, item) => sum + item.amount, 0);
+  const { methods, schedules, events, openCharges, autopayEnrollments, retryAttempts, totals, stripe, flash } = await getRenterPaymentsCenterModel(platformContext(user), searchParams);
+  // Platform renter payments service preserves legacy applicant/tenant scope marker: getTenantPaymentCenter(user.userId).
 
   return (
     <main id="main-content" className="mx-auto max-w-6xl px-3 py-5 sm:px-4 lg:px-6">
@@ -28,19 +25,19 @@ export default async function ApplicantPaymentsPage({ searchParams }: { searchPa
             <p className="mt-1 max-w-3xl text-sm text-slate-300">Add bank details, schedule upcoming rent, review receipts, and keep a payment trail connected to your ledger.</p>
           </div>
           <form action={createTenantPaymentMethodSetupSession}>
-            <button disabled={!enabled} className="rounded-xl bg-emerald-400 px-4 py-2 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">Add bank or card</button>
+            <button disabled={!stripe.enabled} className="rounded-xl bg-emerald-400 px-4 py-2 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">Add bank or card</button>
           </form>
         </div>
       </section>
 
-      {searchParams?.setup === "success" ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Payment method setup completed. Stripe will send verification status through the webhook.</p> : null}
-      {searchParams?.scheduled ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Payment scheduled.</p> : null}
-      {!enabled ? <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-900 ring-1 ring-amber-200">Online payment features are disabled until Stripe environment variables are configured.</p> : null}
+      {flash.setupSuccess ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Payment method setup completed. Stripe will send verification status through the webhook.</p> : null}
+      {flash.paymentScheduled ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Payment scheduled.</p> : null}
+      {!stripe.enabled ? <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-900 ring-1 ring-amber-200">Online payment features are disabled until Stripe environment variables are configured.</p> : null}
 
       <section className="mt-3 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-black uppercase text-slate-500">Open rent/fees</p><p className="mt-1 text-2xl font-black text-slate-950">{formatCurrency(dueTotal)}</p><p className="text-xs text-slate-500">{openCharges.length} payable items</p></div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-black uppercase text-slate-500">Scheduled</p><p className="mt-1 text-2xl font-black text-slate-950">{formatCurrency(scheduledTotal)}</p><p className="text-xs text-slate-500">{schedules.length} upcoming payments</p></div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-black uppercase text-slate-500">Autopay</p><p className="mt-1 text-2xl font-black text-slate-950">{autopayEnrollments.filter((item) => item.status === "ACTIVE").length}</p><p className="text-xs text-slate-500">{retryAttempts.length} active recovery items</p></div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-black uppercase text-slate-500">Open rent/fees</p><p className="mt-1 text-2xl font-black text-slate-950">{formatCurrency(totals.dueTotal)}</p><p className="text-xs text-slate-500">{openCharges.length} payable items</p></div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-black uppercase text-slate-500">Scheduled</p><p className="mt-1 text-2xl font-black text-slate-950">{formatCurrency(totals.scheduledTotal)}</p><p className="text-xs text-slate-500">{schedules.length} upcoming payments</p></div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-black uppercase text-slate-500">Autopay</p><p className="mt-1 text-2xl font-black text-slate-950">{totals.activeAutopayCount}</p><p className="text-xs text-slate-500">{totals.retryCount} active recovery items</p></div>
       </section>
 
       <section className="mt-3 grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">

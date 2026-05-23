@@ -1,4 +1,4 @@
-import { DashboardShell } from "@/components/layout/DashboardShell";
+import { WorkspaceShell } from "@/components/layout/DashboardShell";
 import { applicantNavGroups } from "@/lib/navigation/first-release";
 import { filterNavGroupsByCapabilities } from "@/lib/role-capabilities";
 import { requireWorkspaceAccess } from "@/lib/role-capabilities.server";
@@ -10,8 +10,8 @@ export default async function ApplicantLayout({ children }: { children: React.Re
   const groups = filterNavGroupsByCapabilities(applicantNavGroups, capabilitySet.capabilities);
 
   return (
-    <DashboardShell groups={groups} title="Applicant dashboard" accountLabel="Renter operations" inboxHref="/applicant/inbox" quickCreateHref="/marketplace" quickCreateLabel="Search Rentals">
+    <WorkspaceShell groups={groups} title="Renter workspace" accountLabel="Renter operations" inboxHref="/applicant/inbox" quickCreateHref="/marketplace" quickCreateLabel="Search Rentals">
       {children}
-    </DashboardShell>
+    </WorkspaceShell>
   );
 }

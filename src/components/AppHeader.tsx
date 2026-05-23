@@ -36,7 +36,7 @@ export function AppHeader({ user }: { user: VerifiedUser }) {
           {user ? (
             <>
               <Link href={dashboardHref(user)} className="hidden items-center gap-2 rounded-md px-4 py-2 text-sm font-black text-slate-900 hover:bg-slate-100 sm:inline-flex">
-                <LayoutDashboard size={16} /> Dashboard
+                <LayoutDashboard size={16} /> Workspace
               </Link>
               <form action={logoutAction}>
                 <button className="rounded-md bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800" type="submit">

@@ -2,11 +2,9 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { applyLateFeeAction, createFinancialAdjustmentAction, createStripeConnectOnboardingLink, generateMonthlyRentChargesAction, generateOwnerStatementAction, refreshStripeConnectStatus, refundLedgerPaymentAction, updateUnitRentBillingPolicy } from "@/app/payments/actions";
-import { paymentFeatureLabel, stripePaymentsEnabled } from "@/lib/stripe";
 import { formatCurrency } from "@/lib/format";
-import { getLandlordPaymentOperations } from "@/lib/payments/rental-finance";
+import { getLandlordPaymentsCommandCenter, platformContext } from "@/lib/platform";
 
 function StatusBadge({ active, label }: { active: boolean; label: string }) {
   return <span className={`rounded-full px-3 py-1 text-xs font-black ${active ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200" : "bg-amber-50 text-amber-800 ring-1 ring-amber-200"}`}>{label}</span>;
@@ -18,20 +16,8 @@ function Metric({ label, value, detail }: { label: string; value: string; detail
 
 export default async function LandlordPaymentsPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const user = await requireRole(["LANDLORD"], "/landlord/payments");
-  const [account, ops] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { stripeConnectAccountId: true, stripeChargesEnabled: true, stripePayoutsEnabled: true, stripeOnboardingComplete: true, stripeConnectLastSyncedAt: true }
-    }),
-    getLandlordPaymentOperations(user.userId)
-  ]);
-  const enabled = stripePaymentsEnabled();
-  const returned = searchParams?.stripe === "return";
-  const refresh = searchParams?.stripe === "refresh";
-  const missingStripeAccount = searchParams?.stripe === "missing";
-  const syncedStripeAccount = searchParams?.stripe === "synced";
-  const recentPayments = ops.entries.filter((entry) => entry.type === "PAYMENT" || entry.type === "CREDIT").slice(0, 8);
-  const openCharges = ops.entries.filter((entry) => (entry.type === "CHARGE" || entry.type === "ADJUSTMENT") && entry.stripePaymentStatus !== "paid").slice(0, 8);
+  const { account, ops, recentPayments, refundablePayments, openCharges, stripe, flash } = await getLandlordPaymentsCommandCenter(platformContext(user), searchParams);
+  // Platform payments service preserves legacy financial scope marker through getLandlordPaymentOperations(user.userId).
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-3 py-5 sm:px-4 lg:px-6">
@@ -40,10 +26,10 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
         <div className="mt-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-3xl font-black">Payments command center</h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-300">Connect Stripe, manage rent policies, monitor scheduled renter payments, apply late fees, and track received payments from one compact dashboard.</p>
+            <p className="mt-2 max-w-3xl text-sm text-slate-300">Connect Stripe, manage rent policies, monitor scheduled renter payments, apply late fees, and track received payments from one compact financial workspace.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <StatusBadge active={enabled} label={paymentFeatureLabel()} />
+            <StatusBadge active={stripe.enabled} label={stripe.label} />
             <StatusBadge active={Boolean(account?.stripeOnboardingComplete)} label={account?.stripeOnboardingComplete ? "Onboarding complete" : "Onboarding needed"} />
             <Link href="/landlord/payments/reconciliation" className="rounded-xl border border-white/20 px-4 py-2 text-sm font-black text-white">Reconciliation</Link>
             <Link href="/landlord/payments/enterprise" className="rounded-xl bg-white px-4 py-2 text-sm font-black text-slate-950">Enterprise finance</Link>
@@ -51,11 +37,11 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
         </div>
       </section>
 
-      {returned ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Stripe sent you back to HomeBase. Refresh status below to confirm account readiness.</p> : null}
-      {refresh ? <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-900 ring-1 ring-amber-200">Your onboarding link expired or was interrupted. Create a new onboarding link below.</p> : null}
-      {missingStripeAccount ? <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-900 ring-1 ring-amber-200">Start Stripe setup before refreshing account status.</p> : null}
-      {syncedStripeAccount ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Stripe account status refreshed.</p> : null}
-      {searchParams?.policy ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Rent policy updated.</p> : null}
+      {stripe.returned ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Stripe sent you back to HomeBase. Refresh status below to confirm account readiness.</p> : null}
+      {stripe.refresh ? <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-900 ring-1 ring-amber-200">Your onboarding link expired or was interrupted. Create a new onboarding link below.</p> : null}
+      {stripe.missingAccount ? <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-900 ring-1 ring-amber-200">Start Stripe setup before refreshing account status.</p> : null}
+      {stripe.syncedAccount ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Stripe account status refreshed.</p> : null}
+      {flash.policyUpdated ? <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Rent policy updated.</p> : null}
 
       <section className="mt-3 grid gap-3 md:grid-cols-6">
         <Metric label="Received" value={formatCurrency(ops.received)} detail="Recent payment/credit ledger total" />
@@ -64,6 +50,20 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
         <Metric label="Units" value={String(ops.units.length)} detail="Portfolio payment scope" />
         <Metric label="Stripe" value={account?.stripeOnboardingComplete ? "Ready" : "Setup"} detail={account?.stripeConnectLastSyncedAt ? `Checked ${account.stripeConnectLastSyncedAt.toLocaleDateString()}` : "Never checked"} />
         <Metric label="Recovery" value={String(ops.retries.length)} detail="Active retry queue items" />
+      </section>
+
+      <section className="mt-3 grid gap-3 lg:grid-cols-3">
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-blue-950 shadow-sm lg:col-span-2">
+          <h2 className="text-xl font-black">Financial safety</h2>
+          <p className="mt-1 text-sm font-semibold leading-6">
+            Manual charges, credits, refunds, late fees, generated rent, and owner statements create financial records or audit events. Use factual reasons and confirm the unit, amount, period, and tenant context before submitting.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-xl font-black text-slate-950">Detailed ledger</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Open the accounting-style ledger when you need entry-level history, aging, void state, or payment plan detail.</p>
+          <Link href="/landlord/ledger" className="mt-3 inline-flex rounded-xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-800 hover:bg-slate-50">Open ledger</Link>
+        </div>
       </section>
 
       <section className="mt-3 grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
@@ -76,10 +76,10 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
             <p>Payouts: <span className="font-black text-slate-950">{account?.stripePayoutsEnabled ? "Enabled" : "Pending"}</span></p>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <form action={createStripeConnectOnboardingLink}><button className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50" disabled={!enabled}>{account?.stripeConnectAccountId ? "Continue Stripe Setup" : "Start Stripe Setup"}</button></form>
-            <form action={refreshStripeConnectStatus}><button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 disabled:opacity-50" disabled={!enabled || !account?.stripeConnectAccountId}>Refresh Status</button></form>
+            <form action={createStripeConnectOnboardingLink}><button className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50" disabled={!stripe.enabled}>{account?.stripeConnectAccountId ? "Continue Stripe Setup" : "Start Stripe Setup"}</button></form>
+            <form action={refreshStripeConnectStatus}><button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 disabled:opacity-50" disabled={!stripe.enabled || !account?.stripeConnectAccountId}>Refresh Status</button></form>
           </div>
-          {!enabled ? <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs font-bold text-slate-600">Add STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, and APP_URL in Vercel to enable live payment onboarding.</p> : null}
+          {!stripe.enabled ? <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs font-bold text-slate-600">Add STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, and APP_URL in Vercel to enable live payment onboarding.</p> : null}
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -101,6 +101,7 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-xl font-black text-slate-950">Billing automation</h2>
           <p className="mt-1 text-sm font-semibold text-slate-500">Generate monthly rent from each unit's rent policy and let autopay/scheduled payments handle collection.</p>
+          <p className="mt-2 rounded-xl bg-amber-50 p-3 text-xs font-bold leading-5 text-amber-900">This action posts ledger charges. Review rent policies first; duplicate periods are protected by the billing helpers where configured.</p>
           <form action={generateMonthlyRentChargesAction} className="mt-3">
             <button className="w-full rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white">Generate this month's rent</button>
           </form>
@@ -111,6 +112,7 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-xl font-black text-slate-950">Refunds & adjustments</h2>
+          <p className="mt-1 text-sm font-semibold leading-6 text-slate-600">Every manual adjustment or refund request should include a clear reason. These actions are part of the financial audit trail.</p>
           <form action={createFinancialAdjustmentAction} className="mt-3 grid gap-2">
             <select name="unitId" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-900">{ops.units.map((unit) => <option key={unit.id} value={unit.id}>{unit.property.name} #{unit.unitNumber}</option>)}</select>
             <select name="type" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-900"><option value="CREDIT">Credit</option><option value="WAIVER">Waive fee</option><option value="MANUAL_CHARGE">Manual charge</option><option value="RENT_ADJUSTMENT">Rent adjustment</option></select>
@@ -120,14 +122,15 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
           </form>
           <form action={refundLedgerPaymentAction} className="mt-3 grid gap-2 rounded-xl bg-slate-50 p-3">
             <p className="text-xs font-black uppercase text-slate-500">Stripe refund</p>
-            <select name="ledgerEntryId" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-900">{recentPayments.filter((entry) => entry.stripePaymentIntentId).map((entry) => <option key={entry.id} value={entry.id}>{entry.description} · {formatCurrency(entry.amount)}</option>)}</select>
+            <select name="ledgerEntryId" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-900">{refundablePayments.map((entry) => <option key={entry.id} value={entry.id}>{entry.description} · {formatCurrency(entry.amount)}</option>)}</select>
             <input name="amount" type="number" min="1" step="1" placeholder="Refund amount" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-900" />
             <input name="reason" placeholder="Refund reason" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-900" />
-            <button disabled={!enabled || recentPayments.filter((entry) => entry.stripePaymentIntentId).length === 0} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 disabled:opacity-50">Request Stripe refund</button>
+            <button disabled={!stripe.enabled || refundablePayments.length === 0} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 disabled:opacity-50">Request Stripe refund</button>
           </form>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-xl font-black text-slate-950">Owner statements</h2>
+          <p className="mt-1 text-sm font-semibold leading-6 text-slate-600">Statements summarize collected payments, open balances, and unit context for owner review. Export and sharing workflows should stay permission-scoped.</p>
           <form action={generateOwnerStatementAction} className="mt-3 grid gap-2">
             <input name="month" type="month" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-900" />
             <select name="unitId" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-900"><option value="">All units</option>{ops.units.map((unit) => <option key={unit.id} value={unit.id}>{unit.property.name} #{unit.unitNumber}</option>)}</select>

@@ -179,7 +179,7 @@ export default async function LandlordContactsPage({
     >
       <LandlordPageHeader
         title="Contacts"
-        description="A compact governance dashboard for team connections, tenants, applicants, and service partners tied to active workflows."
+        description="A compact governance workspace for team connections, tenants, applicants, and service partners tied to active workflows."
       />
 
       {statusMessage === "revoked" ? (

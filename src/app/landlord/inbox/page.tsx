@@ -283,7 +283,7 @@ export default async function LandlordInboxPage({ searchParams }: { searchParams
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-slate-500">
-                <Link href="/landlord" className="hover:text-slate-950">Landlord dashboard</Link>
+                <Link href="/landlord" className="hover:text-slate-950">Landlord workspace</Link>
                 <span>/</span>
                 <span>Unified inbox</span>
               </div>

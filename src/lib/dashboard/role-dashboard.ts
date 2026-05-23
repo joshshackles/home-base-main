@@ -171,8 +171,8 @@ function finishModel(model: Omit<RoleDashboardModel, "coherence" | "clarity">): 
 
 function accessTools(access: DashboardAccess): RoleDashboardTool[] {
   const tools: RoleDashboardTool[] = [];
-  if (access.modules.includes("applicant")) tools.push({ title: "Applicant dashboard", detail: "Profile, saved homes, applications, documents, and landlord messages.", href: "/applicant", icon: "UserRound", module: "applicant" });
-  if (access.modules.includes("tenant")) tools.push({ title: "Resident dashboard", detail: "Rent, lease, maintenance, notices, documents, and move-in activity.", href: "/tenant", icon: "Home", module: "tenant" });
+  if (access.modules.includes("applicant")) tools.push({ title: "Renter workspace", detail: "Profile, saved homes, applications, documents, and landlord messages.", href: "/applicant", icon: "UserRound", module: "applicant" });
+  if (access.modules.includes("tenant")) tools.push({ title: "Resident workspace", detail: "Rent, lease, maintenance, notices, documents, and move-in activity.", href: "/tenant", icon: "Home", module: "tenant" });
   if (access.modules.includes("landlord")) tools.push({ title: "Landlord console", detail: "Properties, units, listings, applications, messages, tenants, leases, and maintenance.", href: "/landlord", icon: "Building2", module: "landlord" });
   if (access.modules.includes("inspector")) tools.push({ title: "Inspector queue", detail: "Assigned inspections, failed items, reports due, and reinspection work.", href: "/inspector", icon: "ClipboardCheck", module: "inspector" });
   if (access.modules.includes("vendor")) tools.push({ title: "Vendor portal", detail: "Assigned jobs, field updates, invoices, payouts, and service records.", href: "/vendor", icon: "Wrench", module: "vendor" });
@@ -203,8 +203,8 @@ async function buildApplicantDashboard(user: SessionPayload, access: DashboardAc
     role: user.role,
     primaryModule: "applicant",
     accountLabel: moduleLabels.applicant,
-    headline: "Your housing journey dashboard",
-    summary: "A renter-first dashboard for profile readiness, reusable applications, saved homes, documents, landlord messages, and move-in planning.",
+    headline: "Your housing workspace",
+    summary: "A renter-first workspace for profile readiness, reusable applications, saved homes, documents, landlord messages, and move-in planning.",
     metrics: [
       { label: "Profile completion", value: `${completeness}%`, detail: "Reusable renter packet readiness", href: "/applicant/profile", icon: "UserRound", tone: completeness < 70 ? "amber" : "green" },
       { label: "Active applications", value: activeApplications, detail: "Started, submitted, or under review", href: "/applicant/applications", icon: "ClipboardList", tone: "blue" },
@@ -245,8 +245,8 @@ async function buildTenantDashboard(user: SessionPayload, access: DashboardAcces
       role: user.role,
       primaryModule: "tenant",
       accountLabel: moduleLabels.tenant,
-      headline: "Your resident dashboard",
-      summary: "A resident portal for rent, lease records, maintenance, notices, inspections, documents, and landlord messages once an active tenancy is connected.",
+      headline: "Your resident workspace",
+      summary: "A resident workspace for rent, lease records, maintenance, notices, inspections, documents, and landlord messages once an active tenancy is connected.",
       metrics: [
         { label: "Active homes", value: 0, detail: "No current occupancy record", href: "/tenant", icon: "Home", tone: "slate" },
         { label: "Open maintenance", value: 0, detail: "Repair requests still open", href: "/tenant/maintenance", icon: "Wrench", tone: "green" },
@@ -263,7 +263,7 @@ async function buildTenantDashboard(user: SessionPayload, access: DashboardAcces
       ],
       activity: [],
       access,
-      emptyState: { title: "No active tenancy is connected", detail: "When a lease or move-in record is connected, this dashboard will organize rent, maintenance, inspections, notices, documents, and messages.", href: "/marketplace", cta: "Search rentals" }
+      emptyState: { title: "No active tenancy is connected", detail: "When a lease or move-in record is connected, this workspace will organize rent, maintenance, inspections, notices, documents, and messages.", href: "/marketplace", cta: "Search rentals" }
     });
   }
 
@@ -288,7 +288,7 @@ async function buildTenantDashboard(user: SessionPayload, access: DashboardAcces
     role: user.role,
     primaryModule: "tenant",
     accountLabel: moduleLabels.tenant,
-    headline: "Your resident dashboard",
+    headline: "Your resident workspace",
     summary: `${primary.unit.property.name} #${primary.unit.unitNumber} is your active rental workspace for lease, rent, maintenance, notices, inspections, documents, and messages.`,
     metrics: [
       { label: "Active homes", value: activeOccupancies.length, detail: "Current occupancy records", href: "/tenant", icon: "Home", tone: "green" },
@@ -312,7 +312,7 @@ async function buildTenantDashboard(user: SessionPayload, access: DashboardAcces
       tone: "green"
     })),
     access,
-    emptyState: { title: "No active tenancy is connected", detail: "When a lease or move-in record is connected, this dashboard will organize rent, maintenance, inspections, notices, documents, and messages.", href: "/marketplace", cta: "Search rentals" }
+    emptyState: { title: "No active tenancy is connected", detail: "When a lease or move-in record is connected, this workspace will organize rent, maintenance, inspections, notices, documents, and messages.", href: "/marketplace", cta: "Search rentals" }
   });
 }
 
@@ -346,7 +346,7 @@ async function buildLandlordDashboard(user: SessionPayload, access: DashboardAcc
     role: user.role,
     primaryModule: "landlord",
     accountLabel: moduleLabels.landlord,
-    headline: "Landlord operating dashboard",
+    headline: "Landlord operating workspace",
     summary: "Properties, units, listings, applications, messages, tenant directory, lease packets, maintenance, inspections, and reports are prioritized by what needs action.",
     metrics: [
       { label: "Active listings", value: activeListings, detail: `${unitCount} total non-archived units`, href: "/landlord/rentals", icon: "Home", tone: "blue" },
@@ -365,7 +365,7 @@ async function buildLandlordDashboard(user: SessionPayload, access: DashboardAcc
     ],
     activity: [],
     access,
-    emptyState: { title: "Add your first property to begin", detail: "Once rentals exist, leads, applications, tenants, maintenance, lease packets, and reports will fill this dashboard.", href: "/landlord/rentals/new", cta: "Add rental" }
+    emptyState: { title: "Add your first property to begin", detail: "Once rentals exist, leads, applications, tenants, maintenance, lease packets, and reports will fill this workspace.", href: "/landlord/rentals/new", cta: "Add rental" }
   });
 }
 
@@ -393,8 +393,8 @@ async function buildInspectorDashboard(user: SessionPayload, access: DashboardAc
     role: user.role,
     primaryModule: "inspector",
     accountLabel: moduleLabels.inspector,
-    headline: "Inspection workflow dashboard",
-    summary: "Assigned inspections, today's schedule, report completion, failed inspections, and reinspection follow-up in one focused field dashboard.",
+    headline: "Inspection workflow workspace",
+    summary: "Assigned inspections, today's schedule, report completion, failed inspections, and reinspection follow-up in one focused field workspace.",
     metrics: [
       { label: "Today", value: todayCount, detail: "Scheduled or in progress today", href: "/inspector", icon: "CalendarDays", tone: todayCount ? "amber" : "green" },
       { label: "Upcoming", value: upcoming, detail: "Assigned scheduled inspections", href: "/inspector", icon: "ClipboardCheck", tone: "blue" },
@@ -415,7 +415,7 @@ async function buildInspectorDashboard(user: SessionPayload, access: DashboardAc
       tone: inspection.status === "FAILED" || inspection.status === "NEEDS_REINSPECTION" ? "red" : "blue"
     })),
     access,
-    emptyState: { title: "No inspections are assigned right now", detail: "You are clear for now. New assignments, failed inspections, and reports due are listed here when they are connected to your account.", href: "/dashboard", cta: "Back to dashboard" }
+    emptyState: { title: "No inspections are assigned right now", detail: "You are clear for now. New assignments, failed inspections, and reports due are listed here when they are connected to your account.", href: "/inspector", cta: "Back to workspace" }
   });
 }
 
@@ -432,7 +432,7 @@ async function buildVendorDashboard(user: SessionPayload, access: DashboardAcces
     role: user.role,
     primaryModule: "vendor",
     accountLabel: moduleLabels.vendor,
-    headline: "Vendor field operations dashboard",
+    headline: "Vendor field operations workspace",
     summary: "Assigned work orders, acceptance, SLA tracking, field updates, invoices, payouts, service records, and contacts are scoped to your vendor account.",
     metrics: [
       { label: "Assigned jobs", value: portal.metrics.openJobs, detail: "Open maintenance work orders", href: "/vendor/jobs", icon: "Wrench", tone: portal.metrics.openJobs ? "amber" : "green" },
@@ -482,7 +482,7 @@ async function buildAdminDashboard(user: SessionPayload, access: DashboardAccess
     role: user.role,
     primaryModule: "admin",
     accountLabel: moduleLabels.admin,
-    headline: "Platform operations dashboard",
+    headline: "Platform operations workspace",
     summary: "System-wide access requests, workflow health, applications, maintenance, inspections, documents, security, ledgers, analytics, and data quality signals.",
     metrics: [
       { label: "Active users", value: activeUsers, detail: "Enabled user accounts", href: "/admin/users", icon: "Users", tone: "blue" },
