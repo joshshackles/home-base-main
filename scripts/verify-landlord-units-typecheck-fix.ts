@@ -36,13 +36,13 @@ assertExcludes("src/app/landlord/units/page.tsx", [
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.61.5\"",
+  "\"version\": \"4.61.4\"",
   "\"landlord-units-typecheck-fix:verify\"",
   "final-readiness:verify && npm run landlord-units-typecheck-fix:verify",
 ]);
-assertIncludes("package-lock.json", ["\"version\": \"4.61.5\""]);
-assertIncludes("src/lib/app-version.ts", ["4.61.5"]);
-assertIncludes("README.md", ["Current package version: **4.61.5**"]);
-assertIncludes("CHANGELOG.md", ["## v4.61.5 - Version Consistency Metadata Cleanup"]);
+assertIncludes("package-lock.json", ["\"version\": \"4.61.4\""]);
+assertIncludes("src/lib/app-version.ts", ["4.61.4"]);
+assertIncludes("README.md", ["Current package version: **4.61.4**"]);
+assertIncludes("CHANGELOG.md", ["## v4.61.4 - Homepage Reference Fidelity Pass"]);
 
 console.log("Landlord units typecheck fix verification passed.");

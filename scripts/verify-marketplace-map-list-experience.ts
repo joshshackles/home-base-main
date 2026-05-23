@@ -31,11 +31,11 @@ const checks: Array<{ file: string; markers: string[] }> = [
   },
   {
     file: "package.json",
-    markers: ["\"version\": \"4.61.5\"", "marketplace-map-list:verify"]
+    markers: ["\"version\": \"4.61.4\"", "marketplace-map-list:verify"]
   },
   {
     file: "src/lib/app-version.ts",
-    markers: ["4.61.5"]
+    markers: ["4.61.4"]
   }
 ];
 

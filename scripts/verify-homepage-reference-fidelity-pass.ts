@@ -16,9 +16,9 @@ function assertContains(path: string, marker: string) {
   if (!source.includes(marker)) throw new Error(`${path} is missing ${marker}`);
 }
 
-assertContains("package.json", '"version": "4.61.5"');
+assertContains("package.json", '"version": "4.61.4"');
 assertContains("package.json", '"homepage-reference-fidelity-pass:verify": "tsx scripts/verify-homepage-reference-fidelity-pass.ts"');
-assertContains("CHANGELOG.md", "## v4.61.5 - Version Consistency Metadata Cleanup");
+assertContains("CHANGELOG.md", "## v4.61.4 - Homepage Reference Fidelity Pass");
 assertExists("public/homebase-hero-building-slide.png");
 assertContains("src/app/page.tsx", "homebase-hero-building-slide.png");
 assertContains("src/app/page.tsx", "max-w-[1380px]");
