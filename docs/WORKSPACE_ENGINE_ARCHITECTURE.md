@@ -388,6 +388,7 @@ These are future capabilities. The first pass should establish the primitives an
 
 - Update 1 created this architecture definition.
 - Update 2 added the shared TypeScript contract in `src/lib/workspace/types.ts` and public exports in `src/lib/workspace/index.ts`.
+- Update 3 added the canonical entity registry in `src/lib/workspace/entity-registry.ts`, including entity labels, routes, supported modes, permission requirements, relationship definitions, and first-pass widget/command keys.
 
 ## Success Criteria
 
