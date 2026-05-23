@@ -382,7 +382,7 @@ These are future capabilities. The first pass should establish the primitives an
 11. Workspace modes.
 12. Refactor Unit Workspace onto the engine.
 13. Add cross-surface command action bindings.
-14. Release QA and workspace developer guide.
+14. Workspace verification and developer guide.
 
 ## Current Implementation Status
 
@@ -399,6 +399,7 @@ These are future capabilities. The first pass should establish the primitives an
 - Update 11 added the workspace mode registry in `src/lib/workspace/mode-registry.ts`, including mode metadata, intents, preferred surfaces/devices, compact rules, and mode-aware ranking for widgets, panels, and commands.
 - Update 12 connected the landlord Unit Workspace to the engine with `src/lib/workspace/adapters/landlord-unit-workspace.ts`, deriving workspace events from real unit data and passing resolved mode, widgets, panels, commands, activity, and permission state into the page.
 - Update 13 added command action bindings in `src/lib/workspace/action-bindings.ts`, so resolved workspace commands can be rendered by web, mobile, admin, or future API surfaces as permission-aware actions with route bindings, disabled reasons, and audit cues.
+- Update 14 added `scripts/verify-workspace-engine.ts` and `docs/WORKSPACE_ENGINE_DEVELOPER_GUIDE.md`, creating a repeatable QA gate for registry references, command action bindings, and future workspace implementation rules.
 
 ## Success Criteria
 
