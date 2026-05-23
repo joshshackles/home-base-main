@@ -392,6 +392,7 @@ These are future capabilities. The first pass should establish the primitives an
 - Update 4 added relationship graph helpers in `src/lib/workspace/relationship-graph.ts`, including inbound/outbound edges, adjacency, relationship lookup, path discovery, relationship summaries, and stable relationship signatures.
 - Update 5 added the universal workspace event registry in `src/lib/workspace/event-registry.ts`, including typed event definitions, categories, audiences, audit/timeline/automation flags, event factory helpers, and activity item conversion.
 - Update 6 added the shared activity stream builder in `src/lib/workspace/activity-stream.ts`, including timeline filtering, audience-sensitive views, grouping, counts, previews, pagination windows, and date summaries.
+- Update 7 added the first workspace context resolver in `src/lib/workspace/context-resolver.ts`, including actor permission resolution, mode fallback, urgency calculation, activity stream composition, relationship summaries, baseline actions, and access alerts.
 
 ## Success Criteria
 

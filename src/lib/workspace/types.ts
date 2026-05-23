@@ -93,6 +93,7 @@ export type WorkspaceContextInput = {
   requestedMode?: WorkspaceMode;
   surface?: WorkspaceSurface;
   device?: WorkspaceDeviceProfile;
+  urgency?: WorkspaceUrgency;
   metadata?: PlatformRequestMetadata;
 };
 
@@ -290,6 +291,13 @@ export type WorkspaceMemoryEntry = {
 
 export type WorkspaceResolvedModel = {
   context: WorkspaceContext;
+  entityDefinition: WorkspaceEntityDefinition;
+  relationshipSummary: WorkspaceRelationshipSummary;
+  activityStream: WorkspaceActivityStream;
+  widgetKeys: string[];
+  commandKeys: string[];
+  canAccess: boolean;
+  deniedReason?: string;
   primaryActions: WorkspaceAction[];
   secondaryActions: WorkspaceAction[];
   alerts: WorkspaceAlert[];
