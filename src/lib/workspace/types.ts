@@ -228,6 +228,7 @@ export type WorkspaceEvent = {
 export type WorkspaceActivityItem = {
   id: string;
   eventType: string;
+  category?: WorkspaceEventCategory;
   title: string;
   detail?: string;
   occurredAt: Date;
@@ -236,6 +237,27 @@ export type WorkspaceActivityItem = {
   relatedEntity?: WorkspaceEntityRef;
   href?: string;
   severity?: WorkspaceEventSeverity;
+  sensitive?: boolean;
+};
+
+export type WorkspaceActivityGroup = {
+  key: string;
+  label: string;
+  date: string;
+  items: WorkspaceActivityItem[];
+};
+
+export type WorkspaceActivityStream = {
+  items: WorkspaceActivityItem[];
+  groups: WorkspaceActivityGroup[];
+  totalCount: number;
+  visibleCount: number;
+  filteredCount: number;
+  newestAt?: Date;
+  oldestAt?: Date;
+  hasMore: boolean;
+  countsBySeverity: Partial<Record<WorkspaceEventSeverity, number>>;
+  countsByCategory: Partial<Record<WorkspaceEventCategory, number>>;
 };
 
 export type WorkspaceAlert = {

@@ -604,6 +604,7 @@ export function workspaceEventToActivityItem(event: WorkspaceEvent): WorkspaceAc
   return {
     id: event.id ?? createDeterministicActivityId(event),
     eventType: event.type,
+    category: event.category,
     title: event.title,
     detail: event.detail,
     occurredAt: event.occurredAt,
@@ -611,7 +612,8 @@ export function workspaceEventToActivityItem(event: WorkspaceEvent): WorkspaceAc
     entity: event.entity,
     relatedEntity,
     href: getWorkspaceEntityRoute(relatedEntity ?? event.entity),
-    severity: event.severity
+    severity: event.severity,
+    sensitive: isKnownWorkspaceEvent(event.type) ? isSensitiveWorkspaceEvent(event.type) : undefined
   };
 }
 
@@ -645,4 +647,8 @@ function createDeterministicActivityId(event: WorkspaceEvent): string {
     event.occurredAt.toISOString(),
     event.relatedEntities?.map((entity) => `${entity.type}:${entity.id}`).join(",") ?? "none"
   ].join("|");
+}
+
+function isKnownWorkspaceEvent(type: string): type is WorkspaceEventType {
+  return workspaceEventTypes.includes(type as WorkspaceEventType);
 }
