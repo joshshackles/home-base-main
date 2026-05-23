@@ -57,8 +57,8 @@ assertNotIncludes("src/components/UnitCard.tsx", [
 assertIncludes("src/app/marketplace/[unitId]/page.tsx", [
   "getListingQualityGaps",
   "getPublicLocationLabel",
-  "Exact address shared after landlord contact or application authorization",
-  "Quality and privacy checks",
+  "Exact address shared only when the rental team allows it",
+  "Marketplace detail and address privacy",
   "Area map"
 ]);
 
@@ -66,7 +66,7 @@ assertIncludes("src/app/marketplace/page.tsx", [
   "Quality-gated listings.",
   "Privacy-aware location.",
   "Remove {chip.label}",
-  "without inventing coordinates or exposing street addresses",
+  "without exposing exact addresses",
   "getPublicLocationLabel(unit)"
 ]);
 

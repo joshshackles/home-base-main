@@ -155,9 +155,9 @@ function FeaturedListings({ units, dataAvailable }: { units: FeaturedUnit[]; dat
         ) : (
           <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
             <Home className="mx-auto text-slate-400" size={36} />
-            <h3 className="mt-4 text-xl font-black text-slate-950">{dataAvailable ? "No featured rentals are available yet" : "Marketplace data is temporarily unavailable"}</h3>
+            <h3 className="mt-4 text-xl font-black text-slate-950">{dataAvailable ? "Featured rentals are being refreshed" : "Marketplace listings are temporarily unavailable"}</h3>
             <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-              {dataAvailable ? "Published active listings will appear here when landlords add them." : "The homepage is not showing fake listings. Live rentals will appear when the database is reachable."}
+              {dataAvailable ? "Search the marketplace to view every active rental, or check back soon for curated featured homes." : "We are having trouble loading live rental data right now. Please try the marketplace again in a few minutes."}
             </p>
             <Link href="/marketplace" className="mt-5 inline-flex items-center justify-center rounded-md bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800">Open marketplace</Link>
           </div>
@@ -184,7 +184,7 @@ function ListingCard({ unit, featured }: { unit: FeaturedUnit; featured: boolean
         </div>
         <div className="p-4">
           <p className="text-2xl font-black text-slate-950">{formatCurrency(unit.rentAmount)} <span className="text-base font-semibold text-slate-500">/mo</span></p>
-          <p className="mt-2 text-sm font-semibold text-slate-600">{unit.bedrooms} Bed • {unit.bathrooms} Bath{unit.squareFeet ? ` • ${unit.squareFeet.toLocaleString()} Sq Ft` : ""}</p>
+          <p className="mt-2 text-sm font-semibold text-slate-600">{unit.bedrooms} Bed / {unit.bathrooms} Bath{unit.squareFeet ? ` / ${unit.squareFeet.toLocaleString()} Sq Ft` : ""}</p>
           <p className="mt-3 line-clamp-1 text-sm font-semibold text-slate-600">{unit.property.addressLine}, {unit.property.city}, {unit.property.state} {unit.property.zip}</p>
         </div>
       </Link>
@@ -216,7 +216,7 @@ function RolePathways() {
       <div className="mx-auto grid max-w-[1320px] gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
         <div id="about">
           <h2 className="text-4xl font-black tracking-tight text-slate-950">A professional marketplace for the full housing team.</h2>
-          <p className="mt-4 text-lg leading-8 text-slate-600">Renters get a simple path to housing. Landlords get a true operating console. Housing partners, inspectors, vendors, admins, and platform operators get permission-aware tools without cluttering everyone else’s screen.</p>
+          <p className="mt-4 text-lg leading-8 text-slate-600">Renters get a simple path to housing. Landlords get a true operating console. Housing partners, inspectors, vendors, admins, and platform operators get permission-aware tools without cluttering everyone else's screen.</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Pathway title="Renters / Applicants" text="Search listings, save homes, build a reusable profile, apply, upload documents, and message landlords." href="/marketplace" />

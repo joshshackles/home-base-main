@@ -41,7 +41,7 @@ export default async function TenantLeasesPage() {
         {requests.length === 0 ? (
           <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
             <h2 className="text-2xl font-black text-slate-950">No lease packets are waiting</h2>
-            <p className="mt-2 text-slate-600">Signed leases and new signature requests will appear here when your landlord shares them.</p>
+            <p className="mt-2 text-slate-600">Signed leases and new signature requests are shown here when your landlord shares them.</p>
           </div>
         ) : requests.map((request) => (
           <article key={request.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

@@ -107,7 +107,7 @@ export function VendorCenterView({ data, scope }: { data: VendorCenterData; scop
           <form action={createVendorProfile} className="mt-3 grid gap-2">
             <select name="vendorUserId" required className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
               <option value="">Select user account</option>
-              {data.vendorUsers.map((user) => <option key={user.id} value={user.id}>{user.name || user.email} · {user.vendorProfile?.companyName ?? formatVendorStatus(user.role)}</option>)}
+              {data.vendorUsers.map((user) => <option key={user.id} value={user.id}>{user.name || user.email} / {user.vendorProfile?.companyName ?? formatVendorStatus(user.role)}</option>)}
             </select>
             <div className="grid gap-2 sm:grid-cols-2">
               <input name="companyName" required placeholder="Company name" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
@@ -173,7 +173,7 @@ export function VendorCenterView({ data, scope }: { data: VendorCenterData; scop
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <p className="font-black text-slate-950">{invite.companyName}</p>
-                      <p className="text-xs font-semibold text-slate-600">{invite.trade} · {invite.contactName || invite.email}</p>
+                      <p className="text-xs font-semibold text-slate-600">{invite.trade} / {invite.contactName || invite.email}</p>
                     </div>
                     <StatusBadge tone={invite.status === "PENDING" ? "amber" : invite.status === "ACCEPTED" ? "green" : "slate"}>{formatVendorStatus(invite.status)}</StatusBadge>
                   </div>
@@ -192,7 +192,7 @@ export function VendorCenterView({ data, scope }: { data: VendorCenterData; scop
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="font-black text-slate-950">{profile.companyName}</p>
-                    <p className="text-xs font-semibold text-slate-600">{profile.trade} · {profile.user.name || profile.user.email}</p>
+                    <p className="text-xs font-semibold text-slate-600">{profile.trade} / {profile.user.name || profile.user.email}</p>
                   </div>
                   <div className="flex gap-1">{profile.isPreferred ? <StatusBadge tone="green">Preferred</StatusBadge> : null}<StatusBadge>{profile.isActive ? "Active" : "Inactive"}</StatusBadge></div>
                 </div>
@@ -216,7 +216,7 @@ export function VendorCenterView({ data, scope }: { data: VendorCenterData; scop
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="font-black text-slate-950">{job.subject}</p>
-                    <p className="text-xs text-slate-600">{rentalLabel(job.unit)} · {formatVendorStatus(job.priority)} priority</p>
+                    <p className="text-xs text-slate-600">{rentalLabel(job.unit)} / {formatVendorStatus(job.priority)} priority</p>
                   </div>
                   <StatusBadge tone={job.status === MaintenanceRequestStatus.COMPLETED ? "green" : job.status === MaintenanceRequestStatus.WAITING_ON_VENDOR ? "amber" : "blue"}>{formatVendorStatus(job.status)}</StatusBadge>
                 </div>
@@ -224,7 +224,7 @@ export function VendorCenterView({ data, scope }: { data: VendorCenterData; scop
                   <input type="hidden" name="maintenanceRequestId" value={job.id} />
                   <select name="vendorUserId" defaultValue={job.assignedTo?.id ?? ""} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
                     <option value="">Unassigned</option>
-                    {data.vendorUsers.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.vendorProfile?.companyName ?? vendor.name ?? vendor.email} · {vendor.email}</option>)}
+                    {data.vendorUsers.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.vendorProfile?.companyName ?? vendor.name ?? vendor.email} / {vendor.email}</option>)}
                   </select>
                   <button className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-black text-white hover:bg-slate-800" type="submit">Assign</button>
                 </form>
@@ -237,12 +237,12 @@ export function VendorCenterView({ data, scope }: { data: VendorCenterData; scop
         <AppCard>
           <SectionHeader title="Invoice review" detail={`${payoutEligibleInvoices.length} approved invoice${payoutEligibleInvoices.length === 1 ? "" : "s"} are payout eligible.`} count={data.invoices.length} />
           <div className="mt-3 space-y-2">
-            {data.invoices.length === 0 ? <EmptyState title="No vendor invoices" detail="Submitted vendor invoices will appear here for review and payout preparation." /> : data.invoices.map((invoice) => (
+            {data.invoices.length === 0 ? <EmptyState title="No vendor invoices" detail="Approved and submitted vendor invoices are listed here for review and payout preparation." /> : data.invoices.map((invoice) => (
               <div key={invoice.id} className="rounded-xl border border-slate-200 bg-white p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-black text-slate-950">{invoice.title}</p>
-                    <p className="text-xs text-slate-600">{invoice.vendor.name || invoice.vendor.email} · {rentalLabel(invoice.unit)}</p>
+                    <p className="text-xs text-slate-600">{invoice.vendor.name || invoice.vendor.email} / {rentalLabel(invoice.unit)}</p>
                   </div>
                   <p className="font-black text-slate-950">{formatCurrency(invoice.amount / 100)}</p>
                 </div>

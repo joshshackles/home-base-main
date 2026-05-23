@@ -8,10 +8,10 @@ export default function LoginPage({ searchParams }: { searchParams?: { error?: s
   return (
     <main id="main-content" className="mx-auto flex min-h-[calc(100vh-65px)] max-w-2xl items-center px-4 py-10">
       <div className="w-full rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <p className="font-bold uppercase tracking-[0.25em] text-brand-700">Login</p>
+        <p className="font-bold uppercase tracking-[0.25em] text-brand-700">Sign in</p>
         <h1 className="mt-2 text-3xl font-black text-slate-950">Sign in to HomeBase MLS</h1>
         <p className="mt-3 leading-7 text-slate-600">
-          Everyone starts with the applicant dashboard. Approved access adds landlord, staff, inspection, maintenance, or admin modules to the same workbench.
+          Access your saved homes, applications, tenant tools, landlord workspace, vendor jobs, inspections, or admin operations from one secure account.
         </p>
 
         {error ? (
@@ -33,7 +33,7 @@ export default function LoginPage({ searchParams }: { searchParams?: { error?: s
               className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
               name="email"
               type="email"
-              placeholder="admin@homebase.local"
+              placeholder="you@example.com"
               autoComplete="email"
               required
             />
@@ -44,7 +44,7 @@ export default function LoginPage({ searchParams }: { searchParams?: { error?: s
               className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
               name="password"
               type="password"
-              placeholder="Use the temporary seed password"
+              placeholder="Enter your password"
               autoComplete="current-password"
               required
             />
@@ -63,7 +63,7 @@ export default function LoginPage({ searchParams }: { searchParams?: { error?: s
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-lg font-black text-slate-950">Demo accounts</h2>
-              <p className="mt-1 text-sm leading-6 text-slate-600">Use one click to sign in with seeded test accounts. All demo accounts use <strong className="text-slate-900">{DEMO_PASSWORD}</strong>.</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">For demo environments, use one click to explore seeded role accounts. All demo accounts use <strong className="text-slate-900">{DEMO_PASSWORD}</strong>.</p>
             </div>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">

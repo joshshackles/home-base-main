@@ -58,7 +58,7 @@ export default async function LandlordMaintenancePage() {
       </section>
 
       <section className="space-y-4">
-        {requests.length === 0 ? <EmptyState title="No maintenance requests yet" detail="Tenant repair requests and landlord-created work orders will appear here. When a request arrives, assign it, set status, and keep messages in the thread." action={<a href="/landlord/rentals" className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white hover:bg-blue-700">Review Units</a>} /> : requests.map((request) => (
+        {requests.length === 0 ? <EmptyState title="No maintenance requests yet" detail="No repair work is open right now. Tenant requests and landlord-created work orders are listed here with assignment, status, and message context." action={<a href="/landlord/rentals" className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white hover:bg-blue-700">Review Units</a>} /> : requests.map((request) => (
           <article key={request.id} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>

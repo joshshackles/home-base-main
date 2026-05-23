@@ -11,7 +11,7 @@ function dotTone(tone: RoleDashboardActivity["tone"] = "slate") {
 }
 
 export function DashboardActivityFeed({ activity }: { activity: RoleDashboardActivity[] }) {
-  if (activity.length === 0) return <p className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">No recent activity yet. New messages, applications, maintenance updates, and system events will appear here when work starts.</p>;
+  if (activity.length === 0) return <p className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">No recent activity yet. As work moves forward, this feed will summarize the latest messages, applications, maintenance updates, and system events for your role.</p>;
 
   return (
     <div className="space-y-2">

@@ -56,10 +56,10 @@ export default async function ApplicantSignupPage({
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-brand-100 bg-brand-50 p-4">
               <UserRound size={20} className="text-brand-700" />
-              <p className="mt-3 font-black text-slate-950">Applicant base</p>
+              <p className="mt-3 font-black text-slate-950">Renter account</p>
               <p className="mt-1 text-sm leading-6 text-slate-600">
-                Profile, applications, saved rentals, messages, home tools, and
-                payments.
+                Search, saved rentals, renter profile, applications, documents,
+                messages, and lease-up tasks.
               </p>
             </div>
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
@@ -187,8 +187,8 @@ export default async function ApplicantSignupPage({
             </div>
           ) : null}
           <p className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600 md:col-span-2">
-            {passwordPolicyMessage()} Demo seed password:{" "}
-            <strong className="text-slate-900">{DEMO_PASSWORD}</strong>.
+            {passwordPolicyMessage()} Demo environments may use seeded accounts
+            with the demo password <strong className="text-slate-900">{DEMO_PASSWORD}</strong>.
           </p>
           <button className="rounded-2xl bg-brand-600 px-5 py-3 font-bold text-white hover:bg-brand-700 md:col-span-2">
             {invitation ? "Create Vendor Account" : "Create Account"}

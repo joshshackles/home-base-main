@@ -62,12 +62,12 @@ export function VendorPortalView({ data, active = "overview" }: { data: VendorPo
         <AppCard>
           <SectionHeader title="Assigned jobs" detail="Update arrival, blocked, on-site, and completion states from the field." count={data.jobs.length} />
           <div className="mt-3 space-y-2">
-            {data.jobs.length === 0 ? <EmptyState title="No assigned jobs" detail="When a landlord or admin assigns you to maintenance work, it will appear here." /> : data.jobs.map((job) => (
+            {data.jobs.length === 0 ? <EmptyState title="No assigned jobs" detail="You are clear for now. Assigned repair jobs are listed here with access notes, status updates, photos, estimates, and invoices." /> : data.jobs.map((job) => (
               <div key={job.id} className="rounded-xl border border-slate-200 bg-white p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="font-black text-slate-950">{job.subject}</p>
-                    <p className="text-xs text-slate-600">{rentalLabel(job.unit)} · requested by {job.requester.name || job.requester.email}</p>
+                    <p className="text-xs text-slate-600">{rentalLabel(job.unit)} / requested by {job.requester.name || job.requester.email}</p>
                   </div>
                   <StatusBadge tone={job.status === MaintenanceRequestStatus.COMPLETED ? "green" : job.status === MaintenanceRequestStatus.WAITING_ON_VENDOR ? "amber" : "blue"}>{formatVendorStatus(job.status)}</StatusBadge>
                 </div>
@@ -126,7 +126,7 @@ export function VendorPortalView({ data, active = "overview" }: { data: VendorPo
           <form action={createVendorInvoice} className="mt-3 grid gap-2">
             <select name="maintenanceRequestId" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
               <option value="">General invoice</option>
-              {data.jobs.map((job) => <option key={job.id} value={job.id}>{job.subject} · {rentalLabel(job.unit)}</option>)}
+              {data.jobs.map((job) => <option key={job.id} value={job.id}>{job.subject} / {rentalLabel(job.unit)}</option>)}
             </select>
             <div className="grid gap-2 sm:grid-cols-2">
               <input name="invoiceNumber" placeholder="Invoice #" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
@@ -164,7 +164,7 @@ export function VendorPortalView({ data, active = "overview" }: { data: VendorPo
       <AppCard className="mt-4">
         <SectionHeader title="Photo updates" detail="Recent uploaded field proof and before/after documentation." count={data.photos.length} />
         <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-          {data.photos.length === 0 ? <div className="md:col-span-2 xl:col-span-4"><EmptyState title="No field photos yet" detail="Upload a job photo from mobile field mode." /></div> : data.photos.map((photo) => (
+          {data.photos.length === 0 ? <div className="md:col-span-2 xl:col-span-4"><EmptyState title="No field photos yet" detail="Upload photos from an assigned job to document before, during, or after repair work." /></div> : data.photos.map((photo) => (
             <a key={photo.id} href={`/api/documents/${photo.id}`} className="rounded-xl border border-slate-200 bg-white p-3 hover:bg-slate-50">
               <p className="font-black text-slate-950">{photo.title}</p>
               <p className="mt-1 text-xs text-slate-600">{rentalLabel(photo.unit)} - {photo.createdAt.toLocaleDateString()}</p>

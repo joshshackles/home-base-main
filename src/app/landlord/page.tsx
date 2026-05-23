@@ -247,14 +247,14 @@ export default async function LandlordDashboardPage() {
                 <AttentionRow key={unit.id} icon={<ShieldAlert size={17} />} title={`${unit.property.name} #${unit.unitNumber} listing needs work`} detail={missingListingCopy(unit)} meta={label(unit.marketingStatus)} href={`/landlord/rentals/${unit.id}/edit`} cta="Fix listing" tone="rose" />
               ))}
               {newLeads.length === 0 && recentApplications.length === 0 && incompleteUnits.length === 0 ? (
-                <EmptyState title="No urgent landlord work" detail="Messages, applications, and listing issues will appear here as soon as they need attention." />
+                <EmptyState title="No urgent landlord work" detail="You are clear for now. New messages, submitted applications, listing issues, lease tasks, and maintenance items are summarized here when they need action." />
               ) : null}
             </div>
           </Panel>
 
           <Panel title="Recent messages and questions" detail="Threads are linked to the relevant application, repair, property, or unit." actionHref="/landlord/inbox" actionLabel="Open inbox">
             <div className="space-y-3">
-              {recentThreads.length === 0 ? <EmptyState title="No message threads yet" detail="Applicant and maintenance conversations will show here when renters write in." /> : recentThreads.map((thread) => {
+              {recentThreads.length === 0 ? <EmptyState title="No message threads yet" detail="Applicant and maintenance conversations are listed here after renters or tenants write in." /> : recentThreads.map((thread) => {
                 const last = thread.messages[0];
                 const relatedUnit = thread.application?.unit ?? thread.maintenanceRequest?.unit;
                 const unread = last && last.senderId !== user.userId && !last.readByStaffAt;
@@ -286,7 +286,7 @@ export default async function LandlordDashboardPage() {
               ))}
             </div>
             <div className="overflow-hidden rounded-2xl border border-slate-200">
-              {recentApplications.length === 0 ? <EmptyState title="No active applications" detail="When an applicant starts or submits a packet, it will appear in this review queue." /> : recentApplications.map((application) => (
+              {recentApplications.length === 0 ? <EmptyState title="No active applications" detail="No renter applications are active right now. New packets are listed here with unit, signature, document, and message context." /> : recentApplications.map((application) => (
                 <Link key={application.id} href={`/landlord/applications/${application.id}`} className="grid gap-3 border-b border-slate-100 bg-white p-4 last:border-b-0 hover:bg-slate-50 md:grid-cols-[1fr_auto] md:items-center">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -339,7 +339,7 @@ export default async function LandlordDashboardPage() {
 
           <Panel title="Units needing action" detail="Draft, vacant, incomplete, active-lead, application, and maintenance signals." actionHref="/landlord/units" actionLabel="All units">
             <div className="space-y-2">
-              {unitsNeedingAction.length === 0 ? <EmptyState title="Unit health looks good" detail="Listings, vacancies, and rental work will appear here when action is needed." /> : unitsNeedingAction.map((unit) => (
+              {unitsNeedingAction.length === 0 ? <EmptyState title="Unit health looks good" detail="Listings, vacancies, applications, leads, and repair items are clear right now." /> : unitsNeedingAction.map((unit) => (
                 <Link key={unit.id} href={`/landlord/rentals/${unit.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50 p-3 hover:bg-white">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -358,7 +358,7 @@ export default async function LandlordDashboardPage() {
         <section className="mt-4 grid gap-4 xl:grid-cols-2">
           <Panel title="Tasks, leases, and documents" detail="Upcoming operational work connected to units and applications." actionHref="/landlord/tasks" actionLabel="Task queue">
             <div className="space-y-2">
-              {openTasks.length === 0 ? <EmptyState title="No open landlord tasks" detail="Lease, document, collection, and move-in work will appear here." /> : openTasks.map((task) => (
+              {openTasks.length === 0 ? <EmptyState title="No open landlord tasks" detail="Lease, document, collection, move-in, and follow-up tasks are clear right now." /> : openTasks.map((task) => (
                 <Link key={task.id} href="/landlord/tasks" className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 hover:bg-white sm:grid-cols-[1fr_auto]">
                   <div>
                     <p className="font-black text-slate-950">{task.title}</p>
@@ -372,7 +372,7 @@ export default async function LandlordDashboardPage() {
 
           <Panel title="Maintenance snapshot" detail="Open work orders with property context and priority." actionHref="/landlord/maintenance" actionLabel="Maintenance">
             <div className="space-y-2">
-              {maintenanceRequests.length === 0 ? <EmptyState title="No open maintenance" detail="Repair requests will show here with unit, status, and next step." /> : maintenanceRequests.map((request) => (
+              {maintenanceRequests.length === 0 ? <EmptyState title="No open maintenance" detail="Open repair requests are listed here with unit, status, and next step." /> : maintenanceRequests.map((request) => (
                 <Link key={request.id} href="/landlord/maintenance" className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 hover:bg-white sm:grid-cols-[1fr_auto]">
                   <div>
                     <p className="font-black text-slate-950">{request.subject}</p>

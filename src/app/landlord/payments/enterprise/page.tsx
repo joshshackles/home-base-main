@@ -58,7 +58,7 @@ export default async function EnterpriseFinancePage({ searchParams }: { searchPa
             <button className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-black text-white">Create</button>
           </form>
           <div className="mt-3 divide-y divide-slate-100">
-            {center.vendorPayouts.map((payout) => <div key={payout.id} className="flex items-center justify-between gap-3 py-2 text-sm"><div><p className="font-black text-slate-900">{formatCurrency(payout.amount)} · {payout.status.replaceAll("_", " ")}</p><p className="text-xs font-semibold text-slate-500">{payout.description} · <UnitLabel item={payout.unit} /></p></div>{payout.status === "APPROVAL_REQUIRED" || payout.status === "DRAFT" ? <form action={approveVendorPayoutAction}><input type="hidden" name="id" value={payout.id} /><button className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-black">Approve</button></form> : null}</div>)}
+            {center.vendorPayouts.map((payout) => <div key={payout.id} className="flex items-center justify-between gap-3 py-2 text-sm"><div><p className="font-black text-slate-900">{formatCurrency(payout.amount)} / {payout.status.replaceAll("_", " ")}</p><p className="text-xs font-semibold text-slate-500">{payout.description} / <UnitLabel item={payout.unit} /></p></div>{payout.status === "APPROVAL_REQUIRED" || payout.status === "DRAFT" ? <form action={approveVendorPayoutAction}><input type="hidden" name="id" value={payout.id} /><button className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-black">Approve</button></form> : null}</div>)}
           </div>
         </Card>
 
@@ -71,14 +71,14 @@ export default async function EnterpriseFinancePage({ searchParams }: { searchPa
             <button className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-black text-white">Track</button>
           </form>
           <div className="mt-3 divide-y divide-slate-100">
-            {center.deposits.map((deposit) => <div key={deposit.id} className="grid gap-2 py-2 text-sm md:grid-cols-[1fr_auto]"><div><p className="font-black text-slate-900"><UnitLabel item={deposit.unit} /> · {deposit.status.replaceAll("_", " ")}</p><p className="text-xs font-semibold text-slate-500">Held {formatCurrency(deposit.amountHeld)} · Released {formatCurrency(deposit.amountReleased)} · Deductions {formatCurrency(deposit.deductions)}</p></div><form action={reconcileSecurityDepositAction} className="flex flex-wrap gap-1"><input type="hidden" name="id" value={deposit.id} /><input name="amountReleased" type="number" min="0" step="0.01" placeholder="Release" className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold" /><input name="deductions" type="number" min="0" step="0.01" placeholder="Deduct" className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold" /><button className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-black">Update</button></form></div>)}
+            {center.deposits.map((deposit) => <div key={deposit.id} className="grid gap-2 py-2 text-sm md:grid-cols-[1fr_auto]"><div><p className="font-black text-slate-900"><UnitLabel item={deposit.unit} /> / {deposit.status.replaceAll("_", " ")}</p><p className="text-xs font-semibold text-slate-500">Held {formatCurrency(deposit.amountHeld)} / Released {formatCurrency(deposit.amountReleased)} / Deductions {formatCurrency(deposit.deductions)}</p></div><form action={reconcileSecurityDepositAction} className="flex flex-wrap gap-1"><input type="hidden" name="id" value={deposit.id} /><input name="amountReleased" type="number" min="0" step="0.01" placeholder="Release" className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold" /><input name="deductions" type="number" min="0" step="0.01" placeholder="Deduct" className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold" /><button className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-black">Update</button></form></div>)}
           </div>
         </Card>
       </section>
 
       <section className="mt-3 grid gap-3 lg:grid-cols-3">
         <Card title="Dispute center">
-          <div className="divide-y divide-slate-100">{center.disputes.map((dispute) => <div key={dispute.id} className="py-2 text-sm"><p className="font-black text-slate-900">{formatCurrency(dispute.amount)} · {dispute.status.replaceAll("_", " ")}</p><p className="text-xs font-semibold text-slate-500">{dispute.reason ?? "No reason provided"} · <UnitLabel item={dispute.unit} /></p></div>)}</div>
+          <div className="divide-y divide-slate-100">{center.disputes.map((dispute) => <div key={dispute.id} className="py-2 text-sm"><p className="font-black text-slate-900">{formatCurrency(dispute.amount)} / {dispute.status.replaceAll("_", " ")}</p><p className="text-xs font-semibold text-slate-500">{dispute.reason ?? "No reason provided"} / <UnitLabel item={dispute.unit} /></p></div>)}</div>
         </Card>
         <Card title="Accounting exports">
           <form action={generateAccountingExportAction} className="grid gap-2">
@@ -86,18 +86,18 @@ export default async function EnterpriseFinancePage({ searchParams }: { searchPa
             <select name="type" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"><option value="QUICKBOOKS_CSV">QuickBooks CSV</option><option value="XERO_CSV">Xero CSV</option><option value="OWNER_STATEMENT_CSV">Owner statement CSV</option><option value="PORTFOLIO_SUMMARY_CSV">Portfolio summary CSV</option></select>
             <button className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-black text-white">Generate export record</button>
           </form>
-          <div className="mt-3 divide-y divide-slate-100">{center.exports.map((item) => <p key={item.id} className="py-2 text-xs font-bold text-slate-600">{item.fileName} · {item.rowCount} rows · {formatCurrency(item.totalAmount)}</p>)}</div>
+          <div className="mt-3 divide-y divide-slate-100">{center.exports.map((item) => <p key={item.id} className="py-2 text-xs font-bold text-slate-600">{item.fileName} / {item.rowCount} rows / {formatCurrency(item.totalAmount)}</p>)}</div>
         </Card>
-        <Card title="Credit reporting scaffold">
+        <Card title="Credit reporting readiness">
           <form action={generateCreditReportingRecordsAction} className="grid gap-2"><input name="month" type="month" defaultValue={center.month} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold" /><button className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-black text-white">Generate reporting records</button></form>
-          <div className="mt-3 divide-y divide-slate-100">{center.creditRecords.map((record) => <p key={record.id} className="py-2 text-xs font-bold text-slate-600">{record.period} · {record.status} · {formatCurrency(record.amountDue)} · {record.paidOnTime ? "On-time" : "Review"}</p>)}</div>
+          <div className="mt-3 divide-y divide-slate-100">{center.creditRecords.map((record) => <p key={record.id} className="py-2 text-xs font-bold text-slate-600">{record.period} / {record.status} / {formatCurrency(record.amountDue)} / {record.paidOnTime ? "On-time" : "Review"}</p>)}</div>
         </Card>
       </section>
 
       <section className="mt-3 grid gap-3 lg:grid-cols-[1fr_2fr]">
         <Card title="AI-style risk insights"><form action={refreshFinancialInsightsAction}><button className="rounded-xl bg-brand-600 px-3 py-2 text-sm font-black text-white">Refresh insights</button></form></Card>
         <Card title="Latest portfolio intelligence">
-          <div className="grid gap-2 md:grid-cols-2">{center.insights.map((insight) => <div key={insight.id} className="rounded-xl bg-slate-50 p-3 text-sm"><p className="font-black text-slate-950">{insight.riskLevel} risk · score {insight.score}</p><p className="mt-1 text-xs font-semibold text-slate-600">{insight.recommendation}</p></div>)}</div>
+          <div className="grid gap-2 md:grid-cols-2">{center.insights.map((insight) => <div key={insight.id} className="rounded-xl bg-slate-50 p-3 text-sm"><p className="font-black text-slate-950">{insight.riskLevel} risk / score {insight.score}</p><p className="mt-1 text-xs font-semibold text-slate-600">{insight.recommendation}</p></div>)}</div>
         </Card>
       </section>
     </main>

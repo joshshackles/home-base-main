@@ -18,7 +18,7 @@ const completed = [
 ];
 
 const remaining = [
-  "Consider replacing the local auth scaffold with Clerk, Auth.js, or Supabase Auth if this becomes a public SaaS product.",
+  "Consider replacing local username/password authentication with Clerk, Auth.js, or Supabase Auth if this becomes a public SaaS product.",
   "Move the in-memory rate-limit fallback to Redis or another persistent store before deploying on serverless infrastructure."
 ];
 

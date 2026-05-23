@@ -52,7 +52,7 @@ assertIncludes("src/app/admin/layout.tsx", [
 assertIncludes("src/components/admin/AdminCommandCenter.tsx", [
   "function OperationsDirectory",
   "Authoritative operations map",
-  "Everything operational starts here.",
+  "Start with the highest-risk operational queues.",
   "id=\"operations-directory\"",
   "id=\"access-requests\"",
   "id=\"data-quality\"",
@@ -70,7 +70,7 @@ assertIncludes("src/app/marketplace/page.tsx", [
   "name=\"availableBy\"",
   "aria-label=\"Availability date\"",
   "Voucher-friendly",
-  "Pet notes",
+  "Pet-friendly",
   "Utilities noted",
   "Available now",
   "Lowest rent",

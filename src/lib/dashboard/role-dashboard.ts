@@ -227,7 +227,7 @@ async function buildApplicantDashboard(user: SessionPayload, access: DashboardAc
       tone: application.status === "SUBMITTED" ? "blue" : "slate"
     })),
     access,
-    emptyState: { title: "Start by searching available homes", detail: "Saved homes, applications, document requests, and messages will appear here once you begin your housing journey.", href: "/marketplace", cta: "Search rentals" }
+    emptyState: { title: "Start by searching available homes", detail: "Use the marketplace to save homes, start an application, upload requested documents, and begin conversations with rental teams.", href: "/marketplace", cta: "Search rentals" }
   });
 }
 
@@ -263,7 +263,7 @@ async function buildTenantDashboard(user: SessionPayload, access: DashboardAcces
       ],
       activity: [],
       access,
-      emptyState: { title: "No active tenancy is connected", detail: "When a lease or move-in record is active, rent, maintenance, inspections, and notices will appear here.", href: "/marketplace", cta: "Search rentals" }
+      emptyState: { title: "No active tenancy is connected", detail: "When a lease or move-in record is connected, this dashboard will organize rent, maintenance, inspections, notices, documents, and messages.", href: "/marketplace", cta: "Search rentals" }
     });
   }
 
@@ -312,7 +312,7 @@ async function buildTenantDashboard(user: SessionPayload, access: DashboardAcces
       tone: "green"
     })),
     access,
-    emptyState: { title: "No active tenancy is connected", detail: "When a lease or move-in record is active, rent, maintenance, inspections, and notices will appear here.", href: "/marketplace", cta: "Search rentals" }
+    emptyState: { title: "No active tenancy is connected", detail: "When a lease or move-in record is connected, this dashboard will organize rent, maintenance, inspections, notices, documents, and messages.", href: "/marketplace", cta: "Search rentals" }
   });
 }
 
@@ -415,7 +415,7 @@ async function buildInspectorDashboard(user: SessionPayload, access: DashboardAc
       tone: inspection.status === "FAILED" || inspection.status === "NEEDS_REINSPECTION" ? "red" : "blue"
     })),
     access,
-    emptyState: { title: "No inspections are assigned right now", detail: "Assigned inspections, failed inspections, and reports due will appear here when they are connected to your account.", href: "/dashboard", cta: "Back to dashboard" }
+    emptyState: { title: "No inspections are assigned right now", detail: "You are clear for now. New assignments, failed inspections, and reports due are listed here when they are connected to your account.", href: "/dashboard", cta: "Back to dashboard" }
   });
 }
 
@@ -454,7 +454,7 @@ async function buildVendorDashboard(user: SessionPayload, access: DashboardAcces
       tone: job.status === "WAITING_ON_VENDOR" ? "amber" : "slate"
     })),
     access,
-    emptyState: { title: "No assigned jobs are waiting", detail: "Assigned work orders, invoices, and field updates will appear here when a landlord connects work to your vendor account.", href: "/vendor/jobs", cta: "Open jobs" }
+    emptyState: { title: "No assigned jobs are waiting", detail: "You are clear for now. New work orders, invoices, and field updates are listed here when a landlord connects work to your vendor account.", href: "/vendor/jobs", cta: "Open jobs" }
   });
 }
 
@@ -506,7 +506,7 @@ async function buildAdminDashboard(user: SessionPayload, access: DashboardAccess
       tone: "amber"
     })),
     access,
-    emptyState: { title: "No urgent platform issues detected", detail: "Access requests, security events, blocked workflows, and operational queue issues will appear here.", href: "/admin/operations", cta: "Open operations" }
+    emptyState: { title: "No urgent platform issues detected", detail: "Access requests, security events, blocked workflows, and queue exceptions are clear right now. Use operations for deeper review.", href: "/admin/operations", cta: "Open operations" }
   });
 }
 

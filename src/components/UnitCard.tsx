@@ -115,7 +115,7 @@ export function UnitCard({
   const summary =
     unit.marketingHighlights ||
     unit.description ||
-    "Available rental with application, inquiry, and saved-favorite workflow.";
+    "Review photos, rent, policies, location details, and next steps for this rental.";
 
   return (
     <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg">
@@ -176,7 +176,7 @@ export function UnitCard({
             </p>
             <p className="mt-1 text-[11px] font-semibold text-slate-500">
               /mo
-              {unit.deposit ? ` • ${formatCurrency(unit.deposit)} deposit` : ""}
+              {unit.deposit ? ` / ${formatCurrency(unit.deposit)} deposit` : ""}
             </p>
           </div>
           {canFavorite ? (
@@ -252,7 +252,7 @@ export function UnitCard({
 
         <div className="mt-3 flex min-h-7 flex-wrap gap-1.5">
           {features.length === 0 ? (
-            <Feature icon={<Sparkles size={12} />} label="Fresh listing" />
+            <Feature icon={<Sparkles size={12} />} label="New listing" />
           ) : null}
           {unit.voucherFriendly ? (
             <Feature
@@ -284,7 +284,7 @@ export function UnitCard({
             href={`/marketplace/${unit.id}`}
             className="rounded-xl bg-slate-950 px-3 py-2 text-center text-sm font-black text-white shadow-sm hover:bg-slate-800"
           >
-            Details
+            View details
           </Link>
           <Link
             href={`/marketplace/${unit.id}#interest`}

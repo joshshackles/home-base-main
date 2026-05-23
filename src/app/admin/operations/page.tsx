@@ -29,19 +29,19 @@ export default async function AdminOperationsPage({ searchParams }: { searchPara
       <AdminPageHeader
         eyebrow="Operational intelligence"
         title="Admin operations control center"
-        description="Monitor deployment readiness, health snapshots, operational alerts, queue activity, automation scaffolds, backup freshness, and analytics capture from one control plane."
+        description="Monitor deployment readiness, health snapshots, operational alerts, queue activity, automation rules, backup freshness, and analytics capture from one admin operations view."
       />
 
       {searchParams?.synced ? <p className="mb-4 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Readiness alerts synced and a health snapshot was captured.</p> : null}
       {searchParams?.health ? <p className="mb-4 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">System health snapshot captured.</p> : null}
-      {searchParams?.rules ? <p className="mb-4 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Default automation rule scaffolds are ready.</p> : null}
+      {searchParams?.rules ? <p className="mb-4 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Default automation rule templates are ready.</p> : null}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <OpsMetric label="Readiness" value={`${metrics.readinessScore}%`} detail="Environment and infrastructure" tone={metrics.readinessScore >= 85 ? "success" : metrics.readinessScore >= 65 ? "warning" : "danger"} />
         <OpsMetric label="Health score" value={metrics.latestHealthScore} detail="Latest captured snapshot" tone={metrics.latestHealthScore >= 85 ? "success" : metrics.latestHealthScore >= 65 ? "warning" : "danger"} />
         <OpsMetric label="Open alerts" value={metrics.openAlertCount} detail={`${metrics.criticalAlertCount} critical`} tone={metrics.criticalAlertCount > 0 ? "danger" : metrics.openAlertCount > 0 ? "warning" : "success"} />
         <OpsMetric label="Queue issues" value={metrics.failedJobCount} detail="Failed or retrying jobs" tone={metrics.failedJobCount > 0 ? "danger" : "success"} />
-        <OpsMetric label="Automations" value={metrics.activeAutomationCount} detail="Active rule scaffolds" />
+        <OpsMetric label="Automations" value={metrics.activeAutomationCount} detail="Active rule templates" />
       </section>
 
       <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
@@ -64,7 +64,7 @@ export default async function AdminOperationsPage({ searchParams }: { searchPara
                   <div className="min-w-0">
                     <h3 className="text-sm font-black text-slate-950">{check.label}</h3>
                     <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{check.detail}</p>
-                    {check.actionHref ? <Link href={check.actionHref} className="mt-2 inline-flex text-xs font-black text-brand-700 hover:text-brand-900">{check.actionLabel || "Open"} →</Link> : null}
+                    {check.actionHref ? <Link href={check.actionHref} className="mt-2 inline-flex text-xs font-black text-brand-700 hover:text-brand-900">{check.actionLabel || "Open"} {"->"}</Link> : null}
                   </div>
                 </div>
               </div>
@@ -89,7 +89,7 @@ export default async function AdminOperationsPage({ searchParams }: { searchPara
             <form action={seedAutomationRulesAction}>
               <button className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-brand-200 hover:bg-white hover:shadow-sm">
                 <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-brand-700 shadow-sm"><Bot size={18} /></span>
-                <span><span className="block text-sm font-black text-slate-950">Seed automation scaffolds</span><span className="block text-xs font-semibold leading-5 text-slate-600">Create default alert/monitoring rule templates.</span></span>
+                <span><span className="block text-sm font-black text-slate-950">Seed automation rules</span><span className="block text-xs font-semibold leading-5 text-slate-600">Create default alert and monitoring rule templates.</span></span>
               </button>
             </form>
           </div>
@@ -129,12 +129,12 @@ export default async function AdminOperationsPage({ searchParams }: { searchPara
       </section>
 
       <section className="mt-5 grid gap-5 lg:grid-cols-2">
-        <OpsPanel title="Automation rules" eyebrow="Scaffolds">
+        <OpsPanel title="Automation rules" eyebrow="Rule templates">
           <div className="space-y-3">
-            {summary.automationRules.length === 0 ? <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-600">No automation scaffolds yet. Seed the recommended rules above to prepare alert routing and operational workflow automation.</p> : summary.automationRules.map((rule) => (
+            {summary.automationRules.length === 0 ? <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-600">No automation rules yet. Create the recommended templates above to prepare alert routing and operational workflow automation.</p> : summary.automationRules.map((rule) => (
               <div key={rule.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-black text-slate-950">{rule.name}</h3><p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{rule.description || "No description yet."}</p></div><span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-slate-600">{rule.status}</span></div>
-                <p className="mt-2 text-xs font-mono text-slate-500">{rule.trigger} → {rule.action}</p>
+                <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-black text-slate-950">{rule.name}</h3><p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{rule.description || "No rule description provided."}</p></div><span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-slate-600">{rule.status}</span></div>
+                <p className="mt-2 text-xs font-mono text-slate-500">{rule.trigger} {"->"} {rule.action}</p>
               </div>
             ))}
           </div>

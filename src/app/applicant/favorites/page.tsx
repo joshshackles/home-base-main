@@ -73,7 +73,7 @@ export default async function ApplicantFavoritesPage({ searchParams }: { searchP
               </div>
             </article>
           )) : (
-            <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-600 sm:col-span-2 lg:col-span-4">Saved searches will appear here after you save filters from the marketplace.</p>
+            <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-600 sm:col-span-2 lg:col-span-4">Saved searches are listed here after you save filters from the marketplace.</p>
           )}
         </div>
       </section>

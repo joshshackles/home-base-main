@@ -29,7 +29,7 @@ export default async function TenantLeasePage() {
         {occupancies.length === 0 ? (
           <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
             <h2 className="text-2xl font-black text-slate-950">No active tenancy is connected yet</h2>
-            <p className="mt-2 text-slate-600">Once your landlord activates your tenancy, your unit, lease dates, documents, rent, and maintenance shortcuts will appear here.</p>
+            <p className="mt-2 text-slate-600">When your tenancy is active, this page shows your unit, lease dates, documents, rent links, and maintenance shortcuts.</p>
           </div>
         ) : occupancies.map((occupancy) => (
           <article key={occupancy.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

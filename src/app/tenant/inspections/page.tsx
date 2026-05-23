@@ -40,7 +40,7 @@ export default async function TenantInspectionsPage() {
         {inspections.length === 0 ? (
           <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
             <h2 className="text-2xl font-black text-slate-950">No inspections scheduled</h2>
-            <p className="mt-2 text-slate-600">Upcoming inspection appointments and completed inspection results will appear here.</p>
+            <p className="mt-2 text-slate-600">Scheduled inspections and completed results are shown here when they are connected to your home.</p>
           </div>
         ) : null}
       </div>

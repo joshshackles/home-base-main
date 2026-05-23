@@ -65,7 +65,7 @@ export default async function LandlordApplicationsPage() {
             <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
               <ClipboardList className="mx-auto text-slate-400" size={34} />
               <h3 className="mt-3 text-xl font-black text-slate-950">No applications yet</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">When renters apply from the marketplace, their packet, messages, documents, and unit context will appear here.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">No renter applications are active right now. New marketplace applications are listed here with packet, document, message, and unit context.</p>
               <Link href="/landlord/rentals" className="mt-4 inline-flex rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white hover:bg-blue-700">Check listing health</Link>
             </div>
           ) : applications.map((application) => {

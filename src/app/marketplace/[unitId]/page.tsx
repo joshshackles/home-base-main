@@ -162,7 +162,7 @@ export default async function UnitDetailPage({
                   </h1>
                   <p className="mt-2 flex flex-wrap items-center gap-2 text-sm font-bold text-slate-200">
                     <MapPin size={16} /> {publicLocation}
-                    <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] uppercase tracking-wide text-slate-100">Exact address shared after landlord contact or application authorization</span>
+                    <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] uppercase tracking-wide text-slate-100">Exact address shared only when the rental team allows it</span>
                   </p>
                 </div>
               </div>
@@ -223,7 +223,7 @@ export default async function UnitDetailPage({
                   Rental overview
                 </p>
                 <h2 className="mt-1 text-2xl font-black text-slate-950">
-                  Everything renters need up front
+                  Key details for your next step
                 </h2>
               </div>
               <Link
@@ -237,7 +237,7 @@ export default async function UnitDetailPage({
             <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-600">
               {unit.marketingHighlights ||
                 unit.description ||
-                "This available rental is ready for inquiries. Details below are organized for fast scanning and application decisions."}
+                "Review the rental basics, monthly costs, policies, and location details before you ask a question or apply."}
             </p>
             <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               <InfoPill
@@ -273,18 +273,18 @@ export default async function UnitDetailPage({
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-black uppercase tracking-wide text-slate-500">Listing readiness</p>
-                <h2 className="mt-1 text-xl font-black text-slate-950">Quality and privacy checks</h2>
-                <p className="mt-1 text-sm leading-6 text-slate-600">HomeBase publishes only active, available rentals with usable marketplace detail. Public pages show area-level location first, while exact address handling stays inside landlord/applicant workflows.</p>
+                <p className="text-xs font-black uppercase tracking-wide text-slate-500">Listing confidence</p>
+                <h2 className="mt-1 text-xl font-black text-slate-950">Marketplace detail and address privacy</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-600">This listing is active and available. HomeBase shows public location information first and keeps exact address details controlled by the rental team.</p>
               </div>
               <Badge tone={qualityScore >= 75 ? "blue" : "dark"}>{qualityScore}% complete</Badge>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {qualityGaps.length === 0 ? (
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black uppercase text-emerald-700">No major gaps</span>
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black uppercase text-emerald-700">Key details provided</span>
               ) : (
                 qualityGaps.slice(0, 6).map((gap) => (
-                  <span key={gap} className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black uppercase text-amber-800">Missing {gap}</span>
+                  <span key={gap} className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black uppercase text-amber-800">Ask about {gap}</span>
                 ))
               )}
             </div>
@@ -295,7 +295,7 @@ export default async function UnitDetailPage({
               <FeatureBlock
                 icon={<ShieldCheck size={18} />}
                 title="Voucher-friendly"
-                value="This rental has been marked as voucher-friendly by the administrator."
+                value="This rental has been marked as voucher-friendly by the rental team."
               />
             ) : null}
             <FeatureBlock
@@ -304,7 +304,7 @@ export default async function UnitDetailPage({
               value={
                 unit.neighborhood ||
                 unit.nearbyFeatures ||
-                "Neighborhood details have not been added yet."
+                "Ask the rental team for neighborhood, commute, or nearby-service details."
               }
             />
             <FeatureBlock
@@ -313,7 +313,7 @@ export default async function UnitDetailPage({
               value={
                 unit.leaseTermsNote ||
                 unit.moveInFeesNote ||
-                "Lease and move-in fee details have not been added yet."
+                "Ask the rental team to confirm lease terms and any move-in fees before applying."
               }
             />
             <FeatureBlock
@@ -330,7 +330,7 @@ export default async function UnitDetailPage({
                 ]
                   .filter(Boolean)
                   .join(" / ") ||
-                "Additional home details have not been added yet."
+                "Ask the rental team for additional home details that matter to your household."
               }
             />
           </section>
@@ -438,7 +438,7 @@ export default async function UnitDetailPage({
                           name="message"
                           rows={3}
                           className="rounded-xl border border-blue-200 px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                          placeholder="Optional note for the rental team..."
+                          placeholder="Share move-in timing, household needs, or questions for the rental team."
                         />
                         <button
                           type="submit"
@@ -488,7 +488,7 @@ export default async function UnitDetailPage({
                   name="notes"
                   rows={2}
                   className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                  placeholder="Why this home is worth keeping..."
+                  placeholder="Add private notes about fit, commute, questions, or tour impressions."
                 />
                 <button
                   type="submit"
@@ -591,7 +591,7 @@ export default async function UnitDetailPage({
                   </label>
                   <label className="grid gap-1 text-xs font-black text-slate-700">
                     Pets
-                    <input name="pets" className={inputClass} placeholder="None" />
+                    <input name="pets" className={inputClass} placeholder="No pets, cat, small dog..." />
                   </label>
                 </div>
                 <label className="grid gap-1 text-xs font-black text-slate-700">
@@ -599,7 +599,7 @@ export default async function UnitDetailPage({
                   <textarea
                     name="message"
                     className={textareaClass}
-                    placeholder="I am interested in this rental and would like more information."
+                    placeholder="Tell the rental team what you would like to know, such as tour times, availability, utilities, or move-in timing."
                   />
                 </label>
                 <button

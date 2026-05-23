@@ -60,7 +60,7 @@ export default async function TenantMaintenancePage() {
           {requests.length === 0 ? (
             <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
               <h3 className="text-xl font-black text-slate-950">No maintenance requests yet</h3>
-              <p className="mt-2 text-slate-600">When something needs attention in your home, submit a request and updates will appear here.</p>
+              <p className="mt-2 text-slate-600">Submit a request when something needs attention in your home. Status updates and messages are kept with the request.</p>
             </div>
           ) : requests.map((request) => (
             <article key={request.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

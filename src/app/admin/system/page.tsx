@@ -58,7 +58,7 @@ export default async function SystemStatusPage({ searchParams }: { searchParams?
         <Link href="/admin/operations" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:bg-slate-50">
           <Activity className="text-brand-700" size={24} />
           <h2 className="mt-3 text-lg font-black text-slate-950">Operations center</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">Monitor readiness, alerts, queue jobs, automation scaffolds, and health snapshots.</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Monitor readiness, alerts, queue jobs, automation rules, and health snapshots.</p>
         </Link>
         <Link href="/admin/workflow-proof" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-200 hover:bg-slate-50">
           <ShieldCheck className="text-brand-700" size={24} />

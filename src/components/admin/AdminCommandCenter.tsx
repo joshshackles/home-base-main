@@ -59,7 +59,7 @@ function AccessRequestsPanel({ model }: { model: AdminCommandCenterModel }) {
   return (
     <OpsPanel title="Access Requests" eyebrow="Permission queue">
       {model.accessRequests.length === 0 ? (
-        <EmptyState title="No pending access requests" detail="New landlord, vendor, inspector, admin, and super-user requests will appear here for review." />
+        <EmptyState title="Access requests are clear" detail="New role or account-access requests are listed here for admin review." />
       ) : (
         <div className="space-y-3">
           {model.accessRequests.map((request) => {
@@ -188,7 +188,7 @@ function SecurityPanel({ model }: { model: AdminCommandCenterModel }) {
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-3">
           <h3 className="text-sm font-black uppercase text-slate-500">Recent security events</h3>
-          {model.securityAlerts.length === 0 ? <EmptyState title="No security events" detail="Security event logging is connected. Recent events will appear here." /> : model.securityAlerts.map((event) => (
+          {model.securityAlerts.length === 0 ? <EmptyState title="No security events in this view" detail="Recent security alerts are listed here when the audit stream records a relevant event." /> : model.securityAlerts.map((event) => (
             <div key={event.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
               <div className="flex items-start gap-3">
                 <ShieldAlert size={17} className="mt-0.5 text-amber-600" />
@@ -203,7 +203,7 @@ function SecurityPanel({ model }: { model: AdminCommandCenterModel }) {
         </div>
         <div className="space-y-3">
           <h3 className="text-sm font-black uppercase text-slate-500">Elevated users</h3>
-          {model.elevatedUsers.length === 0 ? <EmptyState title="No elevated users found" detail="Admin and super-user assignments will appear here." /> : model.elevatedUsers.map((user) => (
+          {model.elevatedUsers.length === 0 ? <EmptyState title="No elevated users in this view" detail="Admin and super-user assignments are listed here when present." /> : model.elevatedUsers.map((user) => (
             <div key={user.id} className="rounded-2xl border border-slate-200 bg-white p-3">
               <p className="font-black text-slate-950">{user.name || user.email}</p>
               <p className="text-sm font-bold text-slate-600">{user.email}</p>
@@ -236,8 +236,8 @@ function OperationsDirectory({ model }: { model: AdminCommandCenterModel }) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-700">Authoritative operations map</p>
-          <h2 className="mt-1 text-xl font-black text-slate-950">Everything operational starts here.</h2>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">The command center consolidates scattered admin work into one page. Use these anchors for triage, then open drilldowns or source tools only when action is needed.</p>
+          <h2 className="mt-1 text-xl font-black text-slate-950">Start with the highest-risk operational queues.</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">Use these sections for triage, then open drilldowns or source tools when action is needed.</p>
         </div>
         <Link href="/admin/command-center/drilldowns?key=applications-waiting-review" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-2 text-sm font-black text-white hover:bg-slate-800">
           Open a drilldown
@@ -268,7 +268,7 @@ export function AdminCommandCenter({ model }: { model: AdminCommandCenterModel }
       <AdminPageHeader
         eyebrow="Platform operations"
         title="Admin Command Center"
-        description="Access requests, data quality, failed integrations, blocked workflows, sample-data safety, production health, security alerts, and audit activity in one operations cockpit."
+        description="Review access requests, data quality, failed integrations, blocked workflows, production health, security alerts, and audit activity from one admin hub."
       />
 
       <section className="mb-5 rounded-[1.5rem] border border-slate-200 bg-slate-950 p-4 text-white shadow-sm sm:p-5">
@@ -343,7 +343,7 @@ export function AdminCommandCenter({ model }: { model: AdminCommandCenterModel }
         <div id="operational-alerts" className="scroll-mt-24">
         <OpsPanel title="Operational Alerts" eyebrow="Platform warnings">
           <div className="space-y-3">
-            {model.operationalAlerts.length === 0 ? <EmptyState title="No operational alerts" detail="Readiness and queue alerts will appear here after sync or automated capture." /> : model.operationalAlerts.map((alert) => (
+            {model.operationalAlerts.length === 0 ? <EmptyState title="No operational alerts" detail="Run readiness sync or review source tools when you want to refresh environment, queue, and workflow alert status." /> : model.operationalAlerts.map((alert) => (
               <Link key={alert.id} href={alert.actionHref || "/admin/operations"} className={`block rounded-2xl border p-4 ${badgeClass(alert.severity)}`}>
                 <div className="flex items-start gap-3"><AlertTriangle size={18} className="mt-0.5 shrink-0" /><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-black">{alert.title}</h3><span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-black uppercase">{alert.status}</span></div><p className="mt-1 text-sm leading-6">{alert.message}</p><p className="mt-2 text-xs font-black uppercase">{alert.source} - {dateLabel(alert.createdAt)}</p></div></div>
               </Link>

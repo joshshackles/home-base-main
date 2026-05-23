@@ -375,7 +375,7 @@ export default async function LandlordInboxPage({ searchParams }: { searchParams
           {selectedThread ? (
             <Conversation thread={selectedThread} />
           ) : (
-            <EmptyState title="No landlord conversations yet" detail="New marketplace lead questions, application messages, tenant conversations, and maintenance updates will appear here as soon as they are connected to your listings or units." actionHref="/landlord/rentals" actionLabel="View rentals" />
+            <EmptyState title="No landlord conversations yet" detail="No conversations are waiting right now. Lead questions, application messages, tenant conversations, and maintenance updates are listed here when connected to your listings or units." actionHref="/landlord/rentals" actionLabel="View rentals" />
           )}
         </section>
       </div>

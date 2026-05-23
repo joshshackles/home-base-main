@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "Account, application, document, inspection, lease, signature, ledger, audit, and security-event records needed to operate the housing workflow.",
+  description: "How HomeBase MLS handles account, rental, application, document, message, payment, and housing workflow information.",
 };
 
 export default function Page() {
@@ -13,15 +13,19 @@ export default function Page() {
       <section className="mt-8 space-y-6 rounded-3xl border border-slate-200 bg-white p-6 leading-7 text-slate-700 shadow-sm">
         <div>
           <h2 className="text-xl font-black text-slate-950">What we collect</h2>
-          <p className="mt-2">Account, application, document, inspection, lease, signature, ledger, audit, and security-event records needed to operate the housing workflow.</p>
+          <p className="mt-2">HomeBase MLS collects the information needed to help people search for rentals, submit inquiries and applications, manage housing workflows, upload documents, exchange messages, complete lease tasks, and operate tenant or landlord accounts.</p>
         </div>
         <div>
           <h2 className="text-xl font-black text-slate-950">How we use it</h2>
-          <p className="mt-2">To provide marketplace and housing workflow services, protect accounts, prevent abuse, preserve evidence, and support compliance.</p>
+          <p className="mt-2">We use this information to provide the marketplace and account tools, route messages and requests, protect accounts, prevent abuse, maintain records, and support property, lease, payment, maintenance, inspection, and document workflows.</p>
         </div>
         <div>
           <h2 className="text-xl font-black text-slate-950">Retention</h2>
-          <p className="mt-2">Some records may be retained to satisfy housing, lease, accounting, security, or dispute-resolution requirements.</p>
+          <p className="mt-2">Some records may be retained when needed for housing operations, lease history, accounting, security, audit, legal, or dispute-resolution purposes.</p>
+        </div>
+        <div>
+          <h2 className="text-xl font-black text-slate-950">Your choices</h2>
+          <p className="mt-2">Account holders can review and update profile details in their portal. Requests about account information should be sent through the account administrator or support contact for the organization operating HomeBase MLS.</p>
         </div>
       </section>
     </main>
