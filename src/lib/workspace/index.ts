@@ -1,4 +1,5 @@
 export * from "@/lib/workspace/activity-stream";
+export * from "@/lib/workspace/command-registry";
 export * from "@/lib/workspace/context-resolver";
 export * from "@/lib/workspace/entity-registry";
 export * from "@/lib/workspace/event-registry";

@@ -1,5 +1,6 @@
 import { buildCapabilitySet } from "@/lib/role-capabilities";
 import { buildWorkspaceActivityStream } from "@/lib/workspace/activity-stream";
+import { resolveWorkspaceCommands } from "@/lib/workspace/command-registry";
 import {
   getWorkspaceEntityCommandKeys,
   getWorkspaceEntityDefinition,
@@ -16,6 +17,7 @@ import type {
   WorkspaceAlert,
   WorkspaceContext,
   WorkspaceContextInput,
+  WorkspaceCommand,
   WorkspaceEvent,
   WorkspaceEventAudience,
   WorkspaceEventSeverity,
@@ -69,6 +71,12 @@ export function resolveWorkspaceContext(input: ResolveWorkspaceContextInput): Wo
   };
   const widgetKeys = getWorkspaceEntityWidgetKeys(input.entity.type);
   const commandKeys = getWorkspaceEntityCommandKeys(input.entity.type);
+  const commands = resolveWorkspaceCommands({
+    keys: commandKeys,
+    entityType: input.entity.type,
+    mode: resolvedMode,
+    permissions
+  });
   const widgets = resolveWorkspaceWidgets({
     keys: widgetKeys,
     entityType: input.entity.type,
@@ -90,7 +98,7 @@ export function resolveWorkspaceContext(input: ResolveWorkspaceContextInput): Wo
     commandKeys,
     canAccess: permissionDecision.allowed,
     deniedReason: permissionDecision.reason,
-    primaryActions: buildWorkspacePrimaryActions(input.entity, commandKeys, permissionDecision.allowed),
+    primaryActions: buildWorkspacePrimaryActions(input.entity, commands, permissionDecision.allowed),
     secondaryActions: buildWorkspaceSecondaryActions(input.entity, resolvedMode),
     alerts: buildWorkspaceAlerts({
       permissionDecision,
@@ -101,7 +109,7 @@ export function resolveWorkspaceContext(input: ResolveWorkspaceContextInput): Wo
     }),
     widgets,
     panels,
-    commands: [],
+    commands,
     activity: activityStream.items
   };
 }
@@ -136,7 +144,7 @@ export function evaluateWorkspacePermission(
   return { allowed: true };
 }
 
-function buildWorkspacePrimaryActions(entity: WorkspaceContextInput["entity"], commandKeys: string[], canAccess: boolean): WorkspaceAction[] {
+function buildWorkspacePrimaryActions(entity: WorkspaceContextInput["entity"], commands: WorkspaceCommand[], canAccess: boolean): WorkspaceAction[] {
   const entityRoute = getWorkspaceEntityRoute(entity);
   const openAction: WorkspaceAction | null = entityRoute
     ? {
@@ -150,10 +158,11 @@ function buildWorkspacePrimaryActions(entity: WorkspaceContextInput["entity"], c
       }
     : null;
 
-  const commandActions = commandKeys.slice(0, 3).map((commandKey) => ({
-    key: commandKey,
-    label: humanizeWorkspaceKey(commandKey),
-    commandKey,
+  const commandActions = commands.slice(0, 3).map((commandDefinition) => ({
+    key: commandDefinition.key,
+    label: commandDefinition.label,
+    description: commandDefinition.description,
+    commandKey: commandDefinition.key,
     tone: "secondary" as const,
     disabled: !canAccess,
     disabledReason: canAccess ? undefined : "This action is unavailable for your current permissions."
