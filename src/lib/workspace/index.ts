@@ -6,6 +6,7 @@ export * from "@/lib/workspace/context-resolver";
 export * from "@/lib/workspace/entity-registry";
 export * from "@/lib/workspace/event-registry";
 export * from "@/lib/workspace/mode-registry";
+export * from "@/lib/workspace/operational-canvas";
 export * from "@/lib/workspace/panel-registry";
 export * from "@/lib/workspace/relationship-graph";
 export * from "@/lib/workspace/types";

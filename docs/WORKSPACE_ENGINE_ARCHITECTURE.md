@@ -6,6 +6,8 @@ The workspace engine exists to answer one question:
 
 > Given this actor, entity, workflow stage, device, urgency, permissions, and operational context, what should the user see and be able to do next?
 
+The next architecture layer is the operational canvas. See `docs/OPERATIONAL_CANVAS_ARCHITECTURE.md` for the canvas model, density modes, layout regions, and module representation rules.
+
 ## Product Principle
 
 Pages are delivery surfaces. Workspaces are operational views of platform entities.
@@ -400,6 +402,7 @@ These are future capabilities. The first pass should establish the primitives an
 - Update 12 connected the landlord Unit Workspace to the engine with `src/lib/workspace/adapters/landlord-unit-workspace.ts`, deriving workspace events from real unit data and passing resolved mode, widgets, panels, commands, activity, and permission state into the page.
 - Update 13 added command action bindings in `src/lib/workspace/action-bindings.ts`, so resolved workspace commands can be rendered by web, mobile, admin, or future API surfaces as permission-aware actions with route bindings, disabled reasons, and audit cues.
 - Update 14 added `scripts/verify-workspace-engine.ts` and `docs/WORKSPACE_ENGINE_DEVELOPER_GUIDE.md`, creating a repeatable QA gate for registry references, command action bindings, and future workspace implementation rules.
+- Update 15 introduced the operational canvas foundation in `src/lib/workspace/operational-canvas.ts` and `src/components/workspace/OperationalCanvas.tsx`, adding density modes, canvas regions, module representations, snap-grid metadata, and the first Unit Workspace canvas model.
 
 ## Success Criteria
 

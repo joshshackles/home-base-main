@@ -3,8 +3,10 @@ import type { PlatformActor } from "@/lib/platform/types";
 import type { LandlordUnitWorkspaceModel } from "@/lib/platform/unit-workspace";
 import { bindWorkspaceCommandsToActions } from "@/lib/workspace/action-bindings";
 import { createWorkspaceEvent } from "@/lib/workspace/event-registry";
+import { buildOperationalCanvasModel } from "@/lib/workspace/operational-canvas";
 import { resolveWorkspaceContext } from "@/lib/workspace/context-resolver";
 import type { WorkspaceBoundCommandAction } from "@/lib/workspace/action-bindings";
+import type { WorkspaceOperationalCanvasModel } from "@/lib/workspace/operational-canvas";
 import type { WorkspaceCommand, WorkspaceEvent, WorkspaceMode, WorkspaceResolvedModel } from "@/lib/workspace/types";
 
 export type LandlordUnitWorkspaceTabKey =
@@ -23,6 +25,7 @@ type UnitWorkspace = NonNullable<LandlordUnitWorkspaceModel>;
 
 export type LandlordUnitWorkspaceEngineModel = WorkspaceResolvedModel & {
   commandActions: WorkspaceBoundCommandAction[];
+  operationalCanvas: WorkspaceOperationalCanvasModel;
 };
 
 export function landlordUnitWorkspaceTabToMode(tab: LandlordUnitWorkspaceTabKey): WorkspaceMode {
@@ -63,6 +66,7 @@ export function resolveLandlordUnitWorkspaceEngine(input: {
 
   return {
     ...engine,
+    operationalCanvas: buildOperationalCanvasModel({ workspace: engine }),
     commandActions: bindWorkspaceCommandsToActions({
       commands: engine.commands,
       entity: engine.context.entity,

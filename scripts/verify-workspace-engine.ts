@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   bindWorkspaceCommandsToActions,
+  buildOperationalCanvasModel,
   getMissingWorkspaceCommandKeys,
   getMissingWorkspaceWidgetKeys,
   getWorkspaceEntityCommandKeys,
@@ -91,10 +92,21 @@ const actionBindings = bindWorkspaceCommandsToActions({
 assert(actionBindings.length === resolved.commands.length, "Every resolved command should become an action binding.");
 assert(actionBindings.every((action) => action.href?.startsWith("/verify/")), "Bound actions should preserve route bindings.");
 
+const canvas = buildOperationalCanvasModel({ workspace: resolved });
+assert(canvas.template.mode === "maintenance", "Operational canvas should inherit the resolved workspace mode.");
+assert(canvas.density === "operational", "Maintenance canvas should default to operational density.");
+assert(canvas.modules.length > 0, "Operational canvas should contain modules.");
+assert(canvas.primaryModules.length > 0, "Operational canvas should include primary canvas modules.");
+assert(canvas.snapGrid.columns === 12, "Desktop operational canvas should expose a 12-column snap grid.");
+
 assertContains("docs/WORKSPACE_ENGINE_ARCHITECTURE.md", "Update 14");
+assertContains("docs/WORKSPACE_ENGINE_ARCHITECTURE.md", "Update 15");
 assertContains("docs/WORKSPACE_ENGINE_DEVELOPER_GUIDE.md", "Do not put workflow rules in page components");
+assertContains("docs/OPERATIONAL_CANVAS_ARCHITECTURE.md", "WorkspaceDensityMode");
 assertContains("src/lib/workspace/action-bindings.ts", "bindWorkspaceCommandsToActions");
+assertContains("src/lib/workspace/operational-canvas.ts", "buildOperationalCanvasModel");
+assertContains("src/components/workspace/OperationalCanvas.tsx", "OperationalCanvas");
 assertContains("src/lib/workspace/adapters/landlord-unit-workspace.ts", "commandActions");
+assertContains("src/lib/workspace/adapters/landlord-unit-workspace.ts", "operationalCanvas");
 
 console.log("Workspace engine verification passed.");
-

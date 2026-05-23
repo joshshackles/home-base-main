@@ -292,6 +292,7 @@ export function UnitPropertyWorkspace({ workspace, activeTab, engine }: { worksp
   const activeEngineActions = engine.commandActions.slice(0, 4);
   const activeEngineWidgets = engine.widgets.slice(0, 5);
   const activeEnginePanels = engine.panels.slice(0, 4);
+  const activeCanvasModules = engine.operationalCanvas.modules.slice(0, 5);
 
   return (
     <main id="main-content" className="min-h-screen bg-slate-50">
@@ -516,10 +517,10 @@ export function UnitPropertyWorkspace({ workspace, activeTab, engine }: { worksp
             <div className="grid grid-cols-2 gap-2">
               <EnginePill label="Mode" value={engine.modeDefinition.label} />
               <EnginePill label="Urgency" value={label(engine.context.urgency)} />
-              <EnginePill label="Widgets" value={engine.widgets.length} />
-              <EnginePill label="Commands" value={engine.commands.length} />
+              <EnginePill label="Density" value={label(engine.operationalCanvas.density)} />
+              <EnginePill label="Modules" value={engine.operationalCanvas.modules.length} />
             </div>
-            <p className="mt-3 text-sm leading-6 text-slate-600">{engine.modeDefinition.description}</p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{engine.operationalCanvas.template.description}</p>
             {engine.deniedReason ? <p className="mt-2 rounded-2xl bg-rose-50 p-3 text-xs font-bold leading-5 text-rose-800">{engine.deniedReason}</p> : null}
             <div className="mt-3 space-y-2">
               {activeEngineActions.length > 0 ? (
@@ -529,16 +530,27 @@ export function UnitPropertyWorkspace({ workspace, activeTab, engine }: { worksp
               )}
             </div>
             <details className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-              <summary className="cursor-pointer text-sm font-black text-slate-950">Resolved widgets and panels</summary>
+              <summary className="cursor-pointer text-sm font-black text-slate-950">Resolved canvas modules</summary>
               <div className="mt-3 space-y-3">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Widgets</p>
+                  <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Operational canvas</p>
+                  <div className="mt-2 grid gap-2">
+                    {activeCanvasModules.map((module) => (
+                      <div key={module.key} className="rounded-xl border border-slate-200 bg-white p-2">
+                        <p className="truncate text-xs font-black text-slate-950">{module.label}</p>
+                        <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{label(module.region)} / {label(module.representation)} / {module.defaultColumnSpan} x {module.defaultRowSpan}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Legacy widget registry</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {activeEngineWidgets.map((widget) => <Badge key={widget.key} tone="bg-blue-50 text-blue-800 ring-blue-200">{widget.label}</Badge>)}
                   </div>
                 </div>
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Panels</p>
+                  <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Dockable panels</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {activeEnginePanels.map((panel) => <Badge key={panel.key} tone="bg-slate-100 text-slate-700 ring-slate-200">{panel.label}</Badge>)}
                   </div>
