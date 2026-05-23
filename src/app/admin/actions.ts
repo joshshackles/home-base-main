@@ -58,6 +58,7 @@ import { renderLeaseTemplate } from "@/lib/lease-render";
 import { createTextPdfBuffer } from "@/lib/pdf";
 import { generateFinalSignedLeaseDocument, syncLeaseCompletion } from "@/lib/signed-lease";
 import { defaultSignatureExpirationDate, queueSignatureNotification } from "@/lib/signature-notifications";
+import { ensureLeaseSignatureHandoffForApprovedApplication } from "@/lib/lease-approval-handoff";
 import { sendEmail, sendQueuedSignatureNotificationEmails, sendSignatureNotificationEmail } from "@/lib/email";
 import { addMonthsSafe, advanceMonthlyRunDate, isScheduleDue, nextMonthlyRunDate, plannedInstallmentCount, recurringChargePeriodKey } from "@/lib/ledger";
 import { importDataSnapshot, type DataSnapshot } from "@/lib/data-portability";
@@ -902,12 +903,14 @@ export async function recordApplicationReviewDecision(formData: FormData) {
 
   if (decision === ApplicationStatus.APPROVED) {
     assertApplicationCanApprove(application);
+    const moveInDate = moveInValue ? new Date(`${moveInValue}T12:00:00`) : null;
     await activateTenantFromApplication({
       applicationId,
       actor,
-      moveInDate: moveInValue ? new Date(`${moveInValue}T12:00:00`) : null,
+      moveInDate,
       notes: reviewNote ?? "Tenant relationship activated by Phase 3 application review approval."
     });
+    await ensureLeaseSignatureHandoffForApprovedApplication({ applicationId, actor, moveInDate });
   } else {
     await prisma.application.update({ where: { id: applicationId }, data: { status: decision } });
   }
@@ -936,6 +939,7 @@ export async function recordApplicationReviewDecision(formData: FormData) {
   revalidatePath(`/admin/applications/${applicationId}`);
   revalidatePath("/admin/applications");
   revalidatePath("/applicant");
+  revalidatePath("/applicant/leases");
   redirect(`/admin/applications/${applicationId}?decision=${decision.toLowerCase()}`);
 }
 
@@ -952,6 +956,7 @@ export async function updateApplicationStatus(formData: FormData) {
       actor,
       notes: "Tenant relationship activated by admin application approval after Phase 3 readiness review."
     });
+    await ensureLeaseSignatureHandoffForApprovedApplication({ applicationId: parsed.data.id, actor });
   } else {
     await prisma.application.update({
       where: { id: parsed.data.id },
@@ -962,6 +967,7 @@ export async function updateApplicationStatus(formData: FormData) {
   await writeAuditLog({ actor, action: AuditAction.STATUS_CHANGE, entityType: "Application", entityId: parsed.data.id, message: `Changed application status to ${parsed.data.status}.` });
   revalidateInventory();
   revalidatePath(`/admin/applications/${parsed.data.id}`);
+  revalidatePath("/applicant/leases");
 }
 
 export async function activateTenantFromApplicationAction(formData: FormData) {
@@ -969,16 +975,19 @@ export async function activateTenantFromApplicationAction(formData: FormData) {
   const applicationId = String(formData.get("applicationId") || "");
   const moveInValue = String(formData.get("moveInDate") || "");
   if (!applicationId) throw new Error("Application is required.");
+  const moveInDate = moveInValue ? new Date(`${moveInValue}T12:00:00`) : null;
   await activateTenantFromApplication({
     applicationId,
     actor,
-    moveInDate: moveInValue ? new Date(`${moveInValue}T12:00:00`) : null,
+    moveInDate,
     notes: "Tenant relationship manually activated from the Relationship Lifecycle panel."
   });
+  await ensureLeaseSignatureHandoffForApprovedApplication({ applicationId, actor, moveInDate });
   revalidateInventory();
   revalidatePath(`/admin/applications/${applicationId}`);
   revalidatePath("/applicant");
-  redirect(`/admin/applications/${applicationId}?tenant=activated`);
+  revalidatePath("/applicant/leases");
+  redirect(`/admin/applications/${applicationId}?tenant=activated&lease=sent`);
 }
 
 

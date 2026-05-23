@@ -12,6 +12,7 @@ import { formDataToObject, leadNoteSchema, applicationNoteSchema, leaseSignature
 import { baseSignatureRequestWhere, completeSignatureRequest } from "@/lib/signature-workflow";
 import { removeStoredDocument, saveUploadedDocument } from "@/lib/storage";
 import { sendEmail } from "@/lib/email";
+import { ensureLeaseSignatureHandoffForApprovedApplication } from "@/lib/lease-approval-handoff";
 import { appUrl, createSecureToken, hashToken } from "@/lib/tokens";
 import { syncUnitStaffConnections, upsertProfileConnection } from "@/lib/profile-connections";
 import { createAssetServiceRecordFromForm, createAssetWarrantyFromForm, createKeyLockRecordFromForm, createMaintenanceAssetFromForm, maintenanceInventoryPaths } from "@/lib/maintenance-inventory";
@@ -1040,16 +1041,19 @@ export async function approveLandlordApplicationAsTenant(formData: FormData) {
   const moveInValue = String(formData.get("moveInDate") || "");
   if (!applicationId) throw new Error("Application is required.");
   await assertOwnsApplication(applicationId, actor.userId);
+  const moveInDate = moveInValue ? new Date(`${moveInValue}T12:00:00`) : null;
   await activateTenantFromApplication({
     applicationId,
     actor,
-    moveInDate: moveInValue ? new Date(`${moveInValue}T12:00:00`) : null,
+    moveInDate,
     notes: "Tenant relationship activated by landlord application approval."
   });
+  await ensureLeaseSignatureHandoffForApprovedApplication({ applicationId, actor, moveInDate });
   revalidateLandlord();
   revalidatePath(`/landlord/applications/${applicationId}`);
+  revalidatePath(`/applicant/leases`);
   revalidatePath("/applicant");
-  redirect(`/landlord/applications/${applicationId}?tenant=activated`);
+  redirect(`/landlord/applications/${applicationId}?tenant=activated&lease=sent`);
 }
 
 

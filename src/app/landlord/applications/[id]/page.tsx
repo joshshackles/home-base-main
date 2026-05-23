@@ -33,6 +33,7 @@ export default async function LandlordApplicationDetailPage({ params }: { params
       applicationDetail: true,
       notes: { orderBy: { createdAt: "desc" } },
       documents: { orderBy: { createdAt: "desc" } },
+      leasePackets: { include: { template: true, signatureRequests: true }, orderBy: { updatedAt: "desc" } },
       occupancies: { include: { tenant: true }, orderBy: { createdAt: "desc" } }
     }
   });
@@ -143,8 +144,22 @@ export default async function LandlordApplicationDetailPage({ params }: { params
           </div>
 
           <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
-            <h2 className="text-xl font-black text-slate-950">Approve as tenant</h2>
-            <p className="mt-2 text-sm leading-6 text-emerald-950">This converts the approved applicant into an active tenant relationship and unlocks the tenant dashboard for rent, maintenance, inspections, notices, and lease access.</p>
+            <h2 className="text-xl font-black text-slate-950">Approve and send lease</h2>
+            <p className="mt-2 text-sm leading-6 text-emerald-950">This approves the applicant, activates tenant access, creates or reuses a lease packet, and sends the tenant a signature request in their applicant lease portal.</p>
+            {application.leasePackets.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {application.leasePackets.map((packet) => {
+                  const pendingTenantSignature = packet.signatureRequests.some((request) => request.signerRole === "TENANT" && request.status === "PENDING");
+                  return (
+                    <Link key={packet.id} href={`/landlord/leases/${packet.id}`} className="block rounded-2xl border border-emerald-100 bg-white p-4 text-sm shadow-sm hover:border-emerald-300">
+                      <p className="font-black text-slate-950">{packet.template.name}</p>
+                      <p className="mt-1 text-slate-600">{label(packet.status)}{pendingTenantSignature ? " - tenant signature pending" : ""}</p>
+                      <p className="mt-1 text-xs font-bold uppercase text-slate-500">Updated {packet.updatedAt.toLocaleDateString()}</p>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : null}
             {application.occupancies.length > 0 ? (
               <div className="mt-4 space-y-3">
                 {application.occupancies.map((occupancy) => {
@@ -172,7 +187,7 @@ export default async function LandlordApplicationDetailPage({ params }: { params
               <form action={approveLandlordApplicationAsTenant} className="mt-5 space-y-4 rounded-2xl bg-white p-4 shadow-sm">
                 <input type="hidden" name="applicationId" value={application.id} />
                 <Field label="Move-in date"><input name="moveInDate" type="date" className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" /></Field>
-                <button type="submit" className="w-full rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700" disabled={!application.applicantUserId}>{application.applicantUserId ? "Approve + Activate Tenant" : "Connect applicant account first"}</button>
+                <button type="submit" className="w-full rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700" disabled={!application.applicantUserId}>{application.applicantUserId ? "Approve + Send Lease" : "Connect applicant account first"}</button>
               </form>
             )}
           </div>
