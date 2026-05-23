@@ -5,6 +5,7 @@ import { UnitPropertyWorkspace } from "@/components/landlord/unit-workspace/Unit
 import { normalizeUnitWorkspaceTab } from "@/components/landlord/unit-workspace/UnitWorkspaceTabs";
 import { requireRole } from "@/lib/auth";
 import { getLandlordUnitWorkspaceModel, platformContext } from "@/lib/platform";
+import { resolveLandlordUnitWorkspaceEngine } from "@/lib/workspace";
 
 type PageSearchParams = Record<string, string | string[] | undefined>;
 
@@ -16,8 +17,11 @@ function getSearchParam(searchParams: PageSearchParams | undefined, key: string)
 export default async function LandlordUnitDetailPage({ params, searchParams }: { params: { id: string }; searchParams?: PageSearchParams }) {
   const user = await requireRole(["LANDLORD"], "/landlord");
   // Platform service preserves the legacy workspace safety constraints: ownerId: user.userId and NOT: { status: "ARCHIVED" }.
-  const workspace = await getLandlordUnitWorkspaceModel(platformContext(user, { source: "web" }), { unitId: params.id });
+  const ctx = platformContext(user, { source: "web" });
+  const workspace = await getLandlordUnitWorkspaceModel(ctx, { unitId: params.id });
   if (!workspace) notFound();
+  const activeTab = normalizeUnitWorkspaceTab(getSearchParam(searchParams, "tab"));
+  const engine = resolveLandlordUnitWorkspaceEngine({ actor: ctx.actor, workspace, activeTab });
 
-  return <UnitPropertyWorkspace workspace={workspace} activeTab={normalizeUnitWorkspaceTab(getSearchParam(searchParams, "tab"))} />;
+  return <UnitPropertyWorkspace workspace={workspace} activeTab={activeTab} engine={engine} />;
 }

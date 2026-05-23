@@ -8,9 +8,11 @@ import { sendWorkflowMessage } from "@/app/workflow-actions";
 import { formatCurrency } from "@/lib/format";
 import { agingBucket, ledgerStatusLabel, ledgerTypeLabel } from "@/lib/ledger";
 import type { LandlordUnitWorkspaceModel } from "@/lib/platform";
+import type { WorkspaceResolvedModel } from "@/lib/workspace";
 import { type UnitWorkspaceTabKey, unitWorkspaceTabs } from "@/components/landlord/unit-workspace/UnitWorkspaceTabs";
 
 type Workspace = NonNullable<LandlordUnitWorkspaceModel>;
+type WorkspaceEngine = WorkspaceResolvedModel;
 
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
@@ -109,6 +111,15 @@ function CompactMetric({ label: metricLabel, value, detail }: { label: string; v
       <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">{metricLabel}</p>
       <p className="mt-1 truncate text-xl font-black text-slate-950">{value}</p>
       {detail ? <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">{detail}</p> : null}
+    </div>
+  );
+}
+
+function EnginePill({ label: pillLabel, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-2xl border border-blue-100 bg-blue-50 px-3 py-2">
+      <p className="text-[10px] font-black uppercase tracking-wide text-blue-700">{pillLabel}</p>
+      <p className="mt-0.5 truncate text-sm font-black text-slate-950">{value}</p>
     </div>
   );
 }
@@ -233,7 +244,7 @@ function focusOrder(tab: UnitWorkspaceTabKey, group: "listing" | "resident" | "f
   return priorities[tab][group] ?? "";
 }
 
-export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Workspace; activeTab: UnitWorkspaceTabKey }) {
+export function UnitPropertyWorkspace({ workspace, activeTab, engine }: { workspace: Workspace; activeTab: UnitWorkspaceTabKey; engine: WorkspaceEngine }) {
   const {
     unit,
     featuredPhoto,
@@ -261,6 +272,9 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
   const moveInCost = unit.rentAmount + (unit.deposit ?? 0);
   const activeWorkflow = workflowCopy(activeTab, workspace);
   const ActiveIcon = tabIcons[activeTab];
+  const activeEngineCommands = engine.commands.slice(0, 4);
+  const activeEngineWidgets = engine.widgets.slice(0, 5);
+  const activeEnginePanels = engine.panels.slice(0, 4);
 
   return (
     <main id="main-content" className="min-h-screen bg-slate-50">
@@ -276,6 +290,7 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
             <Badge>{label(unit.status)}</Badge>
             <Badge>{label(unit.marketingStatus)}</Badge>
             <Badge tone="bg-blue-50 text-blue-800 ring-blue-200">{listingHealthScore}% listing health</Badge>
+            <Badge tone={engine.canAccess ? "bg-emerald-50 text-emerald-800 ring-emerald-200" : "bg-rose-50 text-rose-800 ring-rose-200"}>{engine.canAccess ? "Engine scoped" : "Scope blocked"}</Badge>
           </div>
         </div>
         <div className="border-t border-slate-100 bg-slate-50/80">
@@ -284,6 +299,7 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
             <div className="min-w-0 flex-1">
               <p className="text-sm font-black text-slate-950">{activeWorkflow.title}</p>
               <p className="line-clamp-1 text-xs font-semibold text-slate-600">{activeWorkflow.detail}</p>
+              <p className="line-clamp-1 text-[11px] font-bold text-brand-700">{engine.modeDefinition.label} mode - {engine.modeDefinition.primaryIntent}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <ButtonLink href={activeWorkflow.primaryHref} variant="primary">{activeWorkflow.primaryLabel}</ButtonLink>
@@ -479,6 +495,49 @@ export function UnitPropertyWorkspace({ workspace, activeTab }: { workspace: Wor
         </section>
 
         <aside className={`space-y-4 xl:sticky xl:top-[132px] xl:h-[calc(100vh-148px)] xl:overflow-y-auto ${focusOrder(activeTab, "side")}`}>
+          <Card title="Workspace engine" eyebrow="Shared platform model" icon={ClipboardCheck}>
+            <div className="grid grid-cols-2 gap-2">
+              <EnginePill label="Mode" value={engine.modeDefinition.label} />
+              <EnginePill label="Urgency" value={label(engine.context.urgency)} />
+              <EnginePill label="Widgets" value={engine.widgets.length} />
+              <EnginePill label="Commands" value={engine.commands.length} />
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{engine.modeDefinition.description}</p>
+            {engine.deniedReason ? <p className="mt-2 rounded-2xl bg-rose-50 p-3 text-xs font-bold leading-5 text-rose-800">{engine.deniedReason}</p> : null}
+            <div className="mt-3 space-y-2">
+              {activeEngineCommands.length > 0 ? (
+                activeEngineCommands.map((command) => (
+                  <div key={command.key} className="rounded-2xl border border-slate-200 bg-white p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-black text-slate-950">{command.label}</p>
+                      {command.auditRequired ? <Badge tone="bg-amber-50 text-amber-900 ring-amber-200">Audited</Badge> : null}
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">{command.description}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">No engine commands are available for this mode and permission set.</p>
+              )}
+            </div>
+            <details className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              <summary className="cursor-pointer text-sm font-black text-slate-950">Resolved widgets and panels</summary>
+              <div className="mt-3 space-y-3">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Widgets</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {activeEngineWidgets.map((widget) => <Badge key={widget.key} tone="bg-blue-50 text-blue-800 ring-blue-200">{widget.label}</Badge>)}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Panels</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {activeEnginePanels.map((panel) => <Badge key={panel.key} tone="bg-slate-100 text-slate-700 ring-slate-200">{panel.label}</Badge>)}
+                  </div>
+                </div>
+              </div>
+            </details>
+          </Card>
+
           <Card title="Workflow alerts" eyebrow="Next actions" icon={Megaphone}>
             <div className="space-y-2">
               {actionItems.slice(0, 5).map((item) => <FeedItem key={item.title} title={item.title} detail={item.detail} href={item.href.startsWith("#") ? tabHref(unit.id, item.href.includes("pipeline") ? "leads-applications" : item.href.includes("maintenance") ? "maintenance" : item.href.includes("inspections") ? "inspections" : item.href.includes("documents") ? "documents" : item.href.includes("ledger") ? "ledger" : "listing") : item.href} />)}
