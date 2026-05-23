@@ -180,14 +180,47 @@ export type WorkspacePanelDefinition = {
 
 export type WorkspaceEventSeverity = "info" | "success" | "warning" | "error" | "critical";
 
-export type WorkspaceEvent = {
+export type WorkspaceEventCategory =
+  | "leasing"
+  | "application"
+  | "lease"
+  | "financial"
+  | "maintenance"
+  | "inspection"
+  | "document"
+  | "communication"
+  | "program"
+  | "admin"
+  | "integration";
+
+export type WorkspaceEventAudience = "public" | "applicant" | "tenant" | "landlord" | "vendor" | "owner" | "program" | "admin" | "system";
+
+export type WorkspaceEventDefinition = {
   type: string;
+  label: string;
+  description: string;
+  category: WorkspaceEventCategory;
+  severity: WorkspaceEventSeverity;
+  entityTypes: WorkspaceEntityType[];
+  relatedEntityTypes?: WorkspaceEntityType[];
+  audiences: WorkspaceEventAudience[];
+  createsAuditEvidence?: boolean;
+  createsTimelineItem?: boolean;
+  canTriggerAutomation?: boolean;
+  sensitive?: boolean;
+};
+
+export type WorkspaceEvent = {
+  id?: string;
+  type: string;
+  category?: WorkspaceEventCategory;
   entity: WorkspaceEntityRef;
   actor?: Pick<PlatformActor, "userId" | "email" | "name" | "role"> | null;
   occurredAt: Date;
   title: string;
   detail?: string;
   severity?: WorkspaceEventSeverity;
+  audience?: WorkspaceEventAudience[];
   relatedEntities?: WorkspaceEntityRef[];
   metadata?: Record<string, unknown>;
 };

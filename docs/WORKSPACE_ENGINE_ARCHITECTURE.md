@@ -390,6 +390,7 @@ These are future capabilities. The first pass should establish the primitives an
 - Update 2 added the shared TypeScript contract in `src/lib/workspace/types.ts` and public exports in `src/lib/workspace/index.ts`.
 - Update 3 added the canonical entity registry in `src/lib/workspace/entity-registry.ts`, including entity labels, routes, supported modes, permission requirements, relationship definitions, and first-pass widget/command keys.
 - Update 4 added relationship graph helpers in `src/lib/workspace/relationship-graph.ts`, including inbound/outbound edges, adjacency, relationship lookup, path discovery, relationship summaries, and stable relationship signatures.
+- Update 5 added the universal workspace event registry in `src/lib/workspace/event-registry.ts`, including typed event definitions, categories, audiences, audit/timeline/automation flags, event factory helpers, and activity item conversion.
 
 ## Success Criteria
 
