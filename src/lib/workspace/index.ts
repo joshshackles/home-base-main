@@ -1,4 +1,5 @@
 export * from "@/lib/workspace/activity-stream";
+export * from "@/lib/workspace/action-bindings";
 export * from "@/lib/workspace/adapters/landlord-unit-workspace";
 export * from "@/lib/workspace/command-registry";
 export * from "@/lib/workspace/context-resolver";

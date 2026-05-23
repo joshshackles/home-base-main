@@ -8,11 +8,11 @@ import { sendWorkflowMessage } from "@/app/workflow-actions";
 import { formatCurrency } from "@/lib/format";
 import { agingBucket, ledgerStatusLabel, ledgerTypeLabel } from "@/lib/ledger";
 import type { LandlordUnitWorkspaceModel } from "@/lib/platform";
-import type { WorkspaceResolvedModel } from "@/lib/workspace";
+import type { LandlordUnitWorkspaceEngineModel, WorkspaceBoundCommandAction } from "@/lib/workspace";
 import { type UnitWorkspaceTabKey, unitWorkspaceTabs } from "@/components/landlord/unit-workspace/UnitWorkspaceTabs";
 
 type Workspace = NonNullable<LandlordUnitWorkspaceModel>;
-type WorkspaceEngine = WorkspaceResolvedModel;
+type WorkspaceEngine = LandlordUnitWorkspaceEngineModel;
 
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
@@ -122,6 +122,23 @@ function EnginePill({ label: pillLabel, value }: { label: string; value: string 
       <p className="mt-0.5 truncate text-sm font-black text-slate-950">{value}</p>
     </div>
   );
+}
+
+function EngineActionRow({ action }: { action: WorkspaceBoundCommandAction }) {
+  const content = (
+    <div className={`rounded-2xl border p-3 ${action.disabled ? "border-slate-200 bg-slate-50" : "border-slate-200 bg-white hover:bg-slate-50"}`}>
+      <div className="flex items-start justify-between gap-2">
+        <p className={`text-sm font-black ${action.disabled ? "text-slate-500" : "text-slate-950"}`}>{action.label}</p>
+        <div className="flex shrink-0 flex-wrap justify-end gap-1">
+          {action.auditRequired ? <Badge tone="bg-amber-50 text-amber-900 ring-amber-200">Audited</Badge> : null}
+          <Badge tone="bg-blue-50 text-blue-800 ring-blue-200">{label(action.category)}</Badge>
+        </div>
+      </div>
+      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">{action.disabled ? action.disabledReason : action.description}</p>
+    </div>
+  );
+
+  return action.href && !action.disabled ? <Link href={action.href}>{content}</Link> : content;
 }
 
 function FeedItem({ title, detail, href, meta }: { title: string; detail: string; href?: string; meta?: string }) {
@@ -272,7 +289,7 @@ export function UnitPropertyWorkspace({ workspace, activeTab, engine }: { worksp
   const moveInCost = unit.rentAmount + (unit.deposit ?? 0);
   const activeWorkflow = workflowCopy(activeTab, workspace);
   const ActiveIcon = tabIcons[activeTab];
-  const activeEngineCommands = engine.commands.slice(0, 4);
+  const activeEngineActions = engine.commandActions.slice(0, 4);
   const activeEngineWidgets = engine.widgets.slice(0, 5);
   const activeEnginePanels = engine.panels.slice(0, 4);
 
@@ -505,18 +522,10 @@ export function UnitPropertyWorkspace({ workspace, activeTab, engine }: { worksp
             <p className="mt-3 text-sm leading-6 text-slate-600">{engine.modeDefinition.description}</p>
             {engine.deniedReason ? <p className="mt-2 rounded-2xl bg-rose-50 p-3 text-xs font-bold leading-5 text-rose-800">{engine.deniedReason}</p> : null}
             <div className="mt-3 space-y-2">
-              {activeEngineCommands.length > 0 ? (
-                activeEngineCommands.map((command) => (
-                  <div key={command.key} className="rounded-2xl border border-slate-200 bg-white p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-black text-slate-950">{command.label}</p>
-                      {command.auditRequired ? <Badge tone="bg-amber-50 text-amber-900 ring-amber-200">Audited</Badge> : null}
-                    </div>
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">{command.description}</p>
-                  </div>
-                ))
+              {activeEngineActions.length > 0 ? (
+                activeEngineActions.map((action) => <EngineActionRow key={action.key} action={action} />)
               ) : (
-                <p className="rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">No engine commands are available for this mode and permission set.</p>
+                <p className="rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">No engine actions are available for this mode and permission set.</p>
               )}
             </div>
             <details className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">

@@ -1,9 +1,11 @@
 import type { AccountAccessType } from "@prisma/client";
 import type { PlatformActor } from "@/lib/platform/types";
 import type { LandlordUnitWorkspaceModel } from "@/lib/platform/unit-workspace";
+import { bindWorkspaceCommandsToActions } from "@/lib/workspace/action-bindings";
 import { createWorkspaceEvent } from "@/lib/workspace/event-registry";
 import { resolveWorkspaceContext } from "@/lib/workspace/context-resolver";
-import type { WorkspaceEvent, WorkspaceMode, WorkspaceResolvedModel } from "@/lib/workspace/types";
+import type { WorkspaceBoundCommandAction } from "@/lib/workspace/action-bindings";
+import type { WorkspaceCommand, WorkspaceEvent, WorkspaceMode, WorkspaceResolvedModel } from "@/lib/workspace/types";
 
 export type LandlordUnitWorkspaceTabKey =
   | "listing"
@@ -18,6 +20,10 @@ export type LandlordUnitWorkspaceTabKey =
   | "staff-contacts";
 
 type UnitWorkspace = NonNullable<LandlordUnitWorkspaceModel>;
+
+export type LandlordUnitWorkspaceEngineModel = WorkspaceResolvedModel & {
+  commandActions: WorkspaceBoundCommandAction[];
+};
 
 export function landlordUnitWorkspaceTabToMode(tab: LandlordUnitWorkspaceTabKey): WorkspaceMode {
   const modeByTab: Record<LandlordUnitWorkspaceTabKey, WorkspaceMode> = {
@@ -41,8 +47,8 @@ export function resolveLandlordUnitWorkspaceEngine(input: {
   workspace: UnitWorkspace;
   activeTab: LandlordUnitWorkspaceTabKey;
   approvedAccessTypes?: AccountAccessType[];
-}): WorkspaceResolvedModel {
-  return resolveWorkspaceContext({
+}): LandlordUnitWorkspaceEngineModel {
+  const engine = resolveWorkspaceContext({
     actor: input.actor,
     approvedAccessTypes: input.approvedAccessTypes,
     entity: { type: "unit", id: input.workspace.unit.id },
@@ -54,6 +60,67 @@ export function resolveLandlordUnitWorkspaceEngine(input: {
     activityLimit: 8,
     events: buildLandlordUnitWorkspaceEvents(input.workspace)
   });
+
+  return {
+    ...engine,
+    commandActions: bindWorkspaceCommandsToActions({
+      commands: engine.commands,
+      entity: engine.context.entity,
+      mode: engine.context.resolvedMode,
+      context: engine.context,
+      canAccess: engine.canAccess,
+      routeForCommand: ({ command }) => getLandlordUnitWorkspaceCommandHref(input.workspace, command),
+      limit: 6
+    })
+  };
+}
+
+export function getLandlordUnitWorkspaceCommandHref(workspace: UnitWorkspace, command: WorkspaceCommand): string | undefined {
+  const unitId = workspace.unit.id;
+  const latestLead = workspace.unit.leads[0]?.id;
+  const latestApplication = workspace.unit.applications[0]?.id;
+  const latestLease = workspace.leasePackets[0]?.id;
+  const latestMaintenance = workspace.maintenanceRequests[0]?.id;
+  const latestInspection = workspace.inspections[0]?.id;
+  const latestDocument = workspace.documents[0]?.id;
+  const latestMessageThread = workspace.messageThreads[0]?.id;
+
+  const hrefByCommand: Record<string, string | undefined> = {
+    "unit.editListing": `/landlord/units/${unitId}/edit?section=listing`,
+    "unit.reviewApplication": latestApplication ? `/landlord/applications/${latestApplication}` : `/landlord/units/${unitId}?tab=leads-applications`,
+    "unit.messageResident": latestMessageThread ? `/landlord/inbox?thread=${latestMessageThread}` : `/landlord/units/${unitId}?tab=staff-contacts`,
+    "unit.recordPayment": `/landlord/units/${unitId}?tab=ledger`,
+    "unit.createWorkOrder": `/landlord/units/${unitId}?tab=maintenance`,
+    "unit.scheduleInspection": `/landlord/units/${unitId}?tab=inspections`,
+    "unit.uploadDocument": `/landlord/units/${unitId}?tab=documents`,
+    "lead.reply": latestMessageThread ? `/landlord/inbox?thread=${latestMessageThread}` : latestLead ? `/landlord/leads/${latestLead}` : `/landlord/units/${unitId}?tab=leads-applications`,
+    "lead.scheduleTour": latestLead ? `/landlord/leads/${latestLead}?action=schedule-tour` : `/landlord/units/${unitId}?tab=leads-applications`,
+    "lead.inviteToApply": latestLead ? `/landlord/leads/${latestLead}?action=invite-to-apply` : `/landlord/units/${unitId}?tab=leads-applications`,
+    "application.approve": latestApplication ? `/landlord/applications/${latestApplication}` : `/landlord/units/${unitId}?tab=leads-applications`,
+    "application.requestUpdate": latestApplication ? `/landlord/applications/${latestApplication}` : `/landlord/units/${unitId}?tab=leads-applications`,
+    "application.deny": latestApplication ? `/landlord/applications/${latestApplication}` : `/landlord/units/${unitId}?tab=leads-applications`,
+    "lease.sendForSignature": latestLease ? `/landlord/leases/${latestLease}` : `/landlord/units/${unitId}?tab=lease`,
+    "lease.downloadPdf": latestLease ? `/landlord/leases/${latestLease}` : `/landlord/units/${unitId}?tab=lease`,
+    "ledger.recordPayment": `/landlord/units/${unitId}?tab=ledger`,
+    "ledger.addCharge": `/landlord/units/${unitId}?tab=ledger`,
+    "ledger.issueCredit": `/landlord/units/${unitId}?tab=ledger`,
+    "ledger.export": `/landlord/units/${unitId}?tab=ledger`,
+    "maintenance.assign": latestMaintenance ? `/landlord/maintenance?request=${latestMaintenance}` : `/landlord/units/${unitId}?tab=maintenance`,
+    "maintenance.messageTenant": latestMessageThread ? `/landlord/inbox?thread=${latestMessageThread}` : `/landlord/units/${unitId}?tab=maintenance`,
+    "maintenance.createWorkOrder": latestMaintenance ? `/landlord/maintenance?request=${latestMaintenance}` : `/landlord/units/${unitId}?tab=maintenance`,
+    "maintenance.close": latestMaintenance ? `/landlord/maintenance?request=${latestMaintenance}` : `/landlord/units/${unitId}?tab=maintenance`,
+    "inspection.recordResults": latestInspection ? `/landlord/inspections/${latestInspection}` : `/landlord/units/${unitId}?tab=inspections`,
+    "inspection.scheduleReinspection": latestInspection ? `/landlord/inspections/${latestInspection}` : `/landlord/units/${unitId}?tab=inspections`,
+    "inspection.uploadReport": latestInspection ? `/landlord/inspections/${latestInspection}` : `/landlord/units/${unitId}?tab=inspections`,
+    "document.download": latestDocument ? `/landlord/documents?document=${latestDocument}` : `/landlord/units/${unitId}?tab=documents`,
+    "document.share": latestDocument ? `/landlord/documents?document=${latestDocument}` : `/landlord/units/${unitId}?tab=documents`,
+    "document.revoke": latestDocument ? `/landlord/documents?document=${latestDocument}` : `/landlord/units/${unitId}?tab=documents`,
+    "message.reply": latestMessageThread ? `/landlord/inbox?thread=${latestMessageThread}` : `/landlord/units/${unitId}?tab=staff-contacts`,
+    "message.assign": latestMessageThread ? `/landlord/inbox?thread=${latestMessageThread}` : `/landlord/units/${unitId}?tab=staff-contacts`,
+    "message.markResolved": latestMessageThread ? `/landlord/inbox?thread=${latestMessageThread}` : `/landlord/units/${unitId}?tab=staff-contacts`
+  };
+
+  return hrefByCommand[command.key];
 }
 
 export function buildLandlordUnitWorkspaceEvents(workspace: UnitWorkspace): WorkspaceEvent[] {
