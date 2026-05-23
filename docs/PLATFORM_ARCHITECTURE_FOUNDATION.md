@@ -10,6 +10,20 @@ HomeBase MLS should be treated as a shared platform with multiple frontends, not
 - One audit/history system: high-risk commands write audit and timeline evidence from the service layer.
 - Multiple views: web, mobile, admin panels, vendor portals, public portals, APIs, dashboards, and future white-label shells call the same platform services.
 
+## Workspace Engine
+
+The next platform layer is the Workspace Engine, documented in `docs/WORKSPACE_ENGINE_ARCHITECTURE.md`.
+
+The workspace engine treats HomeBase as an operational interface system built around entities, relationships, events, workflows, widgets, panels, commands, permissions, activity streams, and workspace modes. It is not a draggable dashboard system.
+
+New workspace work should follow this direction:
+
+- Build entity and workflow primitives before page-specific UI.
+- Load workspace data through platform services.
+- Resolve visible widgets, actions, alerts, panels, and modes from shared context.
+- Keep React/Next.js components focused on rendering and input collection.
+- Preserve route compatibility while moving user-facing language and mental models toward workspaces.
+
 ## Service Boundary
 
 New platform services should use the shared helpers in `src/lib/platform`.
