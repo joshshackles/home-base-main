@@ -16,7 +16,13 @@ const densityLabels: Record<WorkspaceDensityMode, string> = {
   analyst: "Analyst",
   command_center: "Command Center",
   comfortable: "Comfortable",
-  operational: "Operational"
+  executive_summary: "Executive Summary",
+  field_mobile: "Field Mobile",
+  focus: "Focus Mode",
+  operational: "Operational",
+  presentation: "Presentation Mode",
+  simple_daily: "Simple Daily View",
+  spreadsheet_heavy: "Spreadsheet Heavy"
 };
 
 export function OperationalCanvas({ canvas, header, workflowNav, primary, context, utilities, className = "" }: CanvasProps) {
@@ -90,4 +96,3 @@ export function OperationalCanvasModuleMap({ canvas }: { canvas: WorkspaceOperat
     </div>
   );
 }
-

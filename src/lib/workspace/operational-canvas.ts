@@ -1,12 +1,13 @@
 import type {
-  WorkspaceMode,
   WorkspacePanelDefinition,
   WorkspaceResolvedModel,
   WorkspaceWidgetDefinition,
   WorkspaceWidgetKind
 } from "@/lib/workspace/types";
-
-export type WorkspaceDensityMode = "comfortable" | "operational" | "analyst" | "command_center";
+import type { WorkspaceOptionDefinition, WorkspaceRepresentationType } from "@/lib/workspace/workspace-options";
+import type { WorkspaceDensityMode, WorkspaceOptionMode } from "@/lib/workspace/workspace-modes";
+import { getWorkspaceDensityDefinition, normalizeWorkspaceOptionMode, workspaceOptionModes } from "@/lib/workspace/workspace-modes";
+import { buildDefaultWorkspaceTemplate, buildWorkspaceOptionRegistry, normalizeEntityType } from "@/lib/workspace/workspace-registries";
 
 export type WorkspaceCanvasRegion =
   | "global_nav"
@@ -32,7 +33,7 @@ export type WorkspaceModuleRepresentation =
 export type WorkspaceCanvasModule = {
   key: string;
   label: string;
-  source: "widget" | "panel";
+  source: "option" | "widget" | "panel";
   sourceKey: string;
   region: WorkspaceCanvasRegion;
   representation: WorkspaceModuleRepresentation;
@@ -50,7 +51,7 @@ export type WorkspaceCanvasModule = {
 export type WorkspaceCanvasTemplate = {
   key: string;
   label: string;
-  mode: WorkspaceMode;
+  mode: WorkspaceOptionMode;
   density: WorkspaceDensityMode;
   description: string;
   columns: number;
@@ -71,60 +72,62 @@ export type WorkspaceOperationalCanvasModel = {
   utilityModules: WorkspaceCanvasModule[];
 };
 
-export const workspaceDensitySettings: Record<WorkspaceDensityMode, { label: string; rowHeight: number; gutter: number; description: string }> = {
-  comfortable: {
-    label: "Comfortable",
-    rowHeight: 92,
-    gutter: 16,
-    description: "Simplified spacing for occasional users and guided workflows."
-  },
-  operational: {
-    label: "Operational",
-    rowHeight: 76,
-    gutter: 12,
-    description: "Balanced professional density for daily property operations."
-  },
-  analyst: {
-    label: "Analyst",
-    rowHeight: 60,
-    gutter: 8,
-    description: "Dense tables, timelines, and comparison views for power users."
-  },
-  command_center: {
-    label: "Command Center",
-    rowHeight: 52,
-    gutter: 6,
-    description: "High-density mission-control layout for large portfolios and urgent queues."
-  }
-};
+export const workspaceDensitySettings = Object.fromEntries(
+  ([
+    "simple_daily",
+    "comfortable",
+    "operational",
+    "analyst",
+    "command_center",
+    "field_mobile",
+    "executive_summary",
+    "spreadsheet_heavy",
+    "focus",
+    "presentation"
+  ] as WorkspaceDensityMode[]).map((densityMode) => [densityMode, getWorkspaceDensityDefinition(densityMode)])
+) as Record<WorkspaceDensityMode, ReturnType<typeof getWorkspaceDensityDefinition>>;
 
-export const workspaceCanvasTemplates: Record<WorkspaceMode, WorkspaceCanvasTemplate> = {
-  overview: canvasTemplate("overview", "Overview canvas", "overview", "operational", "Balanced operating view with status, activity, and next actions."),
-  leasing: canvasTemplate("leasing", "Leasing canvas", "leasing", "operational", "Pipeline-oriented layout for listings, leads, applications, tours, messages, and approvals."),
-  resident: canvasTemplate("resident", "Resident canvas", "resident", "comfortable", "Tenancy lifecycle layout for household, lease, payments, documents, maintenance, and communication."),
-  financial: canvasTemplate("financial", "Financial canvas", "financial", "analyst", "Audit-safe financial layout for ledger, payments, subsidy, exports, and exception handling."),
-  maintenance: canvasTemplate("maintenance", "Maintenance dispatch canvas", "maintenance", "operational", "Dispatch layout for repair triage, vendor assignment, media, messages, estimates, and completion."),
-  inspection: canvasTemplate("inspection", "Inspection canvas", "inspection", "operational", "Checklist and correction workflow layout for inspections, evidence, reports, and reinspection."),
-  documents: canvasTemplate("documents", "Document operations canvas", "documents", "analyst", "Document center layout for previews, sharing, signatures, filters, and timeline evidence."),
-  communication: canvasTemplate("communication", "Communication canvas", "communication", "operational", "Message triage layout with entity context, assignment, activity, and quick actions."),
-  executive: canvasTemplate("executive", "Executive canvas", "executive", "comfortable", "High-level performance layout for portfolio owners, leadership, and controlled drilldowns."),
-  compliance: canvasTemplate("compliance", "Compliance canvas", "compliance", "analyst", "Program and audit layout for RFTA, vouchers, certifications, documents, subsidy, and inspections."),
-  mobile_field: canvasTemplate("mobile_field", "Mobile field canvas", "mobile_field", "comfortable", "Action-first field layout for vendors, inspectors, camera capture, notes, and completion.")
-};
+export const workspaceCanvasTemplates = Object.fromEntries(
+  workspaceOptionModes.map((modeDefinition) => [
+    modeDefinition.id,
+    canvasTemplate(modeDefinition.id, `${modeDefinition.label.replace(" Mode", "")} canvas`, modeDefinition.id, modeDefinition.defaultDensity, modeDefinition.description)
+  ])
+) as Record<WorkspaceOptionMode, WorkspaceCanvasTemplate>;
 
 export function buildOperationalCanvasModel(input: {
   workspace: WorkspaceResolvedModel;
   density?: WorkspaceDensityMode;
 }): WorkspaceOperationalCanvasModel {
-  const density = input.density ?? workspaceCanvasTemplates[input.workspace.context.resolvedMode].density;
+  const optionMode = normalizeWorkspaceOptionMode(input.workspace.context.resolvedMode);
+  const density = input.density ?? workspaceCanvasTemplates[optionMode].density;
   const densitySettings = workspaceDensitySettings[density];
+  const entityType = normalizeEntityType(input.workspace.context.entity.type);
+  const registry = buildWorkspaceOptionRegistry();
+  const defaultTemplate = buildDefaultWorkspaceTemplate(entityType, optionMode, density);
   const template = {
-    ...workspaceCanvasTemplates[input.workspace.context.resolvedMode],
+    ...workspaceCanvasTemplates[optionMode],
+    key: defaultTemplate.id,
+    label: defaultTemplate.label,
     density
   };
-  const widgetModules = input.workspace.widgets.map((widget, index) => widgetToCanvasModule(widget, index));
-  const panelModules = input.workspace.panels.map((panel, index) => panelToCanvasModule(panel, widgetModules.length + index));
-  const modules = [...widgetModules, ...panelModules].sort((a, b) => a.priority - b.priority);
+  const moduleOptionIds = [
+    ...defaultTemplate.workflowNavigation,
+    ...defaultTemplate.primaryCanvas,
+    ...defaultTemplate.contextSidebar,
+    ...defaultTemplate.floatingUtilities
+  ];
+  const optionModules = moduleOptionIds
+    .map((optionId, index) => {
+      const optionDefinition = registry.byId.get(optionId);
+      return optionDefinition ? optionToCanvasModule(optionDefinition, index) : null;
+    })
+    .filter((module): module is WorkspaceCanvasModule => Boolean(module));
+  const modules = optionModules.length > 0
+    ? optionModules.sort((a, b) => a.priority - b.priority)
+    : [
+        ...input.workspace.widgets.map((widget, index) => widgetToCanvasModule(widget, index)),
+        ...input.workspace.panels.map((panel, index) => panelToCanvasModule(panel, input.workspace.widgets.length + index))
+      ].sort((a, b) => a.priority - b.priority);
 
   return {
     template,
@@ -163,19 +166,96 @@ export function inferWorkspaceModuleRepresentation(kind: WorkspaceWidgetKind): W
 function canvasTemplate(
   key: string,
   label: string,
-  mode: WorkspaceMode,
+  mode: WorkspaceOptionMode,
   density: WorkspaceDensityMode,
   description: string
 ): WorkspaceCanvasTemplate {
+  const densityDefinition = getWorkspaceDensityDefinition(density);
   return {
     key,
     label,
     mode,
     density,
     description,
-    columns: mode === "mobile_field" ? 4 : mode === "executive" || density === "comfortable" ? 8 : 12,
+    columns: densityDefinition.columns,
     regions: ["global_nav", "workflow_nav", "primary_canvas", "context_sidebar", "floating_utility", "bottom_console"]
   };
+}
+
+function optionToCanvasModule(optionDefinition: WorkspaceOptionDefinition, index: number): WorkspaceCanvasModule {
+  const representation = optionRepresentationToCanvasRepresentation(optionDefinition.representationTypes[0]);
+  return {
+    key: `option.${optionDefinition.id}`,
+    label: optionDefinition.label,
+    source: "option",
+    sourceKey: optionDefinition.id,
+    region: optionRegionToCanvasRegion(optionDefinition.preferredPlacement, optionDefinition.region),
+    representation,
+    minColumnSpan: optionSizeToColumnSpan(optionDefinition.minSize),
+    defaultColumnSpan: optionSizeToColumnSpan(optionDefinition.defaultSize),
+    minRowSpan: optionDefinition.minSize === "xs" || optionDefinition.minSize === "sm" ? 1 : 2,
+    defaultRowSpan: optionRepresentationToRowSpan(representation),
+    collapsible: true,
+    resizable: optionDefinition.region !== "workflow_navigation",
+    dockable: optionDefinition.region !== "workflow_navigation",
+    lazy: optionDefinition.region === "primary_canvas" || optionDefinition.region === "context_sidebar",
+    priority: optionDefinition.priority + index / 100
+  };
+}
+
+function optionRepresentationToCanvasRepresentation(representation: WorkspaceRepresentationType): WorkspaceModuleRepresentation {
+  const representationMap: Record<WorkspaceRepresentationType, WorkspaceModuleRepresentation> = {
+    alert: "operational_panel",
+    button: "compact_strip",
+    card: "operational_panel",
+    chart: "operational_panel",
+    checklist: "form_flow",
+    command: "form_flow",
+    dockedPanel: "message_thread",
+    document: "document_preview",
+    drawer: "inspector",
+    floatingPanel: "form_flow",
+    form: "form_flow",
+    inbox: "message_thread",
+    kanban: "kanban",
+    map: "map",
+    media: "media_board",
+    modal: "form_flow",
+    spreadsheet: "spreadsheet",
+    table: "spreadsheet",
+    timeline: "timeline",
+    workflow: "operational_panel"
+  };
+
+  return representationMap[representation];
+}
+
+function optionRegionToCanvasRegion(placement: string, region: string): WorkspaceCanvasRegion {
+  if (placement === "leftRail" || region === "workflow_navigation") return "workflow_nav";
+  if (placement === "rightSidebar" || region === "context_sidebar") return "context_sidebar";
+  if (placement === "bottomConsole") return "bottom_console";
+  if (placement === "floating" || placement === "drawer" || placement === "modal") return "floating_utility";
+  return "primary_canvas";
+}
+
+function optionSizeToColumnSpan(size: WorkspaceOptionDefinition["defaultSize"]): number {
+  const spans: Record<WorkspaceOptionDefinition["defaultSize"], number> = {
+    xs: 2,
+    sm: 3,
+    md: 4,
+    lg: 6,
+    xl: 8,
+    full: 12
+  };
+
+  return spans[size];
+}
+
+function optionRepresentationToRowSpan(representation: WorkspaceModuleRepresentation): number {
+  if (representation === "compact_strip") return 1;
+  if (representation === "spreadsheet" || representation === "kanban" || representation === "timeline") return 5;
+  if (representation === "map" || representation === "media_board" || representation === "document_preview") return 4;
+  return 3;
 }
 
 function widgetToCanvasModule(widget: WorkspaceWidgetDefinition, index: number): WorkspaceCanvasModule {
@@ -251,4 +331,3 @@ function getDefaultRowSpan(representation: WorkspaceModuleRepresentation): numbe
   if (representation === "inspector" || representation === "document_preview") return 4;
   return 3;
 }
-

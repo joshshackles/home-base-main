@@ -8,6 +8,8 @@ The workspace engine exists to answer one question:
 
 The next architecture layer is the operational canvas. See `docs/OPERATIONAL_CANVAS_ARCHITECTURE.md` for the canvas model, density modes, layout regions, and module representation rules.
 
+The workspace option library in `docs/WORKSPACE_OPTION_LIBRARY.md` defines the larger inventory of workflow navigation items, canvas modules, contextual sidebar panels, modes, density modes, and default templates that will power future configurable workspaces.
+
 ## Product Principle
 
 Pages are delivery surfaces. Workspaces are operational views of platform entities.
@@ -403,6 +405,7 @@ These are future capabilities. The first pass should establish the primitives an
 - Update 13 added command action bindings in `src/lib/workspace/action-bindings.ts`, so resolved workspace commands can be rendered by web, mobile, admin, or future API surfaces as permission-aware actions with route bindings, disabled reasons, and audit cues.
 - Update 14 added `scripts/verify-workspace-engine.ts` and `docs/WORKSPACE_ENGINE_DEVELOPER_GUIDE.md`, creating a repeatable QA gate for registry references, command action bindings, and future workspace implementation rules.
 - Update 15 introduced the operational canvas foundation in `src/lib/workspace/operational-canvas.ts` and `src/components/workspace/OperationalCanvas.tsx`, adding density modes, canvas regions, module representations, snap-grid metadata, and the first Unit Workspace canvas model.
+- Update 16 added the workspace option library in `src/lib/workspace/workspace-options.ts`, `src/lib/workspace/workspace-modes.ts`, and `src/lib/workspace/workspace-registries.ts`, including expanded modes, density modes, workflow navigation options, primary canvas modules, contextual sidebar options, role/mode/entity helpers, and default template resolution.
 
 ## Success Criteria
 

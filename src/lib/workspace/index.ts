@@ -11,3 +11,6 @@ export * from "@/lib/workspace/panel-registry";
 export * from "@/lib/workspace/relationship-graph";
 export * from "@/lib/workspace/types";
 export * from "@/lib/workspace/widget-registry";
+export * from "@/lib/workspace/workspace-modes";
+export * from "@/lib/workspace/workspace-options";
+export * from "@/lib/workspace/workspace-registries";

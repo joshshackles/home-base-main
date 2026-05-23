@@ -3,6 +3,8 @@ import { join } from "node:path";
 import {
   bindWorkspaceCommandsToActions,
   buildOperationalCanvasModel,
+  buildDefaultWorkspaceTemplate,
+  buildWorkspaceOptionRegistry,
   getMissingWorkspaceCommandKeys,
   getMissingWorkspaceWidgetKeys,
   getWorkspaceEntityCommandKeys,
@@ -10,8 +12,12 @@ import {
   landlordUnitWorkspaceTabToMode,
   resolveWorkspaceContext,
   workspaceCommandRegistry,
+  workspaceDensityDefinitions,
   workspaceEntityTypes,
+  workspaceOptionDefinitions,
+  workspaceOptionModes,
   workspacePanelRegistry,
+  workspaceTemplateDefinitions,
   workspaceWidgetRegistry
 } from "@/lib/workspace";
 import type { PlatformActor } from "@/lib/platform/types";
@@ -48,6 +54,46 @@ for (const [widgetKey, widget] of Object.entries(workspaceWidgetRegistry)) {
 for (const [panelKey, panel] of Object.entries(workspacePanelRegistry)) {
   const missingActions = (panel.actions ?? []).filter((action) => !workspaceCommandRegistry[action]);
   assert(missingActions.length === 0, `${panelKey} references missing workspace commands: ${missingActions.join(", ")}`);
+}
+
+const optionRegistry = buildWorkspaceOptionRegistry();
+const optionIds = new Set<string>();
+const validRegions = new Set(["workflow_navigation", "primary_canvas", "context_sidebar", "floating_utility"]);
+const validModes = new Set(workspaceOptionModes.map((mode) => mode.id));
+const validDensities = new Set(workspaceDensityDefinitions.map((density) => density.id));
+
+for (const option of workspaceOptionDefinitions) {
+  assert(!optionIds.has(option.id), `Duplicate workspace option id: ${option.id}`);
+  optionIds.add(option.id);
+  assert(validRegions.has(option.region), `${option.id} has invalid region ${option.region}`);
+  assert(option.supportedModes.length > 0, `${option.id} must support at least one mode.`);
+  assert(option.supportedModes.every((mode) => validModes.has(mode)), `${option.id} references an unknown mode.`);
+  assert(option.supportedDensityModes.length > 0, `${option.id} must support at least one density mode.`);
+  assert(option.supportedDensityModes.every((density) => validDensities.has(density)), `${option.id} references an unknown density mode.`);
+  assert(option.representationTypes.length > 0, `${option.id} must include at least one representation type.`);
+}
+
+for (const template of workspaceTemplateDefinitions) {
+  const referencedIds = [
+    ...template.workflowNavigation,
+    ...template.primaryCanvas,
+    ...template.contextSidebar,
+    ...template.floatingUtilities
+  ];
+  assert(referencedIds.length > 0, `${template.id} must reference registered options.`);
+  for (const optionId of referencedIds) {
+    assert(optionRegistry.byId.has(optionId), `${template.id} references missing option ${optionId}.`);
+  }
+}
+
+const generatedTemplate = buildDefaultWorkspaceTemplate("unit", "maintenance", "operational");
+for (const optionId of [
+  ...generatedTemplate.workflowNavigation,
+  ...generatedTemplate.primaryCanvas,
+  ...generatedTemplate.contextSidebar,
+  ...generatedTemplate.floatingUtilities
+]) {
+  assert(optionRegistry.byId.has(optionId), `Generated template references missing option ${optionId}.`);
 }
 
 const actor: PlatformActor = {
@@ -98,13 +144,19 @@ assert(canvas.density === "operational", "Maintenance canvas should default to o
 assert(canvas.modules.length > 0, "Operational canvas should contain modules.");
 assert(canvas.primaryModules.length > 0, "Operational canvas should include primary canvas modules.");
 assert(canvas.snapGrid.columns === 12, "Desktop operational canvas should expose a 12-column snap grid.");
+assert(canvas.modules.some((module) => module.source === "option"), "Operational canvas should resolve modules from registered workspace options.");
 
 assertContains("docs/WORKSPACE_ENGINE_ARCHITECTURE.md", "Update 14");
 assertContains("docs/WORKSPACE_ENGINE_ARCHITECTURE.md", "Update 15");
+assertContains("docs/WORKSPACE_ENGINE_ARCHITECTURE.md", "Update 16");
 assertContains("docs/WORKSPACE_ENGINE_DEVELOPER_GUIDE.md", "Do not put workflow rules in page components");
 assertContains("docs/OPERATIONAL_CANVAS_ARCHITECTURE.md", "WorkspaceDensityMode");
+assertContains("docs/WORKSPACE_OPTION_LIBRARY.md", "Workspace Option Library");
 assertContains("src/lib/workspace/action-bindings.ts", "bindWorkspaceCommandsToActions");
 assertContains("src/lib/workspace/operational-canvas.ts", "buildOperationalCanvasModel");
+assertContains("src/lib/workspace/workspace-registries.ts", "buildWorkspaceOptionRegistry");
+assertContains("src/lib/workspace/workspace-registries.ts", "getWorkflowNavForRole");
+assertContains("src/lib/workspace/workspace-registries.ts", "buildDefaultWorkspaceTemplate");
 assertContains("src/components/workspace/OperationalCanvas.tsx", "OperationalCanvas");
 assertContains("src/lib/workspace/adapters/landlord-unit-workspace.ts", "commandActions");
 assertContains("src/lib/workspace/adapters/landlord-unit-workspace.ts", "operationalCanvas");

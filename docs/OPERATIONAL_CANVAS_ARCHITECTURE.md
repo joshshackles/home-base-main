@@ -17,6 +17,9 @@ The target workspace model has five layers:
 The code foundation starts in:
 
 - `src/lib/workspace/operational-canvas.ts`
+- `src/lib/workspace/workspace-modes.ts`
+- `src/lib/workspace/workspace-options.ts`
+- `src/lib/workspace/workspace-registries.ts`
 - `src/components/workspace/OperationalCanvas.tsx`
 
 The model introduces:
@@ -102,3 +105,4 @@ When migrating a page to the operational canvas:
 
 The first implementation pass wires the landlord Unit Workspace engine model to an `operationalCanvas` object. The visible page still preserves its current layout, but it now exposes resolved canvas density, modules, regions, and representations. Future updates should progressively replace stacked regions with the operational canvas shell.
 
+The option-library pass adds `docs/WORKSPACE_OPTION_LIBRARY.md` and expands the registry of possible workflow navigation items, primary canvas modules, contextual sidebar panels, modes, density modes, and default templates. The canvas model now resolves module options through the registry instead of relying only on hardcoded widget and panel samples.
