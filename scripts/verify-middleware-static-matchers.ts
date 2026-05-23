@@ -66,7 +66,7 @@ assertExcludes("src/middleware.ts", [
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.61.4\"",
+  "\"version\": \"4.61.5\"",
   "\"middleware-static:verify\"",
   "\"protected-routes:verify\"",
   "\"environment-contract:verify\"",
@@ -74,8 +74,8 @@ assertIncludes("package.json", [
   "\"vercel-build\": \"npm run vercel:preflight && npm run lockfile:verify && npm run clean-install:verify && npm run first-release:verify && npm run permission-matrix:verify && npm run authorization-runtime:verify && npm run protected-routes:verify && npm run middleware-static:verify && npm run environment-contract:verify && npm run expanded-access:verify"
 ]);
 
-assertIncludes("src/lib/app-version.ts", ["4.61.4"]);
-assertIncludes("README.md", ["Current package version: **4.61.4**"]);
-assertIncludes("CHANGELOG.md", ["## v4.61.4 - Homepage Reference Fidelity Pass"]);
+assertIncludes("src/lib/app-version.ts", ["4.61.5"]);
+assertIncludes("README.md", ["Current package version: **4.61.5**"]);
+assertIncludes("CHANGELOG.md", ["## v4.61.5 - Version Consistency Metadata Cleanup"]);
 
 console.log("Middleware static matcher verification passed.");

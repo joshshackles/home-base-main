@@ -12,9 +12,9 @@ function assertContains(path: string, marker: string) {
   if (!source.includes(marker)) throw new Error(`${path} is missing ${marker}`);
 }
 
-assertContains("package.json", '"version": "4.61.4"');
+assertContains("package.json", '"version": "4.61.5"');
 assertContains("package.json", '"dashboard-shell-sparkles-icon-fix:verify": "tsx scripts/verify-dashboard-shell-sparkles-icon-fix.ts"');
-assertContains("CHANGELOG.md", "## v4.61.4 - Homepage Reference Fidelity Pass");
+assertContains("CHANGELOG.md", "## v4.61.5 - Version Consistency Metadata Cleanup");
 assertContains("src/components/layout/DashboardShell.tsx", "Sparkles,");
 assertContains("src/lib/navigation/first-release.ts", 'icon: "Sparkles"');
 

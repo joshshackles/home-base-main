@@ -1,3 +1,8 @@
+## v4.61.5 - Version Consistency Metadata Cleanup
+
+- Synchronized package metadata, lockfile metadata, app version constants, README release copy, visible admin/system version labels, and release verifier expectations on HomeBase MLS v4.61.5.
+- Kept older changelog and release documentation entries historically accurate; those entries describe past release work and are not the current app version.
+
 ## v4.61.4 - Homepage Reference Fidelity Pass
 
 - Tightened the public homepage toward the uploaded MLS reference: shorter image-led hero, deep navy overlay, square CTAs, overlapping search panel, wider content rail, and compact trust/listing rhythm.
