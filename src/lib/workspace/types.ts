@@ -176,6 +176,10 @@ export type WorkspacePanelDefinition = {
   kind: WorkspacePanelKind;
   entityTypes: WorkspaceEntityType[];
   modes?: WorkspaceMode[];
+  description?: string;
+  dataDependencies?: string[];
+  actions?: string[];
+  defaultSize?: WorkspaceWidgetSize;
   permission?: WorkspacePermissionRequirement;
 };
 

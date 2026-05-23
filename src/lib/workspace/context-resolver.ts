@@ -9,6 +9,7 @@ import {
   supportsWorkspaceMode
 } from "@/lib/workspace/entity-registry";
 import { getWorkspaceRelationshipSummary } from "@/lib/workspace/relationship-graph";
+import { resolveWorkspacePanels } from "@/lib/workspace/panel-registry";
 import { resolveWorkspaceWidgets } from "@/lib/workspace/widget-registry";
 import type {
   WorkspaceAction,
@@ -74,6 +75,11 @@ export function resolveWorkspaceContext(input: ResolveWorkspaceContextInput): Wo
     mode: resolvedMode,
     permissions
   });
+  const panels = resolveWorkspacePanels({
+    entityType: input.entity.type,
+    mode: resolvedMode,
+    permissions
+  });
 
   return {
     context,
@@ -94,7 +100,7 @@ export function resolveWorkspaceContext(input: ResolveWorkspaceContextInput): Wo
       hasMoreActivity: activityStream.hasMore
     }),
     widgets,
-    panels: [],
+    panels,
     commands: [],
     activity: activityStream.items
   };

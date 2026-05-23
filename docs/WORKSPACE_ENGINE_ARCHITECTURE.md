@@ -394,6 +394,7 @@ These are future capabilities. The first pass should establish the primitives an
 - Update 6 added the shared activity stream builder in `src/lib/workspace/activity-stream.ts`, including timeline filtering, audience-sensitive views, grouping, counts, previews, pagination windows, and date summaries.
 - Update 7 added the first workspace context resolver in `src/lib/workspace/context-resolver.ts`, including actor permission resolution, mode fallback, urgency calculation, activity stream composition, relationship summaries, baseline actions, and access alerts.
 - Update 8 added the workspace widget registry in `src/lib/workspace/widget-registry.ts`, including reusable widget definitions, data dependencies, actions, entity/mode support, permission filtering, and resolver integration.
+- Update 9 added the workspace panel registry in `src/lib/workspace/panel-registry.ts`, including drawers, inspectors, split panes, docks, modals, bottom sheets, permission filtering, and resolver integration.
 
 ## Success Criteria
 
