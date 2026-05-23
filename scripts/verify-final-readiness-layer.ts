@@ -68,13 +68,13 @@ assertIncludes("docs/FINAL_READINESS_LAYER.md", [
 ]);
 
 assertIncludes("package.json", [
-  "\"version\": \"4.61.4\"",
+  "\"version\": \"4.61.5\"",
   "\"final-readiness:verify\"",
   "field-workflow-proof-launch-hardening:verify && npm run final-readiness:verify",
 ]);
-assertIncludes("package-lock.json", ["\"version\": \"4.61.4\""]);
-assertIncludes("src/lib/app-version.ts", ["4.61.4"]);
-assertIncludes("README.md", ["Current package version: **4.61.4**"]);
-assertIncludes("CHANGELOG.md", ["## v4.61.4 - Homepage Reference Fidelity Pass"]);
+assertIncludes("package-lock.json", ["\"version\": \"4.61.5\""]);
+assertIncludes("src/lib/app-version.ts", ["4.61.5"]);
+assertIncludes("README.md", ["Current package version: **4.61.5**"]);
+assertIncludes("CHANGELOG.md", ["## v4.61.5 - Version Consistency Metadata Cleanup"]);
 
 console.log("Final readiness layer verification passed.");

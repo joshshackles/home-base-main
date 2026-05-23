@@ -17,9 +17,9 @@ function assertNotContains(path: string, needle: string) {
   if (contents.includes(needle)) throw new Error(`${path} still contains ${needle}`);
 }
 
-assertContains("package.json", '"version": "4.61.4"');
+assertContains("package.json", '"version": "4.61.5"');
 assertContains("package.json", '"role-visibility-workflow-simplification:verify": "tsx scripts/verify-role-visibility-workflow-simplification.ts"');
-assertContains("CHANGELOG.md", "## v4.61.4 - Homepage Reference Fidelity Pass");
+assertContains("CHANGELOG.md", "## v4.61.5 - Version Consistency Metadata Cleanup");
 
 assertContains("src/lib/role-capabilities.ts", "ROLE_CAPABILITY_MAP");
 assertContains("src/lib/role-capabilities.ts", "minimum necessary interface");
