@@ -50,6 +50,7 @@ export const simpleLandlordNavGroups: ShellNavGroup[] = [
     { href: "/landlord/tenants", label: "Residents", icon: "Users", capability: "landlord.tenants" },
     { href: "/landlord/documents", label: "Documents", icon: "FileText", capability: "landlord.documents" },
     { href: "/landlord/leases", label: "Leases", icon: "FileSignature", capability: "landlord.leases" },
+    { href: "/landlord/document-generation", label: "Generate Docs", icon: "FileSignature", capability: "landlord.documents" },
     { href: "/landlord/reports", label: "Reports", icon: "BarChart3", capability: "landlord.reports" }
   ] },
   { label: "Professional", items: [
@@ -73,6 +74,7 @@ export const propertyManagementNavGroups: ShellNavGroup[] = [
   { label: "Residents", items: [
     { href: "/landlord/tenants", label: "Residents", icon: "Users", capability: "landlord.tenants" },
     { href: "/landlord/documents", label: "Documents & Leases", icon: "FileText", capability: "landlord.documents" },
+    { href: "/landlord/document-generation", label: "Generate Docs", icon: "FileSignature", capability: "landlord.documents" },
     { href: "/landlord/notices", label: "Notices", icon: "Megaphone", capability: "landlord.documents" }
   ] },
   { label: "Maintenance", items: [

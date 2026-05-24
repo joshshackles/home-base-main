@@ -188,6 +188,83 @@ enum DocumentRequestStatus {
   WAIVED
 }
 
+enum GeneratedDocumentTemplateType {
+  LEASE
+  LEASE_RENEWAL
+  NOTICE
+  TENANT_STATEMENT
+  RENT_LEDGER
+  OWNER_STATEMENT
+  RENT_ROLL
+  PROPERTY_SUMMARY
+  UNIT_SUMMARY
+  MAINTENANCE_REPORT
+  INSPECTION_REPORT
+  APPLICATION_PACKET
+  DOCUMENT_COMPLIANCE_REPORT
+}
+
+enum GeneratedDocumentTemplateStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum GeneratedDocumentVersionStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum DocumentTemplateEngine {
+  SYSTEM_REACT_PDF
+  JSON_PDF_TEMPLATE
+  DOCX_TEMPLATE
+  HTML_TEMPLATE
+}
+
+enum GeneratedDocumentOutputFormat {
+  PDF
+  DOCX
+  CSV
+  XLSX
+  HTML_PREVIEW
+}
+
+enum GeneratedDocumentStatus {
+  DRAFT
+  PREVIEWED
+  GENERATED
+  FINALIZED
+  SENT
+  SIGNED
+  VOIDED
+  ARCHIVED
+  FAILED
+}
+
+enum DocumentGenerationJobStatus {
+  QUEUED
+  VALIDATING
+  READY_FOR_PREVIEW
+  BLOCKED_MISSING_FIELDS
+  GENERATING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum RelatedDocumentRecordType {
+  PROPERTY
+  UNIT
+  APPLICANT
+  TENANT
+  LEASE
+  MAINTENANCE
+  INSPECTION
+  PORTFOLIO
+}
+
 
 enum LeaseTemplateKind {
   RESIDENTIAL
@@ -1595,6 +1672,148 @@ model StoredDocument {
   updatedAt    DateTime @updatedAt
 
   @@index([createdAt])
+}
+
+model DocumentTemplate {
+  id                  String                          @id @default(cuid())
+  organizationId      String?
+  name                String
+  description         String?
+  templateType        GeneratedDocumentTemplateType
+  documentCategory    DocumentCategory                @default(OTHER)
+  jurisdictionState   String?
+  status              GeneratedDocumentTemplateStatus @default(DRAFT)
+  outputFormats       GeneratedDocumentOutputFormat[]
+  defaultOutputFormat GeneratedDocumentOutputFormat   @default(PDF)
+  createdById         String?
+  createdAt           DateTime                        @default(now())
+  updatedAt           DateTime                        @updatedAt
+
+  versions           DocumentTemplateVersion[]
+  generatedDocuments GeneratedDocument[]
+  generationJobs     DocumentGenerationJob[]
+
+  @@index([organizationId])
+  @@index([templateType])
+  @@index([documentCategory])
+  @@index([status])
+  @@index([jurisdictionState])
+  @@index([createdById])
+}
+
+model DocumentTemplateVersion {
+  id             String                         @id @default(cuid())
+  templateId     String
+  versionNumber  Int
+  status         GeneratedDocumentVersionStatus @default(DRAFT)
+  templateEngine DocumentTemplateEngine         @default(JSON_PDF_TEMPLATE)
+  templateSchema Json
+  templateContent String
+  requiredFields Json
+  optionalFields Json?
+  sampleData     Json?
+  previewImageUrl String?
+  createdById    String?
+  createdAt      DateTime                       @default(now())
+  publishedAt    DateTime?
+  archivedAt     DateTime?
+
+  template           DocumentTemplate       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  generatedDocuments GeneratedDocument[]
+  generationJobs     DocumentGenerationJob[]
+
+  @@unique([templateId, versionNumber])
+  @@index([templateId, status])
+  @@index([templateEngine])
+  @@index([createdById])
+  @@index([createdAt])
+}
+
+model GeneratedDocument {
+  id                     String                        @id @default(cuid())
+  organizationId         String?
+  templateId             String
+  templateVersionId      String
+  documentType           GeneratedDocumentTemplateType
+  title                  String
+  status                 GeneratedDocumentStatus       @default(DRAFT)
+  outputFormat           GeneratedDocumentOutputFormat @default(PDF)
+  fileUrl                String?
+  fileName               String?
+  originalName           String?
+  mimeType               String?
+  sizeBytes              Int?
+  storagePath            String?
+  sourceDataSnapshot     Json
+  missingFieldsSnapshot  Json
+  relatedPropertyId      String?
+  relatedUnitId          String?
+  relatedApplicantId     String?
+  relatedTenantId        String?
+  relatedLeaseId         String?
+  relatedMaintenanceId   String?
+  relatedInspectionId    String?
+  generatedById          String?
+  generatedAt            DateTime?
+  finalizedAt            DateTime?
+  sentAt                 DateTime?
+  signedAt               DateTime?
+  voidedAt               DateTime?
+  createdAt              DateTime                      @default(now())
+  updatedAt              DateTime                      @updatedAt
+
+  template        DocumentTemplate        @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  templateVersion DocumentTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: Restrict)
+  generationJobs  DocumentGenerationJob[]
+
+  @@index([organizationId])
+  @@index([templateId])
+  @@index([templateVersionId])
+  @@index([documentType])
+  @@index([status])
+  @@index([outputFormat])
+  @@index([relatedPropertyId])
+  @@index([relatedUnitId])
+  @@index([relatedApplicantId])
+  @@index([relatedTenantId])
+  @@index([relatedLeaseId])
+  @@index([relatedMaintenanceId])
+  @@index([relatedInspectionId])
+  @@index([generatedById])
+  @@index([generatedAt])
+  @@index([createdAt])
+}
+
+model DocumentGenerationJob {
+  id                    String                          @id @default(cuid())
+  organizationId        String?
+  templateId            String
+  templateVersionId     String?
+  status                DocumentGenerationJobStatus     @default(QUEUED)
+  requestedOutputFormat GeneratedDocumentOutputFormat   @default(PDF)
+  relatedRecordType     RelatedDocumentRecordType
+  relatedRecordId       String?
+  inputDataSnapshot     Json
+  validationResult      Json
+  errorMessage          String?
+  generatedDocumentId   String?
+  requestedById         String?
+  createdAt             DateTime                        @default(now())
+  completedAt           DateTime?
+
+  template          DocumentTemplate         @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  templateVersion   DocumentTemplateVersion? @relation(fields: [templateVersionId], references: [id], onDelete: SetNull)
+  generatedDocument GeneratedDocument?       @relation(fields: [generatedDocumentId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([templateId])
+  @@index([templateVersionId])
+  @@index([status])
+  @@index([relatedRecordType, relatedRecordId])
+  @@index([generatedDocumentId])
+  @@index([requestedById])
+  @@index([createdAt])
+  @@index([completedAt])
 }
 
 model HomepageHeroSlide {
