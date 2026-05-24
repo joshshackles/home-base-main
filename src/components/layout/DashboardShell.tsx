@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, BarChart3, Bell, BriefcaseBusiness, CalendarDays, CheckSquare, ChevronDown, ClipboardCheck, ClipboardList, Database, DollarSign, FileSignature, FileText, Heart, Home, Inbox, LayoutDashboard, Megaphone, Menu, MessageSquare, PackageSearch, PlugZap, Route, Search, Shield, ShieldCheck, Sparkles, TestTube2, UserRound, Users, Wrench, X } from "lucide-react";
+import { Activity, BarChart3, Bell, BriefcaseBusiness, CalendarDays, CheckSquare, ChevronDown, ClipboardCheck, ClipboardList, Database, DollarSign, FileSignature, FileText, Heart, Home, Inbox, LayoutDashboard, Megaphone, Menu, MessageSquare, PackageSearch, PanelLeftClose, PanelLeftOpen, PlugZap, Route, Search, Shield, ShieldCheck, Sparkles, TestTube2, UserRound, Users, Wrench, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { HomeBaseLogo } from "@/components/brand/HomeBaseLogo";
 import { CommandPalette } from "@/components/ui/system";
@@ -53,21 +53,33 @@ function getShellIcon(icon: ShellIconName): LucideIcon {
   return shellIconMap[icon] ?? LayoutDashboard;
 }
 
-function ShellNavigation({ groups, onNavigate }: { groups: ShellNavGroup[]; onNavigate?: () => void }) {
+function ShellNavigation({ groups, onNavigate, collapsed = false }: { groups: ShellNavGroup[]; onNavigate?: () => void; collapsed?: boolean }) {
   return (
     <div className="space-y-4">
       {groups.map((group) => (
         <div key={group.label}>
-          <div className="mb-1 flex items-center justify-between px-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
-            <span>{group.label}</span>
-            <ChevronDown size={12} />
-          </div>
+          {collapsed ? (
+            <div className="mb-1 h-px bg-slate-800" aria-hidden="true" />
+          ) : (
+            <div className="mb-1 flex items-center justify-between px-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+              <span>{group.label}</span>
+              <ChevronDown size={12} />
+            </div>
+          )}
           <nav className="space-y-1">
             {group.items.map((item) => {
               const Icon = getShellIcon(item.icon);
               return (
-                <Link key={item.href} href={item.href} onClick={onNavigate} className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm font-bold text-slate-300 transition hover:bg-white/10 hover:text-white">
-                  <Icon size={16} /> {item.label}
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onNavigate}
+                  title={collapsed ? item.label : undefined}
+                  aria-label={collapsed ? item.label : undefined}
+                  className={`flex items-center rounded-xl py-2 text-sm font-bold text-slate-300 transition hover:bg-white/10 hover:text-white ${collapsed ? "justify-center px-2" : "gap-2 px-2.5"}`}
+                >
+                  <Icon size={18} className="shrink-0" />
+                  {collapsed ? <span className="sr-only">{item.label}</span> : item.label}
                 </Link>
               );
             })}
@@ -103,7 +115,17 @@ export function DashboardShell({
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [cabinetCollapsed, setCabinetCollapsed] = useState(false);
   const flatItems = useMemo(() => groups.flatMap((group) => group.items), [groups]);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("homebase.workspace.cabinetCollapsed");
+    if (stored) setCabinetCollapsed(stored === "true");
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("homebase.workspace.cabinetCollapsed", String(cabinetCollapsed));
+  }, [cabinetCollapsed]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -130,15 +152,34 @@ export function DashboardShell({
 
   return (
     <div className="min-h-screen bg-slate-50" data-density="compact">
-      <div className="mx-auto grid max-w-[1500px] lg:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="hidden min-h-screen border-r border-slate-800 bg-slate-950 p-3 text-white lg:block">
-          <Link href="/" className="mb-4 block rounded-2xl px-2 py-1.5 hover:bg-white/5">
-            <HomeBaseLogo tone="light" />
-          </Link>
-          <ShellNavigation groups={groups} />
-          <div className="mt-5">
-            <CommandPalette />
+      <div className={`mx-auto grid max-w-[1500px] transition-[grid-template-columns] duration-200 ${cabinetCollapsed ? "lg:grid-cols-[72px_minmax(0,1fr)]" : "lg:grid-cols-[260px_minmax(0,1fr)]"}`}>
+        <aside className={`hidden min-h-screen border-r border-slate-800 bg-slate-950 p-3 text-white lg:block ${cabinetCollapsed ? "px-2" : ""}`}>
+          <div className={`mb-4 flex items-center gap-2 ${cabinetCollapsed ? "justify-center" : "justify-between"}`}>
+            {cabinetCollapsed ? (
+              <Link href="/" className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-white hover:bg-white/15" aria-label="HomeBase home">
+                <Home size={24} />
+              </Link>
+            ) : (
+              <Link href="/" className="block rounded-2xl px-2 py-1.5 hover:bg-white/5">
+                <HomeBaseLogo tone="light" />
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => setCabinetCollapsed((value) => !value)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-800 text-slate-300 hover:bg-white/10 hover:text-white"
+              aria-label={cabinetCollapsed ? "Expand HomeBase cabinet" : "Collapse HomeBase cabinet"}
+              title={cabinetCollapsed ? "Expand cabinet" : "Collapse cabinet"}
+            >
+              {cabinetCollapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+            </button>
           </div>
+          <ShellNavigation groups={groups} collapsed={cabinetCollapsed} />
+          {!cabinetCollapsed ? (
+            <div className="mt-5">
+              <CommandPalette />
+            </div>
+          ) : null}
         </aside>
 
         {drawerOpen ? (

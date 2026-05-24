@@ -10,6 +10,7 @@ import { agingBucket, ledgerStatusLabel, ledgerTypeLabel } from "@/lib/ledger";
 import type { LandlordUnitWorkspaceModel } from "@/lib/platform";
 import type { LandlordUnitWorkspaceEngineModel, WorkspaceBoundCommandAction } from "@/lib/workspace";
 import { type UnitWorkspaceTabKey, unitWorkspaceTabs } from "@/components/landlord/unit-workspace/UnitWorkspaceTabs";
+import { CollapsibleWorkspaceRail } from "@/components/workspace/CollapsibleWorkspaceRail";
 
 type Workspace = NonNullable<LandlordUnitWorkspaceModel>;
 type WorkspaceEngine = LandlordUnitWorkspaceEngineModel;
@@ -327,7 +328,7 @@ export function UnitPropertyWorkspace({ workspace, activeTab, engine }: { worksp
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-[1920px] gap-4 px-4 py-4 sm:px-6 xl:grid-cols-[190px_minmax(0,0.95fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_300px] 2xl:grid-cols-[220px_minmax(0,0.95fr)_minmax(0,1.15fr)_minmax(0,0.9fr)_330px]">
+      <div className="mx-auto grid max-w-[1920px] gap-4 px-4 py-4 sm:px-6 xl:grid-cols-[190px_minmax(0,0.95fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_max-content] 2xl:grid-cols-[220px_minmax(0,0.95fr)_minmax(0,1.15fr)_minmax(0,0.9fr)_max-content]">
         <aside className="xl:sticky xl:top-[132px] xl:h-[calc(100vh-148px)]">
           <div className="rounded-3xl border border-slate-200 bg-slate-950 p-3 text-white shadow-sm">
             <p className="px-2 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-blue-200">Workspace focus</p>
@@ -512,7 +513,7 @@ export function UnitPropertyWorkspace({ workspace, activeTab, engine }: { worksp
           </Card>
         </section>
 
-        <aside className={`space-y-4 xl:sticky xl:top-[132px] xl:h-[calc(100vh-148px)] xl:overflow-y-auto ${focusOrder(activeTab, "side")}`}>
+        <CollapsibleWorkspaceRail label="Context" storageKey={`homebase.unitWorkspace.contextRailCollapsed.${unit.id}`} className={`${focusOrder(activeTab, "side")} xl:w-[300px] 2xl:w-[330px]`}>
           <Card title="Workspace engine" eyebrow="Shared platform model" icon={ClipboardCheck}>
             <div className="grid grid-cols-2 gap-2">
               <EnginePill label="Mode" value={engine.modeDefinition.label} />
@@ -606,7 +607,7 @@ export function UnitPropertyWorkspace({ workspace, activeTab, engine }: { worksp
               </form>
             </details>
           </Card>
-        </aside>
+        </CollapsibleWorkspaceRail>
       </div>
     </main>
   );
