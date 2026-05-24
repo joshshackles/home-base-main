@@ -189,13 +189,21 @@ export default async function LandlordDashboardPage({ searchParams }: { searchPa
     <main id="main-content" className="min-h-screen bg-[#f7faff]">
       <div className="mx-auto max-w-[1520px] px-3 py-4 sm:px-5 lg:px-6">
         <section className="overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-          <div className="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="grid gap-3 border-b border-slate-200 bg-gradient-to-r from-white via-white to-blue-50/50 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
               <PropertyPhoto />
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Property dashboard</p>
-                <h1 className="mt-1 truncate text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{propertyLabel}</h1>
-                <p className="mt-1 truncate text-sm font-semibold text-slate-600">{propertyAddress}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Property command center</p>
+                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-emerald-700">Live workspace</span>
+                </div>
+                <h1 className="mt-1 truncate text-2xl font-black tracking-tight text-slate-950">{propertyLabel}</h1>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-600">
+                  <span className="truncate">{propertyAddress}</span>
+                  <ContextPill>{unitCount} unit{unitCount === 1 ? "" : "s"}</ContextPill>
+                  <ContextPill>{occupancyRate}% occupied</ContextPill>
+                  {attentionCount > 0 ? <ContextPill tone="rose">{attentionCount} alert{attentionCount === 1 ? "" : "s"}</ContextPill> : <ContextPill tone="green">Clear</ContextPill>}
+                </div>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -367,10 +375,19 @@ export default async function LandlordDashboardPage({ searchParams }: { searchPa
 
 function PropertyPhoto() {
   return (
-    <div className="flex h-20 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-blue-100 via-white to-emerald-100 shadow-sm">
-      <Building2 className="text-blue-700" size={30} />
+    <div className="flex h-14 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-blue-100 via-white to-emerald-100 shadow-sm sm:h-16 sm:w-20">
+      <Building2 className="text-blue-700" size={26} />
     </div>
   );
+}
+
+function ContextPill({ children, tone = "slate" }: { children: ReactNode; tone?: "slate" | "green" | "rose" }) {
+  const classes = {
+    slate: "bg-slate-100 text-slate-700",
+    green: "bg-emerald-50 text-emerald-700",
+    rose: "bg-rose-50 text-rose-700"
+  }[tone];
+  return <span className={`rounded-full px-2 py-0.5 text-[11px] font-black uppercase tracking-wide ${classes}`}>{children}</span>;
 }
 
 function DashboardTabs({ activeTab }: { activeTab: DashboardTab }) {

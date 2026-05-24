@@ -222,20 +222,21 @@ export function DashboardShell({
 
         <div className="min-w-0" data-dashboard-scroll-root data-workspace-scroll-root>
           <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-            <div className="flex items-center gap-2 px-3 py-2 sm:px-4 lg:px-5">
+            <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 lg:px-5">
               <button className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-700 lg:hidden" type="button" aria-label="Open navigation" onClick={() => setDrawerOpen(true)}>
                 <Menu size={18} />
               </button>
-              <div className="min-w-0">
-                <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">{accountLabel}</p>
-                <div className="flex min-w-0 items-center gap-2">
-                  <h1 className="truncate text-base font-black text-slate-950">{title}</h1>
-                  {shellDescription ? <span className="hidden rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-500 xl:inline-flex">{shellDescription}</span> : null}
-                </div>
+              <div className="hidden min-w-0 items-center gap-2 xl:flex">
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-500">{accountLabel}</span>
+                <h1 className="truncate text-sm font-black text-slate-950">{title}</h1>
+                {shellDescription ? <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-blue-700">{shellDescription}</span> : null}
               </div>
-              <button type="button" onClick={() => setPaletteOpen(true)} className="ml-auto hidden min-w-[260px] max-w-md flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 md:flex">
+              <div className="min-w-0 xl:hidden">
+                <h1 className="truncate text-sm font-black text-slate-950">{title}</h1>
+              </div>
+              <button type="button" onClick={() => setPaletteOpen(true)} className="ml-auto hidden min-w-[240px] max-w-lg flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 md:flex">
                 <Search size={15} />
-                <span className="font-semibold">Search workspace records, messages, and actions</span>
+                <span className="truncate font-semibold">Search records, messages, and actions</span>
                 <kbd className="ml-auto rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-black">Cmd K</kbd>
               </button>
               <Link href={inboxHref} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50" aria-label="Inbox">
