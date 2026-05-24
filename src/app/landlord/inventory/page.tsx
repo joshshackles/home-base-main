@@ -142,24 +142,25 @@ export default async function LandlordInventoryPage({ searchParams }: { searchPa
   }, []);
 
   return (
-    <main id="main-content" className="mx-auto max-w-[1500px] px-3 py-4 sm:px-5 lg:px-6">
-      <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+    <main id="main-content" className="min-h-screen bg-[#f7faff]">
+      <div className="mx-auto max-w-[1500px] px-3 py-4 sm:px-5 lg:px-6">
+      <section className="rounded-[1.25rem] border border-slate-200 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-700">Inventory</p>
-            <h1 className="mt-2 max-w-4xl text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">Property & Unit Manager</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
-              The canonical portfolio view for properties, units, marketing state, occupancy, leasing activity, open work, inspections, and unit workspaces.
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Unit management</p>
+            <h1 className="mt-1 max-w-4xl text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Units - all properties</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              Quick view of every rental unit with occupancy, listing status, tenant or applicant, rent, open work, and workspace actions.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <InventoryButton href="/landlord/properties/new" primary>Add Property</InventoryButton>
-            <InventoryButton href="/landlord/rentals/new">Add Unit</InventoryButton>
-            <InventoryButton href="/landlord/property-management">Command Center</InventoryButton>
+            <InventoryButton href="/landlord/rentals/new" primary>Add unit</InventoryButton>
+            <InventoryButton href="/landlord/properties/new">Add property</InventoryButton>
+            <InventoryButton href="/landlord">Command center</InventoryButton>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard href="/landlord/inventory" label="Total units" value={totalUnits} detail={`${occupiedUnits} occupied`} icon={<Building2 size={18} />} />
           <MetricCard href="/landlord/inventory?view=vacant" label="Vacant" value={vacantUnits} detail="Needs leasing or turnover attention" icon={<Home size={18} />} warn={vacantUnits > 0} />
           <MetricCard href="/landlord/inventory?view=unlisted" label="Unlisted" value={unlistedUnits} detail={`${listedUnits} actively marketed`} icon={<PackageSearch size={18} />} warn={unlistedUnits > 0} />
@@ -167,7 +168,7 @@ export default async function LandlordInventoryPage({ searchParams }: { searchPa
         </div>
       </section>
 
-      <section className="mt-4 rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="mt-4 rounded-[1.25rem] border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <form className="grid flex-1 gap-3 md:grid-cols-[minmax(0,1fr)_170px_170px_auto]" action="/landlord/inventory">
             <label className="grid gap-1 text-xs font-black uppercase tracking-wide text-slate-500">
@@ -213,7 +214,7 @@ export default async function LandlordInventoryPage({ searchParams }: { searchPa
         {grouped.length > 0 ? grouped.map((group) => {
           const firstUnit = group.units[0];
           return (
-            <article key={group.property} className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+            <article key={group.property} className="overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-sm">
               <div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-lg font-black text-slate-950">{firstUnit.property.name}</h2>
@@ -248,7 +249,7 @@ export default async function LandlordInventoryPage({ searchParams }: { searchPa
             </article>
           );
         }) : (
-          <section className="rounded-[1.5rem] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
+          <section className="rounded-[1.25rem] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
             <h2 className="text-2xl font-black text-slate-950">No units match this view</h2>
             <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">Adjust the filters, clear the quick view, or add a property and unit to begin managing your portfolio inventory.</p>
             <div className="mt-4 flex justify-center gap-2">
@@ -259,7 +260,7 @@ export default async function LandlordInventoryPage({ searchParams }: { searchPa
         )}
       </section>
 
-      <section className="mt-6 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+      <section className="mt-6 overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-700">Assets and preventive maintenance</p>
           <h2 className="mt-1 text-2xl font-black text-slate-950">Property Asset Register</h2>
@@ -276,6 +277,7 @@ export default async function LandlordInventoryPage({ searchParams }: { searchPa
           }}
         />
       </section>
+      </div>
     </main>
   );
 }
@@ -286,7 +288,7 @@ function InventoryTableRow({ unit }: { unit: InventoryUnit }) {
     <tr className="hover:bg-slate-50">
       <td className="px-4 py-4">
         <p className="font-black text-slate-950">#{unit.unitNumber}</p>
-        <p className="text-xs font-semibold text-slate-500">{unit.bedrooms} bd / {unit.bathrooms} ba {unit.squareFeet ? `• ${unit.squareFeet.toLocaleString()} sq ft` : ""}</p>
+        <p className="text-xs font-semibold text-slate-500">{unit.bedrooms} bd / {unit.bathrooms} ba {unit.squareFeet ? `/ ${unit.squareFeet.toLocaleString()} sq ft` : ""}</p>
       </td>
       <td className="px-4 py-4"><Badge value={unit.status} /></td>
       <td className="px-4 py-4"><Badge value={unit.marketingStatus} /></td>
@@ -296,7 +298,7 @@ function InventoryTableRow({ unit }: { unit: InventoryUnit }) {
       <td className={`px-4 py-4 font-black ${balance > 0 ? "text-amber-700" : "text-slate-700"}`}>{formatCurrency(balance)}</td>
       <td className="px-4 py-4">
         <div className="flex justify-end gap-2">
-          <Link href={`/landlord/units/${unit.id}/workspace`} className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white hover:bg-blue-700">Workspace</Link>
+          <Link href={`/landlord/units/${unit.id}/workspace`} className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white hover:bg-blue-700">Open</Link>
           <Link href={`/landlord/rentals/${unit.id}/edit`} className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-black text-slate-700 hover:bg-white">Edit</Link>
         </div>
       </td>
@@ -311,7 +313,7 @@ function InventoryMobileCard({ unit }: { unit: InventoryUnit }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-black text-slate-950">{unit.property.name} #{unit.unitNumber}</h3>
-          <p className="mt-1 text-sm font-semibold text-slate-600">{formatCurrency(unit.rentAmount)} rent • {unit.bedrooms} bd / {unit.bathrooms} ba</p>
+          <p className="mt-1 text-sm font-semibold text-slate-600">{formatCurrency(unit.rentAmount)} rent / {unit.bedrooms} bd / {unit.bathrooms} ba</p>
         </div>
         <Badge value={unit.status} />
       </div>

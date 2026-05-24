@@ -166,6 +166,13 @@ export default async function LandlordDashboardPage() {
   const attentionCount = totalNewLeads + totalOpenApplications + unreadThreadCount + totalOpenMaintenance + incompleteUnits.length + leaseTaskCount;
   const occupancyRate = unitCount > 0 ? Math.round((occupiedUnits.length / unitCount) * 100) : 0;
   const isNewLandlord = properties.length === 0 || unitCount === 0;
+  const featuredProperty = properties[0] ?? null;
+  const featuredPropertyUnits = featuredProperty?.units.length ?? unitCount;
+  const propertyLabel = featuredProperty ? featuredProperty.name : "Your rental portfolio";
+  const propertyAddress = featuredProperty ? `${featuredProperty.addressLine}, ${featuredProperty.city}, ${featuredProperty.state} ${featuredProperty.zip}` : "Add a property to start tracking performance.";
+  const urgentMaintenance = maintenanceRequests.filter((request) => request.priority === "URGENT" || request.priority === "HIGH").length;
+  const pendingApplications = recentApplications.filter((application) => application.status === "SUBMITTED" || application.status === "UNDER_REVIEW").length;
+  const maintenanceUnits = allUnits.filter((unit) => unit.maintenanceRequests.length > 0).length;
 
   const todayItems = [
     unreadThreadCount > 0 ? { title: "Reply to messages", detail: `${unreadThreadCount} unread conversation${unreadThreadCount === 1 ? "" : "s"} need a response.`, href: "/landlord/inbox", cta: "Open messages", icon: <MessageSquare size={18} />, tone: "amber" as const } : null,
@@ -176,31 +183,43 @@ export default async function LandlordDashboardPage() {
   ].filter((item): item is NonNullable<typeof item> => Boolean(item));
 
   return (
-    <main id="main-content" className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-7xl px-3 py-4 sm:px-5 lg:px-6">
-        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-700">Landlord home</p>
-              <h1 className="mt-2 max-w-3xl text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
-                Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {user.name || "landlord"}.
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-                Your rentals, messages, applications, maintenance, and payments are organized around what needs your attention today.
-              </p>
+    <main id="main-content" className="min-h-screen bg-[#f7faff]">
+      <div className="mx-auto max-w-[1520px] px-3 py-4 sm:px-5 lg:px-6">
+        <section className="overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
+          <div className="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+              <PropertyPhoto />
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">Property dashboard</p>
+                <h1 className="mt-1 truncate text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{propertyLabel}</h1>
+                <p className="mt-1 truncate text-sm font-semibold text-slate-600">{propertyAddress}</p>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <ActionButton href="/landlord/rentals/new" icon={<Plus size={16} />} primary>Add rental</ActionButton>
-              <ActionButton href="/landlord/inbox" icon={<MessageSquare size={16} />}>Messages</ActionButton>
-              <ActionButton href="/landlord/property-management" icon={<Building2 size={16} />}>Property Management</ActionButton>
+            <div className="flex flex-wrap items-center gap-2">
+              <ActionButton href="/landlord/inventory" icon={<Building2 size={16} />}>All properties</ActionButton>
+              <ActionButton href="/landlord/rentals/new" icon={<Plus size={16} />} primary>Quick action</ActionButton>
+              <Link href="#today" className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50" aria-label="Open tasks and alerts">
+                <AlertTriangle size={17} />
+                {attentionCount > 0 ? <span className="absolute -right-1 -top-1 rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-black text-white">{attentionCount}</span> : null}
+              </Link>
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard title="Needs attention" value={attentionCount} detail="Messages, leads, applications, repairs, listing work" href="#today" icon={<AlertTriangle size={18} />} tone="amber" />
-            <MetricCard title="Rentals" value={unitCount} detail={`${vacantUnits.length} vacant / ${occupiedUnits.length} occupied`} href="#rentals" icon={<Home size={18} />} tone="blue" />
-            <MetricCard title="Occupancy" value={`${occupancyRate}%`} detail={`${draftListings.length} draft or paused listings`} href="/landlord/rentals" icon={<Users size={18} />} tone="green" />
-            <MetricCard title="Payments" value={formatCurrency(outstandingAmount)} detail={`${formatCurrency(receivedAmount)} received`} href="/landlord/payments" icon={<DollarSign size={18} />} tone={outstandingAmount > 0 ? "rose" : "slate"} />
+          <DashboardTabs />
+
+          <div className="grid gap-3 border-b border-slate-200 bg-white px-4 py-4 sm:grid-cols-2 xl:grid-cols-6">
+            <CommandMetric title="Occupancy" value={`${occupancyRate}%`} detail={`${occupiedUnits.length} of ${unitCount} units`} href="/landlord/inventory?view=occupied" tone="green" icon={<Users size={18} />} />
+            <CommandMetric title="Rent collected" value={formatCurrency(receivedAmount)} detail="Posted payments" href="/landlord/payments" tone="green" icon={<DollarSign size={18} />} />
+            <CommandMetric title="Rent outstanding" value={formatCurrency(outstandingAmount)} detail="Current posted balance" href="/landlord/payments" tone={outstandingAmount > 0 ? "rose" : "slate"} icon={<DollarSign size={18} />} />
+            <CommandMetric title="Open maintenance" value={totalOpenMaintenance} detail={`${urgentMaintenance} urgent`} href="/landlord/maintenance" tone={totalOpenMaintenance > 0 ? "amber" : "slate"} icon={<Wrench size={18} />} />
+            <CommandMetric title="Pending applications" value={pendingApplications || totalOpenApplications} detail={`${totalOpenApplications} active packets`} href="/landlord/applications" tone="blue" icon={<ClipboardList size={18} />} />
+            <CommandMetric title="Lease tasks" value={leaseTaskCount} detail="Signature or review work" href="/landlord/leases" tone={leaseTaskCount > 0 ? "blue" : "slate"} icon={<Home size={18} />} />
+          </div>
+
+          <div id="today" className="grid gap-4 bg-slate-50/70 p-4 xl:grid-cols-[1.05fr_1fr_1fr]">
+            <UnitStatusPanel occupied={occupiedUnits.length} vacant={vacantUnits.length} maintenance={maintenanceUnits} total={featuredPropertyUnits || unitCount} />
+            <RecentActivityPanel applications={recentApplications} maintenanceRequests={maintenanceRequests} threads={recentThreads} />
+            <TasksPanel items={todayItems} />
           </div>
         </section>
 
@@ -216,7 +235,7 @@ export default async function LandlordDashboardPage() {
           </section>
         ) : null}
 
-        <section id="today" className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
           <Panel title="Today" detail="Start here. These are the things most likely to need your response.">
             <div className="grid gap-3">
               {todayItems.length === 0 ? (
@@ -330,6 +349,205 @@ export default async function LandlordDashboardPage() {
         ) : null}
       </div>
     </main>
+  );
+}
+
+function PropertyPhoto() {
+  return (
+    <div className="flex h-20 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-blue-100 via-white to-emerald-100 shadow-sm">
+      <Building2 className="text-blue-700" size={30} />
+    </div>
+  );
+}
+
+function DashboardTabs() {
+  const tabs = [
+    ["Overview", "/landlord"],
+    ["Units", "/landlord/inventory"],
+    ["Tenants", "/landlord/residents"],
+    ["Financials", "/landlord/payments"],
+    ["Maintenance", "/landlord/maintenance"],
+    ["Documents", "/landlord/documents"],
+    ["Activity", "/landlord/timeline"]
+  ];
+  return (
+    <nav className="overflow-x-auto border-b border-slate-200 px-4" aria-label="Landlord command center sections">
+      <div className="flex min-w-max gap-6">
+        {tabs.map(([tab, href], index) => (
+          <Link key={tab} href={href} className={`border-b-2 px-1 py-3 text-sm font-black ${index === 0 ? "border-blue-600 text-blue-700" : "border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950"}`}>
+            {tab}
+          </Link>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+function CommandMetric({ title, value, detail, href, icon, tone }: { title: string; value: string | number; detail: string; href: string; icon: ReactNode; tone: "amber" | "blue" | "green" | "rose" | "slate" }) {
+  const toneClass = {
+    amber: "text-amber-900",
+    blue: "text-blue-900",
+    green: "text-emerald-900",
+    rose: "text-rose-900",
+    slate: "text-slate-900"
+  }[tone];
+  const iconClass = {
+    amber: "bg-amber-50 text-amber-700",
+    blue: "bg-blue-50 text-blue-700",
+    green: "bg-emerald-50 text-emerald-700",
+    rose: "bg-rose-50 text-rose-700",
+    slate: "bg-slate-50 text-slate-700"
+  }[tone];
+
+  return (
+    <Link href={href} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-bold text-slate-500">{title}</p>
+          <p className={`mt-1 truncate text-2xl font-black ${toneClass}`}>{value}</p>
+          <p className="mt-1 truncate text-xs font-semibold text-slate-500">{detail}</p>
+        </div>
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconClass}`}>{icon}</span>
+      </div>
+    </Link>
+  );
+}
+
+function UnitStatusPanel({ occupied, vacant, maintenance, total }: { occupied: number; vacant: number; maintenance: number; total: number }) {
+  const safeTotal = Math.max(total, occupied + vacant + maintenance, 1);
+  const occupiedPct = Math.round((occupied / safeTotal) * 100);
+  const vacantPct = Math.round((vacant / safeTotal) * 100);
+  const maintenancePct = Math.round((maintenance / safeTotal) * 100);
+  const donutStyle = {
+    background: `conic-gradient(#22c55e 0 ${occupiedPct}%, #93c5fd ${occupiedPct}% ${occupiedPct + vacantPct}%, #f59e0b ${occupiedPct + vacantPct}% ${occupiedPct + vacantPct + maintenancePct}%, #e2e8f0 ${occupiedPct + vacantPct + maintenancePct}% 100%)`
+  };
+
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-black text-slate-950">Unit status</h2>
+        <Link href="/landlord/inventory" className="text-xs font-black text-blue-700 hover:text-blue-900">View all units</Link>
+      </div>
+      <div className="mt-5 grid items-center gap-5 sm:grid-cols-[150px_1fr]">
+        <div className="relative mx-auto h-36 w-36 rounded-full" style={donutStyle}>
+          <div className="absolute inset-5 flex flex-col items-center justify-center rounded-full bg-white text-center shadow-inner">
+            <span className="text-3xl font-black text-slate-950">{safeTotal === 1 && total === 0 ? 0 : total}</span>
+            <span className="text-[11px] font-bold uppercase text-slate-500">Total units</span>
+          </div>
+        </div>
+        <div className="grid gap-3 text-sm">
+          <LegendDot color="bg-emerald-500" label="Occupied" value={`${occupied} (${occupiedPct}%)`} />
+          <LegendDot color="bg-blue-300" label="Vacant" value={`${vacant} (${vacantPct}%)`} />
+          <LegendDot color="bg-amber-500" label="Maintenance" value={`${maintenance} (${maintenancePct}%)`} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LegendDot({ color, label: dotLabel, value }: { color: string; label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="flex items-center gap-2 font-semibold text-slate-700"><span className={`h-2.5 w-2.5 rounded-full ${color}`} />{dotLabel}</span>
+      <span className="font-black text-slate-950">{value}</span>
+    </div>
+  );
+}
+
+type ActivityApplication = {
+  id: string;
+  applicantName: string;
+  status: string;
+  updatedAt: Date;
+  unit: { unitNumber: string; property: { name: string } };
+};
+
+type ActivityMaintenance = {
+  id: string;
+  subject: string;
+  status: string;
+  updatedAt: Date;
+  unit: { unitNumber: string; property: { name: string } } | null;
+};
+
+type ActivityThread = {
+  id: string;
+  subject: string;
+  lastMessageAt: Date | null;
+};
+
+function RecentActivityPanel({ applications, maintenanceRequests, threads }: { applications: ActivityApplication[]; maintenanceRequests: ActivityMaintenance[]; threads: ActivityThread[] }) {
+  const rows = [
+    ...applications.slice(0, 2).map((application) => ({
+      id: `app-${application.id}`,
+      icon: <ClipboardList size={15} />,
+      title: `Application ${label(application.status).toLowerCase()}`,
+      detail: `${application.applicantName} / ${application.unit.property.name} #${application.unit.unitNumber}`,
+      time: application.updatedAt,
+      href: `/landlord/applications/${application.id}`,
+      tone: "blue" as const
+    })),
+    ...maintenanceRequests.slice(0, 2).map((request) => ({
+      id: `maintenance-${request.id}`,
+      icon: <Wrench size={15} />,
+      title: `Maintenance ${label(request.status).toLowerCase()}`,
+      detail: request.unit ? `${request.subject} / ${request.unit.property.name} #${request.unit.unitNumber}` : request.subject,
+      time: request.updatedAt,
+      href: "/landlord/maintenance",
+      tone: "green" as const
+    })),
+    ...threads.slice(0, 2).map((thread) => ({
+      id: `thread-${thread.id}`,
+      icon: <MessageSquare size={15} />,
+      title: "Message received",
+      detail: thread.subject,
+      time: thread.lastMessageAt ?? new Date(),
+      href: `/landlord/inbox?thread=${thread.id}`,
+      tone: "amber" as const
+    }))
+  ].sort((a, b) => b.time.getTime() - a.time.getTime()).slice(0, 5);
+
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-black text-slate-950">Recent activity</h2>
+        <Link href="/landlord/timeline" className="text-xs font-black text-blue-700 hover:text-blue-900">View activity</Link>
+      </div>
+      <div className="mt-4 grid gap-2">
+        {rows.length === 0 ? <EmptyState title="No recent activity yet" detail="Applications, repairs, messages, payments, and document updates will appear here." /> : rows.map((row) => (
+          <Link key={row.id} href={row.href} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 hover:bg-white">
+            <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${row.tone === "blue" ? "bg-blue-50 text-blue-700" : row.tone === "green" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{row.icon}</span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-black text-slate-950">{row.title}</span>
+              <span className="block truncate text-xs font-semibold text-slate-500">{row.detail}</span>
+            </span>
+            <span className="text-xs font-bold text-slate-500">{timeAgo(row.time)}</span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TasksPanel({ items }: { items: Array<{ title: string; detail: string; href: string; cta: string; icon: ReactNode; tone: "amber" | "blue" | "rose" | "slate" }> }) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-black text-slate-950">Tasks and alerts</h2>
+        <Link href="#today" className="text-xs font-black text-blue-700 hover:text-blue-900">Review all</Link>
+      </div>
+      <div className="mt-4 grid gap-2">
+        {items.length === 0 ? <EmptyState title="No open alerts" detail="Urgent maintenance, missing application items, unread messages, and listing gaps are clear." /> : items.slice(0, 4).map((item) => (
+          <Link key={item.title} href={item.href} className="grid grid-cols-[auto_1fr] gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-3 hover:bg-white">
+            <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${item.tone === "rose" ? "bg-rose-50 text-rose-700" : item.tone === "blue" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>{item.icon}</span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-black text-slate-950">{item.title}</span>
+              <span className="mt-0.5 block line-clamp-2 text-xs font-semibold leading-5 text-slate-500">{item.detail}</span>
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 
