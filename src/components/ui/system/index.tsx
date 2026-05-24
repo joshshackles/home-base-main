@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AlertTriangle, ArrowRight, ArrowUpRight, CheckCircle2, Inbox, Loader2, Plus, RotateCw, Search } from "lucide-react";
+import { CommandCenterHeader } from "@/components/ui/CommandCenterPrimitives";
 
 type Tone = "slate" | "blue" | "green" | "amber" | "red";
 
@@ -150,21 +151,15 @@ export function ErrorState({ title = "Something needs attention", detail, retryH
 
 export function ProductPageHeader({ eyebrow, title, description, actionHref, actionLabel, secondaryHref, secondaryLabel }: { eyebrow?: string; title: string; description: string; actionHref?: string; actionLabel?: string; secondaryHref?: string; secondaryLabel?: string }) {
   return (
-    <header className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="min-w-0">
-          {eyebrow ? <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-700">{eyebrow}</p> : null}
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">{title}</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">{description}</p>
-        </div>
-        {(actionHref && actionLabel) || (secondaryHref && secondaryLabel) ? (
-          <div className="flex flex-col gap-2 sm:flex-row">
-            {secondaryHref && secondaryLabel ? <Link href={secondaryHref} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-black text-slate-900 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700">{secondaryLabel}</Link> : null}
-            {actionHref && actionLabel ? <Link href={actionHref} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-black text-white hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">{actionLabel}<ArrowRight size={15} /></Link> : null}
-          </div>
-        ) : null}
-      </div>
-    </header>
+    <CommandCenterHeader
+      eyebrow={eyebrow}
+      title={title}
+      description={description}
+      actionHref={actionHref}
+      actionLabel={actionLabel}
+      secondaryHref={secondaryHref}
+      secondaryLabel={secondaryLabel}
+    />
   );
 }
 
