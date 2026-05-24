@@ -2,6 +2,8 @@
 
 The workspace option library is the inventory layer for future operational canvases. It does not redesign every screen by itself. It defines what a workspace may show, where each option belongs, which entities and modes it supports, what density modes it works in, and how future drag-and-drop or saved layouts can reference it.
 
+For landlord-facing product expectations and module standards, see `docs/LANDLORD_WORKSPACE_EXPECTATIONS.md`. That document defines the product bar for property, unit, applicant, tenant, lease, ledger, maintenance, document, messaging, and activity modules.
+
 ## Files
 
 - `src/lib/workspace/workspace-modes.ts`
@@ -110,3 +112,18 @@ The verifier checks:
 - template references
 - operational canvas module resolution
 
+## Landlord Module Alignment
+
+The landlord operating loop should prioritize these option-library families first:
+
+- property and unit command center options
+- listing and lead options
+- applicant review options
+- tenant profile options
+- lease management options
+- rent ledger and payment options
+- maintenance and work order options
+- documents and messaging options
+- activity history and contextual alert options
+
+The guiding rule is: landlords should be able to see status, understand next action, and edit or act without losing their current workspace context.

@@ -106,3 +106,5 @@ When migrating a page to the operational canvas:
 The first implementation pass wires the landlord Unit Workspace engine model to an `operationalCanvas` object. The visible page still preserves its current layout, but it now exposes resolved canvas density, modules, regions, and representations. Future updates should progressively replace stacked regions with the operational canvas shell.
 
 The option-library pass adds `docs/WORKSPACE_OPTION_LIBRARY.md` and expands the registry of possible workflow navigation items, primary canvas modules, contextual sidebar panels, modes, density modes, and default templates. The canvas model now resolves module options through the registry instead of relying only on hardcoded widget and panel samples.
+
+The landlord product expectations in `docs/LANDLORD_WORKSPACE_EXPECTATIONS.md` should guide which modules migrate first. The most important landlord standard is: see status, act from anywhere, edit without losing context, keep records connected, and preserve activity history.
