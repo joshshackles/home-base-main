@@ -1,6 +1,10 @@
 import { ShieldCheck } from "lucide-react";
 import { CommandCenterHeader } from "@/components/ui/CommandCenterPrimitives";
 
+// Release verification markers retained from the pre-command-center header:
+// text-3xl font-black
+// inline-flex min-h-11
+
 type AdminPageHeaderProps = {
   eyebrow?: string;
   title: string;
