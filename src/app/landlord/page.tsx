@@ -24,6 +24,8 @@ import { prisma } from "@/lib/prisma";
 
 const activeApplicationStatuses = ["STARTED", "SUBMITTED", "UNDER_REVIEW"] as const;
 const openMaintenanceStatuses = ["NEW", "IN_PROGRESS", "WAITING_ON_TENANT", "WAITING_ON_VENDOR"] as const;
+const dashboardTabs = ["overview", "units", "tenants", "financials", "maintenance", "documents", "activity"] as const;
+type DashboardTab = typeof dashboardTabs[number];
 
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
@@ -45,8 +47,9 @@ function statusTone(status: string) {
   return "border-slate-200 bg-white text-slate-800";
 }
 
-export default async function LandlordDashboardPage() {
+export default async function LandlordDashboardPage({ searchParams }: { searchParams?: { tab?: string } }) {
   const user = await requireRole(["LANDLORD"], "/landlord");
+  const activeTab = dashboardTabs.includes(searchParams?.tab as DashboardTab) ? searchParams?.tab as DashboardTab : "overview";
   const unitScope: Prisma.UnitWhereInput = { property: { ownerId: user.userId, isArchived: false }, NOT: { status: "ARCHIVED" } };
   const propertyScope: Prisma.PropertyWhereInput = { ownerId: user.userId, isArchived: false };
 
@@ -205,7 +208,7 @@ export default async function LandlordDashboardPage() {
             </div>
           </div>
 
-          <DashboardTabs />
+          <DashboardTabs activeTab={activeTab} />
 
           <div className="grid gap-3 border-b border-slate-200 bg-white px-4 py-4 sm:grid-cols-2 xl:grid-cols-6">
             <CommandMetric title="Occupancy" value={`${occupancyRate}%`} detail={`${occupiedUnits.length} of ${unitCount} units`} href="/landlord/inventory?view=occupied" tone="green" icon={<Users size={18} />} />
@@ -216,11 +219,21 @@ export default async function LandlordDashboardPage() {
             <CommandMetric title="Lease tasks" value={leaseTaskCount} detail="Signature or review work" href="/landlord/leases" tone={leaseTaskCount > 0 ? "blue" : "slate"} icon={<Home size={18} />} />
           </div>
 
-          <div id="today" className="grid gap-4 bg-slate-50/70 p-4 xl:grid-cols-[1.05fr_1fr_1fr]">
-            <UnitStatusPanel occupied={occupiedUnits.length} vacant={vacantUnits.length} maintenance={maintenanceUnits} total={featuredPropertyUnits || unitCount} />
-            <RecentActivityPanel applications={recentApplications} maintenanceRequests={maintenanceRequests} threads={recentThreads} />
-            <TasksPanel items={todayItems} />
-          </div>
+          <CommandCenterTabContent
+            activeTab={activeTab}
+            occupiedUnits={occupiedUnits.length}
+            vacantUnits={vacantUnits.length}
+            maintenanceUnits={maintenanceUnits}
+            totalUnits={featuredPropertyUnits || unitCount}
+            units={units}
+            applications={recentApplications}
+            maintenanceRequests={maintenanceRequests}
+            threads={recentThreads}
+            tasks={todayItems}
+            receivedAmount={receivedAmount}
+            outstandingAmount={outstandingAmount}
+            leaseTaskCount={leaseTaskCount}
+          />
         </section>
 
         {isNewLandlord ? (
@@ -235,7 +248,7 @@ export default async function LandlordDashboardPage() {
           </section>
         ) : null}
 
-        <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        {activeTab === "overview" ? <><section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
           <Panel title="Today" detail="Start here. These are the things most likely to need your response.">
             <div className="grid gap-3">
               {todayItems.length === 0 ? (
@@ -346,7 +359,7 @@ export default async function LandlordDashboardPage() {
               ))}
             </div>
           </section>
-        ) : null}
+        ) : null}</> : null}
       </div>
     </main>
   );
@@ -360,26 +373,213 @@ function PropertyPhoto() {
   );
 }
 
-function DashboardTabs() {
+function DashboardTabs({ activeTab }: { activeTab: DashboardTab }) {
   const tabs = [
-    ["Overview", "/landlord"],
-    ["Units", "/landlord/inventory"],
-    ["Tenants", "/landlord/residents"],
-    ["Financials", "/landlord/payments"],
-    ["Maintenance", "/landlord/maintenance"],
-    ["Documents", "/landlord/documents"],
-    ["Activity", "/landlord/timeline"]
-  ];
+    ["overview", "Overview"],
+    ["units", "Units"],
+    ["tenants", "Tenants"],
+    ["financials", "Financials"],
+    ["maintenance", "Maintenance"],
+    ["documents", "Documents"],
+    ["activity", "Activity"]
+  ] satisfies Array<[DashboardTab, string]>;
   return (
     <nav className="overflow-x-auto border-b border-slate-200 px-4" aria-label="Landlord command center sections">
       <div className="flex min-w-max gap-6">
-        {tabs.map(([tab, href], index) => (
-          <Link key={tab} href={href} className={`border-b-2 px-1 py-3 text-sm font-black ${index === 0 ? "border-blue-600 text-blue-700" : "border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950"}`}>
+        {tabs.map(([id, tab]) => (
+          <Link key={id} href={id === "overview" ? "/landlord" : `/landlord?tab=${id}`} className={`border-b-2 px-1 py-3 text-sm font-black ${activeTab === id ? "border-blue-600 text-blue-700" : "border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950"}`}>
             {tab}
           </Link>
         ))}
       </div>
     </nav>
+  );
+}
+
+type DashboardTask = { title: string; detail: string; href: string; cta: string; icon: ReactNode; tone: "amber" | "blue" | "rose" | "slate" };
+type DashboardUnit = {
+  id: string;
+  unitNumber: string;
+  status: string;
+  marketingStatus: string;
+  marketingHeadline: string | null;
+  rentAmount: number;
+  bedrooms: number;
+  bathrooms: number;
+  property: { name: string; city: string; state: string };
+  photos: Array<{ id: string }>;
+  leads: Array<{ id: string }>;
+  applications: Array<{ id: string; status: string }>;
+  maintenanceRequests: Array<{ id: string }>;
+};
+
+function CommandCenterTabContent({
+  activeTab,
+  occupiedUnits,
+  vacantUnits,
+  maintenanceUnits,
+  totalUnits,
+  units,
+  applications,
+  maintenanceRequests,
+  threads,
+  tasks,
+  receivedAmount,
+  outstandingAmount,
+  leaseTaskCount
+}: {
+  activeTab: DashboardTab;
+  occupiedUnits: number;
+  vacantUnits: number;
+  maintenanceUnits: number;
+  totalUnits: number;
+  units: DashboardUnit[];
+  applications: ActivityApplication[];
+  maintenanceRequests: ActivityMaintenance[];
+  threads: ActivityThread[];
+  tasks: DashboardTask[];
+  receivedAmount: number;
+  outstandingAmount: number;
+  leaseTaskCount: number;
+}) {
+  if (activeTab === "units") {
+    return (
+      <div className="bg-slate-50/70 p-4">
+        <FocusHeader title="Units" detail="Manage occupancy, rent, listing status, open work, and each unit workspace from one command-center view." actionHref="/landlord/inventory" actionLabel="Open full unit manager" />
+        <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="hidden overflow-x-auto lg:block">
+            <table className="w-full min-w-[980px] text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Unit</th>
+                  <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Listing</th>
+                  <th className="px-4 py-3">Rent</th>
+                  <th className="px-4 py-3">Open work</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {units.slice(0, 8).map((unit) => (
+                  <tr key={unit.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-4"><p className="font-black text-slate-950">{unit.property.name} #{unit.unitNumber}</p><p className="text-xs font-semibold text-slate-500">{unit.property.city}, {unit.property.state}</p></td>
+                    <td className="px-4 py-4 text-slate-600">{unit.bedrooms} Bed / {unit.bathrooms} Bath</td>
+                    <td className="px-4 py-4"><Badge status={unit.status} /></td>
+                    <td className="px-4 py-4"><Badge status={unit.marketingStatus} /></td>
+                    <td className="px-4 py-4 font-black text-slate-950">{formatCurrency(unit.rentAmount)}</td>
+                    <td className="px-4 py-4 text-slate-600">{unit.leads.length} leads / {unit.applications.length} apps / {unit.maintenanceRequests.length} repairs</td>
+                    <td className="px-4 py-4 text-right"><Link href={`/landlord/units/${unit.id}/workspace`} className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white hover:bg-blue-700">Open</Link></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="grid gap-3 p-3 lg:hidden">
+            {units.slice(0, 8).map((unit) => <RentalCard key={unit.id} unit={unit} />)}
+          </div>
+          {units.length === 0 ? <div className="p-4"><EmptyState title="No units yet" detail="Add your first unit to start managing listings, applicants, residents, payments, and work orders." /></div> : null}
+        </div>
+      </div>
+    );
+  }
+
+  if (activeTab === "tenants") {
+    const occupied = units.filter((unit) => unit.status === "OCCUPIED");
+    return (
+      <div className="bg-slate-50/70 p-4">
+        <FocusHeader title="Tenants" detail="Resident status, lease context, balances, messages, and move-out work start here." actionHref="/landlord/residents" actionLabel="Open residents" />
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          <SummaryPanel title="Occupied units" value={occupied.length} detail={`${vacantUnits} vacant units remain available.`} />
+          <SummaryPanel title="Lease tasks" value={leaseTaskCount} detail="Drafts, review packets, and signatures." />
+          <SummaryPanel title="Resident messages" value={threads.length} detail="Recent resident or applicant conversations." />
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {occupied.slice(0, 6).map((unit) => <RentalCard key={unit.id} unit={unit} />)}
+          {occupied.length === 0 ? <div className="md:col-span-2 xl:col-span-3"><EmptyState title="No occupied units yet" detail="Approved applicants and assigned residents will appear here once a unit is occupied." /></div> : null}
+        </div>
+      </div>
+    );
+  }
+
+  if (activeTab === "financials") {
+    return (
+      <div className="bg-slate-50/70 p-4">
+        <FocusHeader title="Financials" detail="A landlord-friendly rent and balance snapshot, with detailed ledger tools one click away." actionHref="/landlord/payments" actionLabel="Open payments" />
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <FinanceTile label="Received" value={formatCurrency(receivedAmount)} detail="Posted payments and credits" />
+          <FinanceTile label="Outstanding" value={formatCurrency(outstandingAmount)} detail="Posted charges minus payments" warning={outstandingAmount > 0} />
+          <SummaryPanel title="Units tracked" value={totalUnits} detail="Rent roll and unit balances feed this view." />
+        </div>
+      </div>
+    );
+  }
+
+  if (activeTab === "maintenance") {
+    return (
+      <div className="bg-slate-50/70 p-4">
+        <FocusHeader title="Maintenance" detail="Open repairs, urgent follow-up, tenant communication, and work-order action." actionHref="/landlord/maintenance" actionLabel="Open maintenance" />
+        <div className="mt-4 grid gap-3">
+          {maintenanceRequests.length === 0 ? <EmptyState title="No open maintenance" detail="Open tenant requests and assigned repair work will appear here." /> : maintenanceRequests.map((request) => (
+            <ActionRow key={request.id} icon={<Wrench size={18} />} title={request.subject} detail={`${request.unit ? `${request.unit.property.name} #${request.unit.unitNumber}` : "No unit linked"} / ${label(request.priority)} / updated ${timeAgo(request.updatedAt)}`} href="/landlord/maintenance" cta="Open" tone="rose" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (activeTab === "documents") {
+    return (
+      <div className="bg-slate-50/70 p-4">
+        <FocusHeader title="Documents" detail="Leases, notices, application files, inspection reports, invoices, and property documents stay connected to the right record." actionHref="/landlord/documents" actionLabel="Open documents" />
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <SummaryPanel title="Lease packets" value={leaseTaskCount} detail="Draft, review, and signature work." />
+          <SummaryPanel title="Application files" value={applications.length} detail="Recent active application packets." />
+          <SummaryPanel title="Maintenance files" value={maintenanceRequests.length} detail="Open repair records that may include media." />
+        </div>
+      </div>
+    );
+  }
+
+  if (activeTab === "activity") {
+    return (
+      <div className="bg-slate-50/70 p-4">
+        <FocusHeader title="Activity" detail="A chronological view of applications, messages, maintenance, lease work, and operational changes." actionHref="/landlord/timeline" actionLabel="Open timeline" />
+        <div className="mt-4">
+          <RecentActivityPanel applications={applications} maintenanceRequests={maintenanceRequests} threads={threads} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div id="today" className="grid gap-4 bg-slate-50/70 p-4 xl:grid-cols-[1.05fr_1fr_1fr]">
+      <UnitStatusPanel occupied={occupiedUnits} vacant={vacantUnits} maintenance={maintenanceUnits} total={totalUnits} />
+      <RecentActivityPanel applications={applications} maintenanceRequests={maintenanceRequests} threads={threads} />
+      <TasksPanel items={tasks} />
+    </div>
+  );
+}
+
+function FocusHeader({ title, detail, actionHref, actionLabel }: { title: string; detail: string; actionHref: string; actionLabel: string }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+      <div>
+        <h2 className="text-xl font-black text-slate-950">{title}</h2>
+        <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-600">{detail}</p>
+      </div>
+      <Link href={actionHref} className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white hover:bg-blue-700">{actionLabel}</Link>
+    </div>
+  );
+}
+
+function SummaryPanel({ title, value, detail }: { title: string; value: string | number; detail: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="text-xs font-black uppercase tracking-wide text-slate-500">{title}</p>
+      <p className="mt-2 text-3xl font-black text-slate-950">{value}</p>
+      <p className="mt-1 text-sm font-semibold leading-6 text-slate-600">{detail}</p>
+    </div>
   );
 }
 
@@ -466,6 +666,7 @@ type ActivityMaintenance = {
   id: string;
   subject: string;
   status: string;
+  priority: string;
   updatedAt: Date;
   unit: { unitNumber: string; property: { name: string } } | null;
 };
