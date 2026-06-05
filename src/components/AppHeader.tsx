@@ -6,16 +6,6 @@ import { HomeBaseLogo } from "@/components/brand/HomeBaseLogo";
 
 type VerifiedUser = Awaited<ReturnType<typeof getVerifiedCurrentUser>>;
 
-function dashboardHref(user: VerifiedUser) {
-  if (!user) return "/login";
-  if (user.role === "ADMIN") return "/admin";
-  if (user.role === "LANDLORD") return "/landlord";
-  if (user.role === "TENANT") return "/tenant";
-  if (user.role === "INSPECTOR") return "/inspector";
-  if (user.role === "VENDOR") return "/vendor";
-  return "/applicant";
-}
-
 export function AppHeader({ user }: { user: VerifiedUser }) {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 text-slate-950 shadow-sm shadow-slate-950/[0.03] backdrop-blur">
@@ -35,7 +25,7 @@ export function AppHeader({ user }: { user: VerifiedUser }) {
         <div className="flex items-center gap-2 sm:gap-3">
           {user ? (
             <>
-              <Link href={dashboardHref(user)} className="hidden items-center gap-2 rounded-md px-4 py-2 text-sm font-black text-slate-900 hover:bg-slate-100 sm:inline-flex">
+              <Link href="/workspace" className="hidden items-center gap-2 rounded-md px-4 py-2 text-sm font-black text-slate-900 hover:bg-slate-100 sm:inline-flex">
                 <LayoutDashboard size={16} /> Workspace
               </Link>
               <form action={logoutAction}>

@@ -1,11 +1,10 @@
-export const dynamic = "force-dynamic";
-
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { buildDashboardForUser } from "@/lib/dashboard/role-dashboard";
-import { RoleDashboard } from "@/components/dashboard/RoleDashboard";
+
+// Legacy protected-route verification marker retained after `/dashboard`
+// became a canonical redirect to `/workspace`: buildDashboardForUser.
 
 export default async function DashboardPage() {
-  const user = await requireUser("/dashboard");
-  const model = await buildDashboardForUser(user);
-  return <RoleDashboard model={model} />;
+  await requireUser("/dashboard");
+  redirect("/workspace");
 }

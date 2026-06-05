@@ -271,6 +271,17 @@ Phase 7 adds missing first-class role views for program participants and owner-s
 | Owner Workspace | `/owner` | `landlord` workspace access; records are scoped to properties owned by the signed-in landlord account. | Executive portfolio view for occupancy, financial summary, statements, maintenance approvals, shared documents, activity, and manager communication. |
 
 Participant views must not expose internal HAP accounting, staff-only notes, landlord packet internals, or confidential program review data. Owner views must not expose applicant screening reports, internal staff notes, unrelated tenant documents, or detailed applicant PII.
+
+## Phase 8 Workspace Launcher
+
+Phase 8 makes `/workspace` the canonical entrypoint for authenticated users with one or more role views.
+
+| Route | Purpose |
+| --- | --- |
+| `/workspace` | Capability-aware workspace launcher that shows primary, available, contextual, and protected workspaces. |
+| `/dashboard` | Backward-compatible redirect to `/workspace`. |
+
+The launcher is backed by `src/lib/workspace/workspace-launcher.ts` so future web, mobile, admin, kiosk, and partner portal surfaces can use the same workspace availability rules. The public header's `Workspace` link should go to `/workspace`, not directly to a single role route, because a user may have applicant, tenant, landlord, caseworker, vendor, inspector, admin, participant, owner, program, or super-admin contexts at the same time.
 - Preserve legacy routes, but guide users toward canonical workflows.
 
 ## Canonical Role Navigation
