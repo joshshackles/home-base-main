@@ -6,7 +6,7 @@ import { requireWorkspaceAccess } from "@/lib/role-capabilities.server";
 export default async function LandlordLayout({ children }: { children: React.ReactNode }) {
   const { user, capabilitySet } = await requireWorkspaceAccess("landlord", "/landlord");
   const mode = await resolveLandlordExperienceMode(user.userId, capabilitySet.approvedAccessTypes);
-  const config = getLandlordExperienceConfig(mode);
+  const config = getLandlordExperienceConfig(mode, capabilitySet.approvedAccessTypes);
   const groups = filterNavGroupsByCapabilities(config.navGroups, capabilitySet.capabilities);
 
   return (

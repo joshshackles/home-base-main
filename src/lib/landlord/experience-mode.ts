@@ -1,6 +1,6 @@
 import { AccountAccessType } from "@prisma/client";
 import type { ShellNavGroup } from "@/components/layout/DashboardShell";
-import { propertyManagementNavGroups, simpleLandlordNavGroups } from "@/lib/navigation/first-release";
+import { propertyManagementNavGroups, propertyManagerNavGroups, simpleLandlordNavGroups } from "@/lib/navigation/first-release";
 import { prisma } from "@/lib/prisma";
 
 export type LandlordExperienceMode = "simple" | "property-management";
@@ -25,14 +25,17 @@ const propertyManagementAccessTypes = new Set<AccountAccessType>([
   AccountAccessType.SUPER_USER
 ]);
 
-export function getLandlordExperienceConfig(mode: LandlordExperienceMode): LandlordExperienceConfig {
+export function getLandlordExperienceConfig(mode: LandlordExperienceMode, approvedAccessTypes: AccountAccessType[] = []): LandlordExperienceConfig {
   if (mode === "property-management") {
+    const isPropertyManager = approvedAccessTypes.includes(AccountAccessType.PROPERTY_MANAGER);
+    const isPlatformOperator = approvedAccessTypes.some((accessType) => accessType === AccountAccessType.ADMIN || accessType === AccountAccessType.SUPER_USER);
+
     return {
       mode,
       title: "Property Management Workspace",
       accountLabel: "Portfolio operations",
       shellDescription: "Advanced portfolio controls",
-      navGroups: propertyManagementNavGroups,
+      navGroups: isPropertyManager && !isPlatformOperator ? propertyManagerNavGroups : propertyManagementNavGroups,
       homeHref: "/landlord/property-management",
       consoleHref: "/landlord/property-management",
       quickCreateHref: "/landlord/inventory",

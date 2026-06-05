@@ -240,6 +240,26 @@ Risky actions should require warnings, reason capture where supported, and audit
 - Do not show platform operations to normal admins.
 - Preserve legacy routes, but guide users toward canonical workflows.
 
+## Canonical Role Navigation
+
+The canonical navigation maps live in `src/lib/navigation/first-release.ts`.
+
+The first normalized pass uses these principles:
+
+| Role | Primary navigation focus |
+| --- | --- |
+| Applicant | Workspace, Search Homes, Saved Homes, Profile, Applications, Documents, Messages. |
+| Tenant | Workspace, Payments, Maintenance, Lease, Messages, Documents, Notices, Inspections, Account History. |
+| Simple landlord | Home, Inventory, Applications, Messages, Maintenance, Payments, Residents, Listings, Documents & Leases, Reports. |
+| Property manager | Workspace, Inventory, Operational Queues, Residents, Leases, Documents, Leasing, Maintenance, Financials, Advanced. |
+| Leasing agent | Leads, Showings, Applications, Listings, Messages, Tasks, Screening. |
+| Vendor | Field Mode, Assigned Jobs, Estimates, Invoices, Contacts. |
+| Inspector | Workspace, Assigned Inspections, Reports & Corrections. |
+| Admin | Command Center, Users & Access, Workflow Exceptions, Data Quality, Integration Status, System Health, Operations, Reports. |
+| Super admin | Platform Operations, Security, Audit Logs, Sample Data, and high-risk system tools. |
+
+When introducing a new role route, add it to the role's canonical group rather than creating a new top-level destination.
+
 ## Entity Workspace Rules
 
 Every entity detail page should eventually follow the same structure:
