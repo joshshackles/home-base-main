@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
 import { getPlatformRevenueCenter } from "@/lib/payments/platform-revenue";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { createActivePlatformFeePolicyAction } from "./actions";
 
 function Metric({ label, value, detail, tone = "slate" }: { label: string; value: string; detail: string; tone?: "slate" | "green" | "amber" | "red" | "blue" }) {
   const tones = {
@@ -34,9 +35,10 @@ function StatusBadge({ label, tone = "slate" }: { label: string; tone?: "slate" 
   return <span className={`rounded-full px-2.5 py-1 text-xs font-black ${tones[tone]}`}>{label}</span>;
 }
 
-export default async function AdminPlatformRevenuePage() {
+export default async function AdminPlatformRevenuePage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   await requireRole(["ADMIN"], "/admin/payments/platform-revenue");
   const center = await getPlatformRevenueCenter();
+  const policyUpdated = searchParams?.policy === "updated";
 
   return (
     <main id="main-content" className="mx-auto max-w-7xl px-3 py-6 sm:px-4 lg:px-6">
@@ -47,6 +49,8 @@ export default async function AdminPlatformRevenuePage() {
         actionHref="/admin/ledger"
         actionLabel="Open ledger"
       />
+
+      {policyUpdated ? <p className="mt-4 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-900 ring-1 ring-emerald-200">Active HomeBase platform fee policy updated. New rent payments will use this policy snapshot.</p> : null}
 
       <section className="mt-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -69,6 +73,39 @@ export default async function AdminPlatformRevenuePage() {
               <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">{item.detail}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="mt-4 grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-xl font-black text-slate-950">Set active platform fee</h2>
+          <p className="mt-1 text-sm font-semibold leading-6 text-slate-600">This creates a new active database policy and archives the previous active policy. Each payment stores a snapshot so old transactions remain auditable.</p>
+          <form action={createActivePlatformFeePolicyAction} className="mt-4 grid gap-3">
+            <label className="grid gap-1 text-xs font-black uppercase text-slate-500">Policy name<input name="name" defaultValue="HomeBase 1% rent collection fee" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-900" /></label>
+            <label className="grid gap-1 text-xs font-black uppercase text-slate-500">Percent<input name="percent" type="number" min="0" max="25" step="0.001" defaultValue={center.platformFeePolicy.percent} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-900" /></label>
+            <label className="grid gap-1 text-xs font-black uppercase text-slate-500">Fixed fee dollars<input name="fixedDollars" type="number" min="0" max="50" step="0.01" defaultValue={(center.platformFeePolicy.fixedCents / 100).toFixed(2)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-900" /></label>
+            <label className="grid gap-1 text-xs font-black uppercase text-slate-500">Description<input name="description" defaultValue="HomeBase application fee applied to Stripe destination-charge rent payments." className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-900" /></label>
+            <label className="grid gap-1 text-xs font-black uppercase text-slate-500">Audit note<textarea name="auditNote" defaultValue="Approved platform fee policy for rent payment collection." className="min-h-20 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-900" /></label>
+            <button className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white">Activate fee policy</button>
+          </form>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-xl font-black text-slate-950">Policy history</h2>
+          <p className="mt-1 text-sm font-semibold text-slate-500">Database policies override env/default settings for new Stripe rent payments.</p>
+          <div className="mt-3 grid gap-2">
+            {center.feePolicies.map((policy) => (
+              <div key={policy.id} className="rounded-xl bg-slate-50 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-black text-slate-950">{policy.name}</p>
+                  <StatusBadge label={policy.status} tone={policy.status === "ACTIVE" ? "green" : policy.status === "ARCHIVED" ? "slate" : "amber"} />
+                </div>
+                <p className="mt-1 text-xs font-semibold text-slate-600">{policy.percent}% + {formatCurrency(policy.fixedCents)} · effective {policy.effectiveFrom.toLocaleDateString()}</p>
+                {policy.auditNote ? <p className="mt-1 text-xs font-bold text-slate-500">{policy.auditNote}</p> : null}
+              </div>
+            ))}
+            {center.feePolicies.length === 0 ? <p className="rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">No database fee policies have been created yet. HomeBase is using the environment/default fallback policy.</p> : null}
+          </div>
         </div>
       </section>
 

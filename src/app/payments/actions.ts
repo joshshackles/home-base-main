@@ -5,9 +5,9 @@ import { AuditAction, AutoPayEnrollmentStatus, FinancialAdjustmentType, LedgerEn
 import { requireRole } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
-import { getAppBaseUrl, getPlatformApplicationFeeAmount, getStripe, stripePaymentsEnabled } from "@/lib/stripe";
+import { getAppBaseUrl, getStripe, stripePaymentsEnabled } from "@/lib/stripe";
 import { centsFromDollars, createFinancialAdjustment, createStripeRefundForLedgerPayment, enableAutoPay, generateMonthlyRentCharges, generateOwnerStatement, updateAutoPayStatus } from "@/lib/payments/financial-automation";
-import { buildPlatformFeeSnapshot } from "@/lib/payments/platform-fee-policy";
+import { buildPlatformFeeSnapshot, calculatePlatformFeeAmount, getActivePlatformFeePolicyForPayments } from "@/lib/payments/platform-fee-policy";
 import { recordPaymentTransaction } from "@/lib/payments/payment-transactions";
 import { createStripeConnectOnboardingUrl, syncStripeConnectAccountForLandlord } from "@/lib/payments/stripe-connect";
 
@@ -71,8 +71,9 @@ export async function createLedgerCheckoutSession(formData: FormData) {
 
   const stripe = getStripe();
   const baseUrl = getAppBaseUrl();
-  const applicationFeeAmount = getPlatformApplicationFeeAmount(entry.amount);
-  const platformFeeSnapshot = buildPlatformFeeSnapshot(entry.amount);
+  const platformFeePolicy = await getActivePlatformFeePolicyForPayments();
+  const applicationFeeAmount = calculatePlatformFeeAmount(entry.amount, platformFeePolicy);
+  const platformFeeSnapshot = buildPlatformFeeSnapshot(entry.amount, platformFeePolicy);
   const paymentMetadata = { ledgerEntryId: entry.id, tenantUserId: user.userId, landlordUserId: landlord.id, ...platformFeeSnapshot };
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -100,7 +101,8 @@ export async function createLedgerCheckoutSession(formData: FormData) {
     stripeCheckoutSessionId: session.id,
     stripePaymentStatus: "checkout_started",
     idempotencyKey: `ledger-checkout-${entry.id}`,
-    metadata: { checkoutSessionId: session.id, platformFeeSnapshot }
+    metadata: { checkoutSessionId: session.id, platformFeeSnapshot },
+    platformFeePolicy
   });
 
   await prisma.ledgerEntry.update({ where: { id: entry.id }, data: { stripeCheckoutSessionId: session.id, stripePaymentStatus: "checkout_started" } });

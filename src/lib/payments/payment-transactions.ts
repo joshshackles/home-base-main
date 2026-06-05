@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
 import { PaymentMethod, PaymentTransactionSource, PaymentTransactionStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { buildPlatformFeeSnapshot, calculatePlatformFeeAmount, getActivePlatformFeePolicy } from "@/lib/payments/platform-fee-policy";
+import { buildPlatformFeeSnapshot, calculatePlatformFeeAmount, getActivePlatformFeePolicy, type PlatformFeePolicy } from "@/lib/payments/platform-fee-policy";
 
 function jsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value ?? {})) as Prisma.InputJsonValue;
@@ -21,8 +21,7 @@ function statusDates(status: PaymentTransactionStatus) {
   };
 }
 
-export function buildPaymentTransactionFinancials(grossAmount: number) {
-  const policy = getActivePlatformFeePolicy();
+export function buildPaymentTransactionFinancials(grossAmount: number, policy: PlatformFeePolicy = getActivePlatformFeePolicy()) {
   const platformFeeAmount = calculatePlatformFeeAmount(grossAmount, policy);
   return {
     grossAmount,
@@ -51,8 +50,9 @@ export async function recordPaymentTransaction(input: {
   idempotencyKey: string;
   failureReason?: string | null;
   metadata?: Record<string, unknown>;
+  platformFeePolicy?: PlatformFeePolicy;
 }) {
-  const financials = buildPaymentTransactionFinancials(input.grossAmount);
+  const financials = buildPaymentTransactionFinancials(input.grossAmount, input.platformFeePolicy);
   const data = {
     source: input.source,
     status: input.status,

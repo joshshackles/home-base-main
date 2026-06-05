@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { calculatePlatformFeeAmount, getActivePlatformFeePolicy } from "@/lib/payments/platform-fee-policy";
+import { calculatePlatformFeeAmount, calculatePlatformFeeAmountForPayments, getActivePlatformFeePolicy } from "@/lib/payments/platform-fee-policy";
 
 export function stripePaymentsEnabled() {
   return Boolean(process.env.STRIPE_SECRET_KEY && process.env.NEXT_PUBLIC_STRIPE_ENABLED !== "false");
@@ -23,6 +23,10 @@ export function getPlatformApplicationFeePercent() {
 
 export function getPlatformApplicationFeeAmount(amountCents: number) {
   return calculatePlatformFeeAmount(amountCents);
+}
+
+export async function getPlatformApplicationFeeAmountForPayments(amountCents: number) {
+  return calculatePlatformFeeAmountForPayments(amountCents);
 }
 
 export function getAppBaseUrl() {

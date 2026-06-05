@@ -1,5 +1,5 @@
 import { PaymentTransactionStatus } from "@prisma/client";
-import { getActivePlatformFeePolicy } from "@/lib/payments/platform-fee-policy";
+import { getActivePlatformFeePolicyForPayments } from "@/lib/payments/platform-fee-policy";
 
 export type PlatformRevenueTransaction = {
   id: string;
@@ -97,8 +97,8 @@ export function buildMonthlyPlatformRevenue(transactions: PlatformRevenueTransac
 
 export async function getPlatformRevenueCenter() {
   const { prisma } = await import("@/lib/prisma");
-  const platformFeePolicy = getActivePlatformFeePolicy();
-  const [transactions, connectedLandlordCount] = await Promise.all([
+  const platformFeePolicy = await getActivePlatformFeePolicyForPayments();
+  const [transactions, connectedLandlordCount, feePolicies] = await Promise.all([
     prisma.paymentTransaction.findMany({
       where: {
         status: { in: [PaymentTransactionStatus.SUCCEEDED, PaymentTransactionStatus.RECONCILED, PaymentTransactionStatus.REFUNDED, PaymentTransactionStatus.DISPUTED, PaymentTransactionStatus.FAILED] }
@@ -118,6 +118,10 @@ export async function getPlatformRevenueCenter() {
         stripePayoutsEnabled: true,
         stripeOnboardingComplete: true
       }
+    }),
+    prisma.platformFeePolicyRecord.findMany({
+      orderBy: [{ status: "asc" }, { effectiveFrom: "desc" }],
+      take: 12
     })
   ]);
 
@@ -132,6 +136,7 @@ export async function getPlatformRevenueCenter() {
   return {
     platformFeePolicy,
     connectedLandlordCount,
+    feePolicies,
     transactions,
     metrics,
     readiness,

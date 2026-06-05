@@ -132,6 +132,21 @@ The platform revenue center shows:
 
 This page does not expose Stripe secrets or raw payment credentials. It reads the shared `PaymentTransaction` records and platform fee policy so web, admin, and future reporting surfaces use the same revenue math.
 
+## Persistent Platform Fee Policies
+
+Phase 6 adds `PlatformFeePolicyRecord` so HomeBase can manage application-fee policy from the platform layer instead of relying only on environment variables. The existing env/default policy remains as a safe fallback, but new Stripe rent payment paths now call the async database-backed policy resolver before creating Checkout Sessions or off-session PaymentIntents.
+
+Persistent policy behavior:
+
+- admin users can create a new active database-backed policy from `/admin/payments/platform-revenue`
+- the previous active `PlatformFeePolicyRecord` is archived when a new active policy is created
+- policy percent is bounded between 0 and 25
+- fixed fee is bounded between $0 and $50
+- checkout, scheduled payment, and failed-payment retry paths snapshot the active policy into Stripe metadata and `PaymentTransaction`
+- historical transactions keep their original policy snapshot when the active policy changes later
+
+This creates the operational path to keep the HomeBase fee at 1% by default, or change it deliberately from admin governance without editing random payment buttons.
+
 ## Verification
 
 Run:
@@ -143,6 +158,7 @@ npm run platform-fee-governance:verify
 npm run payment-transaction-records:verify
 npm run payment-reconciliation-ops:verify
 npm run platform-revenue-center:verify
+npm run persistent-platform-fee-policies:verify
 ```
 
 The verifier checks schema additions, migration coverage, webhook event handling, retry hardening, the landlord reconciliation route, workflow matrix coverage, and release metadata.

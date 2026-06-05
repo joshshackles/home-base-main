@@ -2,7 +2,7 @@ import { LedgerEntryType, PaymentTransactionStatus } from "@prisma/client";
 import { getLandlordPaymentOperations, getTenantPaymentCenter } from "@/lib/payments/rental-finance";
 import { prisma } from "@/lib/prisma";
 import { paymentFeatureLabel, stripePaymentsEnabled } from "@/lib/stripe";
-import { getActivePlatformFeePolicy } from "@/lib/payments/platform-fee-policy";
+import { getActivePlatformFeePolicyForPayments } from "@/lib/payments/platform-fee-policy";
 import { buildStripeConnectReadiness } from "@/lib/payments/stripe-connect";
 import { definePlatformQuery } from "@/lib/platform/service";
 
@@ -37,7 +37,7 @@ export const getLandlordPaymentsCommandCenter = definePlatformQuery(async (ctx, 
   const recentPayments = ops.entries.filter((entry) => entry.type === LedgerEntryType.PAYMENT || entry.type === LedgerEntryType.CREDIT).slice(0, 8);
   const refundablePayments = recentPayments.filter((entry) => entry.stripePaymentIntentId);
   const openCharges = ops.entries.filter((entry) => (entry.type === LedgerEntryType.CHARGE || entry.type === LedgerEntryType.ADJUSTMENT) && entry.stripePaymentStatus !== "paid").slice(0, 8);
-  const platformFeePolicy = getActivePlatformFeePolicy();
+  const platformFeePolicy = await getActivePlatformFeePolicyForPayments();
   const connectReadiness = buildStripeConnectReadiness(account ?? {
     stripeConnectAccountId: null,
     stripeChargesEnabled: false,

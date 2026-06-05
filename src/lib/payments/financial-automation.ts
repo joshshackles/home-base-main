@@ -13,8 +13,8 @@ import {
   ScheduledPaymentStatus
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getPlatformApplicationFeeAmount, getStripe, stripePaymentsEnabled } from "@/lib/stripe";
-import { buildPlatformFeeSnapshot } from "@/lib/payments/platform-fee-policy";
+import { getStripe, stripePaymentsEnabled } from "@/lib/stripe";
+import { buildPlatformFeeSnapshot, calculatePlatformFeeAmount, getActivePlatformFeePolicyForPayments } from "@/lib/payments/platform-fee-policy";
 import { recordPaymentTransaction } from "@/lib/payments/payment-transactions";
 import { recordPaymentEvent } from "@/lib/payments/rental-finance";
 
@@ -192,7 +192,8 @@ export async function processDuePaymentRetries(runAt = new Date()) {
     }
     await prisma.paymentRetryAttempt.update({ where: { id: retry.id }, data: { status: PaymentRetryAttemptStatus.PROCESSING } });
     try {
-      const platformFeeSnapshot = buildPlatformFeeSnapshot(retry.amount);
+      const platformFeePolicy = await getActivePlatformFeePolicyForPayments();
+      const platformFeeSnapshot = buildPlatformFeeSnapshot(retry.amount, platformFeePolicy);
       const intent = await stripe.paymentIntents.create({
         amount: retry.amount,
         currency: "usd",
@@ -200,7 +201,7 @@ export async function processDuePaymentRetries(runAt = new Date()) {
         payment_method: methodId,
         confirm: true,
         off_session: true,
-        application_fee_amount: getPlatformApplicationFeeAmount(retry.amount) || undefined,
+        application_fee_amount: calculatePlatformFeeAmount(retry.amount, platformFeePolicy) || undefined,
         transfer_data: { destination: owner.stripeConnectAccountId },
         metadata: { retryAttemptId: retry.id, ledgerEntryId: retry.ledgerEntryId ?? "", tenantUserId: retry.userId, landlordUserId: owner.id, ...platformFeeSnapshot }
       }, { idempotencyKey: `payment-retry-${retry.id}` });
@@ -217,7 +218,8 @@ export async function processDuePaymentRetries(runAt = new Date()) {
         stripePaymentIntentId: intent.id,
         stripePaymentStatus: intent.status,
         idempotencyKey: `payment-retry-${retry.id}`,
-        metadata: { retryAttemptId: retry.id, platformFeeSnapshot }
+        metadata: { retryAttemptId: retry.id, platformFeeSnapshot },
+        platformFeePolicy
       });
       await prisma.$transaction(async (tx) => {
         await tx.paymentRetryAttempt.update({ where: { id: retry.id }, data: { status: paid ? PaymentRetryAttemptStatus.SUCCEEDED : PaymentRetryAttemptStatus.PROCESSING, processedAt: paid ? new Date() : null, failureReason: paid ? null : `Stripe status: ${intent.status}` } });

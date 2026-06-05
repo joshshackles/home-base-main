@@ -1,7 +1,7 @@
 import { LedgerEntryStatus, LedgerEntryType, PaymentMethod, PaymentTransactionSource, PaymentTransactionStatus, ScheduledPaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getPlatformApplicationFeeAmount, getStripe, stripePaymentsEnabled } from "@/lib/stripe";
-import { buildPlatformFeeSnapshot } from "@/lib/payments/platform-fee-policy";
+import { getStripe, stripePaymentsEnabled } from "@/lib/stripe";
+import { buildPlatformFeeSnapshot, calculatePlatformFeeAmount, getActivePlatformFeePolicyForPayments } from "@/lib/payments/platform-fee-policy";
 import { recordPaymentTransaction } from "@/lib/payments/payment-transactions";
 import { recordPaymentEvent } from "@/lib/payments/rental-finance";
 import { scheduleRetryForFailedPayment } from "@/lib/payments/financial-automation";
@@ -32,7 +32,8 @@ export async function processDueScheduledPayments(runAt = new Date()) {
     }
     await prisma.scheduledPayment.update({ where: { id: payment.id }, data: { status: ScheduledPaymentStatus.PROCESSING } });
     try {
-      const platformFeeSnapshot = buildPlatformFeeSnapshot(payment.amount);
+      const platformFeePolicy = await getActivePlatformFeePolicyForPayments();
+      const platformFeeSnapshot = buildPlatformFeeSnapshot(payment.amount, platformFeePolicy);
       const intent = await stripe.paymentIntents.create({
         amount: payment.amount,
         currency: "usd",
@@ -40,7 +41,7 @@ export async function processDueScheduledPayments(runAt = new Date()) {
         payment_method: payment.stripePaymentMethodId,
         confirm: true,
         off_session: true,
-        application_fee_amount: getPlatformApplicationFeeAmount(payment.amount) || undefined,
+        application_fee_amount: calculatePlatformFeeAmount(payment.amount, platformFeePolicy) || undefined,
         transfer_data: { destination: destinationAccountId },
         metadata: { scheduledPaymentId: payment.id, ledgerEntryId: payment.ledgerEntryId ?? "", tenantUserId: payment.userId, landlordUserId: ownerId, ...platformFeeSnapshot }
       }, { idempotencyKey: `scheduled-payment-${payment.id}` });
@@ -57,7 +58,8 @@ export async function processDueScheduledPayments(runAt = new Date()) {
         stripePaymentIntentId: intent.id,
         stripePaymentStatus: intent.status,
         idempotencyKey: `scheduled-payment-${payment.id}`,
-        metadata: { scheduledPaymentId: payment.id, platformFeeSnapshot }
+        metadata: { scheduledPaymentId: payment.id, platformFeeSnapshot },
+        platformFeePolicy
       });
       await prisma.$transaction(async (tx) => {
         await tx.scheduledPayment.update({ where: { id: payment.id }, data: { status: paid ? ScheduledPaymentStatus.COMPLETED : ScheduledPaymentStatus.PROCESSING, processedAt: paid ? new Date() : null } });

@@ -671,6 +671,12 @@ enum PaymentTransactionStatus {
   RECONCILED
 }
 
+enum PlatformFeePolicyStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
 enum AutoPayEnrollmentStatus {
   ACTIVE
   PAUSED
@@ -2582,6 +2588,26 @@ model PaymentTransaction {
   @@index([landlordUserId, status])
   @@index([source, createdAt])
   @@index([stripePaymentStatus])
+}
+
+model PlatformFeePolicyRecord {
+  id            String                  @id @default(cuid())
+  name          String
+  description   String?
+  percent       Float                   @default(1)
+  fixedCents    Int                     @default(0)
+  appliesTo     String                  @default("stripe_rent_payments")
+  status        PlatformFeePolicyStatus @default(DRAFT)
+  effectiveFrom DateTime                @default(now())
+  effectiveTo   DateTime?
+  createdById   String?
+  auditNote     String?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  @@index([status, appliesTo])
+  @@index([effectiveFrom])
+  @@index([createdById])
 }
 
 model AutoPayEnrollment {
