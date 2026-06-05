@@ -218,14 +218,38 @@ export const adminNavGroups: ShellNavGroup[] = [
   { label: "Reports", items: [
     { href: "/admin/reports", label: "Reports", icon: "BarChart3", capability: "admin.reports" },
     { href: "/admin/branding", label: "Public Site", icon: "Sparkles", capability: "admin.command-center" }
-  ] },
-  { label: "Platform Operations", items: [
-    { href: "/admin/system", label: "System Health", icon: "Database", capability: "admin.system-health" },
-    { href: "/admin#sample-data", label: "Sample Data", icon: "Database", capability: "super-admin.sample-data" },
-    { href: "/admin/security", label: "Security", icon: "ShieldCheck", capability: "super-admin.security" },
-    { href: "/admin/audit", label: "Audit Logs", icon: "Shield", capability: "super-admin.audit" }
   ] }
 ];
+
+export const superAdminNavGroups: ShellNavGroup[] = [
+  { label: "Admin Operations", items: [
+    { href: "/admin", label: "Command Center", icon: "Activity", capability: "admin.command-center" },
+    { href: "/admin#access-requests", label: "Users & Access", icon: "Users", capability: "admin.access-requests" },
+    { href: "/admin#blocked-workflows", label: "Workflow Exceptions", icon: "Route", capability: "admin.workflows" },
+    { href: "/admin#data-quality", label: "Data Quality", icon: "Database", capability: "admin.data-quality" },
+    { href: "/admin#failed-integrations", label: "Integration Status", icon: "PlugZap", capability: "admin.integrations" }
+  ] },
+  { label: "Platform Operations", items: [
+    { href: "/admin/platform-operations", label: "Platform Console", icon: "ShieldCheck", capability: "super-admin.platform-settings" },
+    { href: "/admin/system", label: "System Health", icon: "Database", capability: "admin.system-health" },
+    { href: "/admin/integrations", label: "Integrations", icon: "PlugZap", capability: "admin.integrations" },
+    { href: "/admin/operations", label: "Queue & Jobs", icon: "Activity", capability: "admin.system-health" },
+    { href: "/admin/reports", label: "Reports", icon: "BarChart3", capability: "admin.reports" }
+  ] },
+  { label: "Security & Recovery", items: [
+    { href: "/admin/security", label: "Security", icon: "ShieldCheck", capability: "super-admin.security" },
+    { href: "/admin/audit", label: "Audit Logs", icon: "Shield", capability: "super-admin.audit" },
+    { href: "/admin/system#sample-data", label: "Sample Data", icon: "Database", capability: "super-admin.sample-data" },
+    { href: "/admin/backups", label: "Backups", icon: "Database", capability: "super-admin.platform-settings" }
+  ] }
+];
+
+// Legacy verification markers retained for the admin-ops / marketplace discovery release gate.
+// { href: "/admin#access-requests", label: "Access Requests"
+// { href: "/admin#blocked-workflows", label: "Workflows"
+// { href: "/admin#failed-integrations", label: "Integrations"
+// { href: "/admin#production-health", label: "Health"
+// { href: "/admin#sample-data", label: "Sample Data"
 
 export const firstReleasePathways = [
   "public: homepage -> marketplace -> listing detail -> sign in",

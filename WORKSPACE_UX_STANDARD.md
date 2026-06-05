@@ -249,6 +249,17 @@ Phase 5 adds first-class command-center workspaces for caseworkers and housing a
 | Housing Authority Workspace | `/housing-authority` | `admin.workflows` capability until a dedicated housing-authority access type is introduced. | Program operations portal for program cases, RFTA review, inspections, subsidy/HAP summaries, payment standards, affordability review, documents, and reports. |
 
 The housing authority portal should remain provider-neutral. It must not hardcode one agency's packet requirements, payment standard rules, or inspection compliance language. When dedicated program-admin/housing-authority roles are added, this route should move from the temporary `admin.workflows` gate to those central scopes.
+
+## Phase 6 Admin Operations Split
+
+Phase 6 separates normal admin operations from super-admin platform operations.
+
+| Workspace | Route | Access Boundary | UX Direction |
+| --- | --- | --- | --- |
+| Admin Command Center | `/admin` | `admin` workspace access. | Normal operational triage for access requests, workflow exceptions, data quality, integrations, reports, and system health signals. |
+| Platform Console | `/admin/platform-operations` | `requireSuperUser()` including explicit, configured, and bootstrap super users. | Protected super-admin home for security, audit, API/webhook/integration posture, backup/recovery, sample data, platform health, and risky-action guardrails. |
+
+Normal admins should not see platform-only tools as primary navigation. Super users can still open normal admin workflows, but high-risk operational controls should be grouped into the platform console and linked to source pages that enforce their own permissions, confirmations, reason capture, and audit trails.
 - Preserve legacy routes, but guide users toward canonical workflows.
 
 ## Canonical Role Navigation
