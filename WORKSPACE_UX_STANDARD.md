@@ -396,3 +396,18 @@ Release target:
 ## Implementation Rule
 
 When updating a role page, do not create a new local visual system. Use the canonical workspace components or add the missing primitive to the shared system first.
+
+## Phase 10 Workspace UX Verification
+
+Phase 10 adds `npm run workspace-ux-consistency:verify` as a static guardrail for the workspace direction.
+
+The verifier confirms:
+
+- `/workspace` remains the canonical authenticated launcher.
+- `/dashboard` remains a backward-compatible redirect to `/workspace`.
+- The public header points users to `Workspace`.
+- Role shells include the `Switch Workspace` action and command palette entry.
+- The workspace launcher keeps primary, contextual, and protected workspace groupings.
+- The shared workspace barrel avoids exporting `workspace-launcher`, because that server-only launcher can touch auth and Prisma-backed access helpers.
+
+This keeps the platform aligned with the workspace-first model while future pages are polished.

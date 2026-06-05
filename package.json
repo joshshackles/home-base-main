@@ -31,6 +31,7 @@
     "seed:verify": "tsx scripts/verify-seed.ts",
     "workflow:verify": "tsx scripts/verify-workflows.ts",
     "workspace-engine:verify": "tsx scripts/verify-workspace-engine.ts",
+    "workspace-ux-consistency:verify": "tsx scripts/verify-workspace-ux-consistency.ts",
     "workflow-qa:verify": "tsx scripts/verify-workflow-qa-release.ts",
     "workflow-readiness:verify": "tsx scripts/verify-workflow-readiness-center.ts",
     "rental-lifecycle:verify": "tsx scripts/verify-rental-lifecycle-engine.ts",
