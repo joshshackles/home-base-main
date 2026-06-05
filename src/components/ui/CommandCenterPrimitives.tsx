@@ -72,15 +72,36 @@ export function CommandCenterButton({ href, children, primary = false, icon }: {
   );
 }
 
-export function CommandCenterPanel({ title, detail, actionHref, actionLabel, children, className = "" }: { title: string; detail?: string; actionHref?: string; actionLabel?: string; children: ReactNode; className?: string }) {
+export function CommandCenterPanel({
+  id,
+  title,
+  detail,
+  actionHref,
+  actionLabel,
+  badge,
+  children,
+  className = ""
+}: {
+  id?: string;
+  title: string;
+  detail?: string;
+  actionHref?: string;
+  actionLabel?: string;
+  badge?: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <section className={`rounded-xl border border-slate-200 bg-white p-4 shadow-sm ${className}`}>
+    <section id={id} className={`rounded-xl border border-slate-200 bg-white p-4 shadow-sm ${className}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-xl font-black text-slate-950">{title}</h2>
           {detail ? <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-600">{detail}</p> : null}
         </div>
-        {actionHref && actionLabel ? <Link href={actionHref} className="text-sm font-black text-blue-700 hover:text-blue-900">{actionLabel}</Link> : null}
+        <div className="flex items-center gap-2">
+          {badge ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase text-slate-600">{badge}</span> : null}
+          {actionHref && actionLabel ? <Link href={actionHref} className="text-sm font-black text-blue-700 hover:text-blue-900">{actionLabel}</Link> : null}
+        </div>
       </div>
       <div className="mt-4">{children}</div>
     </section>

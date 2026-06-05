@@ -1,11 +1,12 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowRight, BadgeCheck, CheckCircle2, Layers3, LockKeyhole, Zap } from "lucide-react";
+import { ArrowRight, BadgeCheck, CheckCircle2, Layers3, LockKeyhole, UserRound, Zap } from "lucide-react";
 import type { RoleDashboardModel } from "@/lib/dashboard/role-dashboard";
 import { DashboardMetricCard } from "@/components/dashboard/DashboardMetricCard";
 import { DashboardTaskList } from "@/components/dashboard/DashboardTaskList";
 import { DashboardToolGrid } from "@/components/dashboard/DashboardToolGrid";
 import { DashboardActivityFeed } from "@/components/dashboard/DashboardActivityFeed";
+import { CommandCenterButton, CommandCenterHeader, CommandCenterPanel, CommandCenterSurface } from "@/components/ui/CommandCenterPrimitives";
 
 function pretty(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
@@ -25,29 +26,30 @@ export function RoleDashboard({ model }: { model: RoleDashboardModel }) {
 
   return (
     <main id="main-content" className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black uppercase text-slate-700"><Layers3 size={14} /> {model.accountLabel}</span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black uppercase text-blue-700"><BadgeCheck size={14} /> {pretty(model.role)}</span>
-                {approvedTypes.length > 0 ? <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black uppercase text-emerald-700">{approvedTypes.length} expanded access</span> : null}
-              </div>
-              <h1 className="mt-4 max-w-4xl text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">{model.headline}</h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">{model.summary}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link href={model.clarity.nextActionHref} className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white hover:bg-blue-700"><Zap size={16} /> {model.clarity.nextActionCta}</Link>
-              <Link href="/account/password" className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-900 hover:bg-slate-50"><LockKeyhole size={16} /> Account</Link>
-            </div>
-          </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {model.metrics.map((metric) => <DashboardMetricCard key={metric.label} metric={metric} />)}
-          </div>
+      <div className="mx-auto max-w-[1440px] px-3 py-4 sm:px-5 lg:px-6">
+        <CommandCenterHeader
+          eyebrow={model.accountLabel}
+          title={model.headline}
+          description={model.summary}
+          actionHref={model.clarity.nextActionHref}
+          actionLabel={model.clarity.nextActionCta}
+          secondaryHref="/account/password"
+          secondaryLabel="Account"
+          icon={<UserRound className="text-blue-700" size={30} />}
+        />
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-black uppercase text-slate-700 ring-1 ring-slate-200"><Layers3 size={14} /> {model.accountLabel}</span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black uppercase text-blue-700 ring-1 ring-blue-100"><BadgeCheck size={14} /> {pretty(model.role)}</span>
+          {approvedTypes.length > 0 ? <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black uppercase text-emerald-700 ring-1 ring-emerald-100">{approvedTypes.length} expanded access</span> : null}
+        </div>
+
+        <section className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {model.metrics.map((metric) => <DashboardMetricCard key={metric.label} metric={metric} />)}
         </section>
 
-        <section className="mt-5 rounded-[1.5rem] border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
+        <CommandCenterSurface className="mt-5 bg-slate-950 text-white">
+          <div className="p-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(360px,1.05fr)] lg:items-stretch">
             <div className="flex min-h-full flex-col rounded-[1.25rem] border border-white/10 bg-white/[0.06] p-5">
               <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-200">You are here</p>
@@ -85,7 +87,8 @@ export function RoleDashboard({ model }: { model: RoleDashboardModel }) {
               </div>
             </div>
           </div>
-        </section>
+          </div>
+        </CommandCenterSurface>
 
         <section id="needs-attention" className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
           <Panel title="Needs attention" detail="Role-specific actions based on data your account is authorized to see." count={`${model.needsAttention.length} items`}>
@@ -100,7 +103,8 @@ export function RoleDashboard({ model }: { model: RoleDashboardModel }) {
           </Link>
         </section>
 
-        <section className="mt-5 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <CommandCenterSurface className="mt-5">
+          <div className="p-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-2xl font-black text-slate-950">Workflow map</h2>
@@ -120,7 +124,8 @@ export function RoleDashboard({ model }: { model: RoleDashboardModel }) {
               </Link>
             ))}
           </div>
-        </section>
+          </div>
+        </CommandCenterSurface>
 
         <section className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
           <Panel id="tools" title="Tools and shortcuts" detail="Only modules available to this role or approved account access are shown." count={`${model.tools.length} tools`}>
@@ -131,20 +136,22 @@ export function RoleDashboard({ model }: { model: RoleDashboardModel }) {
           </Panel>
         </section>
 
-        <section className="mt-5 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <CommandCenterSurface className="mt-5">
+          <div className="p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-2xl font-black text-slate-950">Account access</h2>
               <p className="mt-1 text-sm leading-6 text-slate-600">Your workspace modules are based on role plus approved account access requests.</p>
             </div>
-            <Link href="/account/password" className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-black text-slate-800 hover:bg-slate-50">Account security</Link>
+            <CommandCenterButton href="/account/password" icon={<LockKeyhole size={15} />}>Account security</CommandCenterButton>
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <AccessTile label="Primary role" value={pretty(model.role)} detail={model.accountLabel} />
             <AccessTile label="Approved access" value={approvedTypes.length} detail={approvedTypes.length ? approvedTypes.map((request) => pretty(request.type)).join(", ") : "No expanded access approved"} />
             <AccessTile label="Pending access" value={pendingTypes.length} detail={pendingTypes.length ? pendingTypes.map((request) => pretty(request.type)).join(", ") : "No pending access requests"} />
           </div>
-        </section>
+          </div>
+        </CommandCenterSurface>
       </div>
     </main>
   );
@@ -152,16 +159,9 @@ export function RoleDashboard({ model }: { model: RoleDashboardModel }) {
 
 function Panel({ id, title, detail, count, children }: { id?: string; title: string; detail: string; count?: string; children: ReactNode }) {
   return (
-    <section id={id} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-black text-slate-950">{title}</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">{detail}</p>
-        </div>
-        {count ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase text-slate-600">{count}</span> : null}
-      </div>
-      <div className="mt-4">{children}</div>
-    </section>
+    <CommandCenterPanel id={id} title={title} detail={detail} badge={count}>
+      {children}
+    </CommandCenterPanel>
   );
 }
 

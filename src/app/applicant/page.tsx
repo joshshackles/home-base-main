@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import type React from "react";
+import { Search, UserRound } from "lucide-react";
 import {
   ApplicationStatus,
   FormalNoticeStatus,
@@ -20,6 +21,7 @@ import { requireUser } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { activeOccupancyStatuses, getTenantDashboardMode } from "@/lib/relationship-lifecycle";
+import { CommandCenterButton, CommandCenterHeader } from "@/components/ui/CommandCenterPrimitives";
 
 function baseAccountLabel(role: string) {
   if (role === "ADMIN") return "Applicant base + admin";
@@ -58,7 +60,7 @@ function isAttentionNoticeStatus(status: FormalNoticeStatus) {
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ${className}`}>{children}</div>;
+  return <div className={`rounded-[1.25rem] border border-slate-200 bg-white p-5 shadow-sm ${className}`}>{children}</div>;
 }
 
 function QuickLink({ href, title, detail }: { href: string; title: string; detail: string }) {
@@ -146,21 +148,21 @@ async function ApplicantSearchDashboard({ user, applicationWhere }: { user: Awai
   const canOpenAdminModule = user.role === "ADMIN";
 
   return (
-    <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <section className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-sm sm:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-sm font-black uppercase tracking-[0.35em] text-brand-200">{baseAccountLabel(user.role)}</p>
-            <h1 className="mt-3 max-w-4xl text-4xl font-black tracking-tight sm:text-5xl">Your guided housing journey</h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">Move from profile readiness to saved searches, reusable application packets, move-in planning, rent setup, utilities, maintenance, documents, and messages without losing the thread.</p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/applicant/profile" className="rounded-2xl bg-brand-600 px-5 py-3 text-sm font-black text-white hover:bg-brand-700">Complete profile</Link>
-            <Link href="/marketplace" className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 hover:bg-slate-100">Search homes</Link>
-            <Link href="/applicant/inbox" className="rounded-2xl border border-white/20 px-5 py-3 text-sm font-black text-white hover:bg-white/10">Messages</Link>
-          </div>
-        </div>
-      </section>
+    <main id="main-content" className="mx-auto max-w-[1440px] px-3 py-4 sm:px-5 lg:px-6">
+      <CommandCenterHeader
+        eyebrow={baseAccountLabel(user.role)}
+        title="Your guided housing journey"
+        description="Move from profile readiness to saved homes, reusable application packets, documents, lease tasks, and landlord messages without losing the thread."
+        actionHref="/applicant/profile"
+        actionLabel="Complete profile"
+        secondaryHref="/marketplace"
+        secondaryLabel="Search homes"
+        icon={<UserRound className="text-blue-700" size={30} />}
+      />
+      <div className="mt-3 flex flex-wrap gap-2">
+        <CommandCenterButton href="/applicant/inbox">Messages</CommandCenterButton>
+        <CommandCenterButton href="/applicant/favorites" icon={<Search size={15} />}>Saved homes</CommandCenterButton>
+      </div>
 
       <section className="mt-6 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
         <Card>
