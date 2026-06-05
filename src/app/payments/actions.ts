@@ -7,6 +7,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { getAppBaseUrl, getPlatformApplicationFeeAmount, getStripe, stripePaymentsEnabled } from "@/lib/stripe";
 import { centsFromDollars, createFinancialAdjustment, createStripeRefundForLedgerPayment, enableAutoPay, generateMonthlyRentCharges, generateOwnerStatement, updateAutoPayStatus } from "@/lib/payments/financial-automation";
+import { createStripeConnectOnboardingUrl, syncStripeConnectAccountForLandlord } from "@/lib/payments/stripe-connect";
 
 function assertStripeReady() {
   if (!stripePaymentsEnabled()) throw new Error("Stripe payments are not configured yet. Add STRIPE_SECRET_KEY and Stripe webhook settings in Vercel.");
@@ -32,52 +33,15 @@ async function assertOwnsOptionalSavedPaymentMethod(userId: string, stripePaymen
 export async function createStripeConnectOnboardingLink() {
   const user = await requireRole(["LANDLORD"], "/landlord/payments");
   assertStripeReady();
-  const stripe = getStripe();
-  const dbUser = await prisma.user.findUnique({ where: { id: user.userId }, select: { id: true, email: true, name: true, stripeConnectAccountId: true } });
-  if (!dbUser) throw new Error("User not found.");
-
-  let accountId = dbUser.stripeConnectAccountId;
-  if (!accountId) {
-    const account = await stripe.accounts.create({
-      type: "express",
-      email: dbUser.email,
-      business_type: "individual",
-      capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
-      metadata: { homebaseUserId: dbUser.id }
-    }, { idempotencyKey: `connect-account-${dbUser.id}` });
-    accountId = account.id;
-    await prisma.user.update({ where: { id: dbUser.id }, data: { stripeConnectAccountId: accountId, stripeConnectLastSyncedAt: new Date() } });
-    await writeAuditLog({ actor: user, action: AuditAction.LINK, entityType: "StripeConnectAccount", entityId: accountId, message: "Created Stripe Connect onboarding account.", metadata: { userId: dbUser.id } });
-  }
-
-  const baseUrl = getAppBaseUrl();
-  const link = await stripe.accountLinks.create({
-    account: accountId,
-    refresh_url: `${baseUrl}/landlord/payments?stripe=refresh`,
-    return_url: `${baseUrl}/landlord/payments?stripe=return`,
-    type: "account_onboarding"
-  });
-
-  redirect(link.url);
+  redirect(await createStripeConnectOnboardingUrl(user));
 }
 
 export async function refreshStripeConnectStatus() {
   const user = await requireRole(["LANDLORD"], "/landlord/payments");
   assertStripeReady();
-  const stripe = getStripe();
   const dbUser = await prisma.user.findUnique({ where: { id: user.userId }, select: { stripeConnectAccountId: true } });
   if (!dbUser?.stripeConnectAccountId) redirect("/landlord/payments?stripe=missing");
-  const account = await stripe.accounts.retrieve(dbUser.stripeConnectAccountId);
-  if (("deleted" in account) && account.deleted) throw new Error("The connected Stripe account was deleted. Start payment setup again.");
-  await prisma.user.update({
-    where: { id: user.userId },
-    data: {
-      stripeChargesEnabled: Boolean(account.charges_enabled),
-      stripePayoutsEnabled: Boolean(account.payouts_enabled),
-      stripeOnboardingComplete: Boolean(account.details_submitted && account.charges_enabled),
-      stripeConnectLastSyncedAt: new Date()
-    }
-  });
+  await syncStripeConnectAccountForLandlord(user);
   redirect("/landlord/payments?stripe=synced");
 }
 

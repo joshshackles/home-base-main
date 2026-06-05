@@ -1,7 +1,8 @@
 import { LedgerEntryType } from "@prisma/client";
 import { getLandlordPaymentOperations, getTenantPaymentCenter } from "@/lib/payments/rental-finance";
 import { prisma } from "@/lib/prisma";
-import { paymentFeatureLabel, stripePaymentsEnabled } from "@/lib/stripe";
+import { getPlatformApplicationFeePercent, paymentFeatureLabel, stripePaymentsEnabled } from "@/lib/stripe";
+import { buildStripeConnectReadiness } from "@/lib/payments/stripe-connect";
 import { definePlatformQuery } from "@/lib/platform/service";
 
 type PaymentSearchParams = Record<string, string | string[] | undefined> | undefined;
@@ -30,9 +31,17 @@ export const getLandlordPaymentsCommandCenter = definePlatformQuery(async (ctx, 
   const recentPayments = ops.entries.filter((entry) => entry.type === LedgerEntryType.PAYMENT || entry.type === LedgerEntryType.CREDIT).slice(0, 8);
   const refundablePayments = recentPayments.filter((entry) => entry.stripePaymentIntentId);
   const openCharges = ops.entries.filter((entry) => (entry.type === LedgerEntryType.CHARGE || entry.type === LedgerEntryType.ADJUSTMENT) && entry.stripePaymentStatus !== "paid").slice(0, 8);
+  const connectReadiness = buildStripeConnectReadiness(account ?? {
+    stripeConnectAccountId: null,
+    stripeChargesEnabled: false,
+    stripePayoutsEnabled: false,
+    stripeOnboardingComplete: false,
+    stripeConnectLastSyncedAt: null
+  });
 
   return {
     account,
+    connectReadiness,
     ops,
     recentPayments,
     refundablePayments,
@@ -40,6 +49,7 @@ export const getLandlordPaymentsCommandCenter = definePlatformQuery(async (ctx, 
     stripe: {
       enabled: stripePaymentsEnabled(),
       label: paymentFeatureLabel(),
+      platformFeePercent: getPlatformApplicationFeePercent(),
       returned: stripeState === "return",
       refresh: stripeState === "refresh",
       missingAccount: stripeState === "missing",

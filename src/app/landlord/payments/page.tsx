@@ -16,7 +16,7 @@ function Metric({ label, value, detail }: { label: string; value: string; detail
 
 export default async function LandlordPaymentsPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const user = await requireRole(["LANDLORD"], "/landlord/payments");
-  const { account, ops, recentPayments, refundablePayments, openCharges, stripe, flash } = await getLandlordPaymentsCommandCenter(platformContext(user), searchParams);
+  const { account, connectReadiness, ops, recentPayments, refundablePayments, openCharges, stripe, flash } = await getLandlordPaymentsCommandCenter(platformContext(user), searchParams);
   // Platform payments service preserves legacy financial scope marker through getLandlordPaymentOperations(user.userId).
 
   return (
@@ -30,7 +30,7 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
           </div>
           <div className="flex flex-wrap gap-2">
             <StatusBadge active={stripe.enabled} label={stripe.label} />
-            <StatusBadge active={Boolean(account?.stripeOnboardingComplete)} label={account?.stripeOnboardingComplete ? "Onboarding complete" : "Onboarding needed"} />
+            <StatusBadge active={connectReadiness.onboardingComplete} label={connectReadiness.statusLabel} />
             <Link href="/landlord/payments/reconciliation" className="rounded-xl border border-white/20 px-4 py-2 text-sm font-black text-white">Reconciliation</Link>
             <Link href="/landlord/payments/enterprise" className="rounded-xl bg-white px-4 py-2 text-sm font-black text-slate-950">Enterprise finance</Link>
           </div>
@@ -48,7 +48,8 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
         <Metric label="Outstanding" value={formatCurrency(ops.outstanding)} detail="Charges minus received payments" />
         <Metric label="Scheduled" value={formatCurrency(ops.scheduled)} detail={`${ops.autopayCount} autopay/scheduled items`} />
         <Metric label="Units" value={String(ops.units.length)} detail="Portfolio payment scope" />
-        <Metric label="Stripe" value={account?.stripeOnboardingComplete ? "Ready" : "Setup"} detail={account?.stripeConnectLastSyncedAt ? `Checked ${account.stripeConnectLastSyncedAt.toLocaleDateString()}` : "Never checked"} />
+        <Metric label="Stripe" value={connectReadiness.statusLabel} detail={account?.stripeConnectLastSyncedAt ? `Checked ${account.stripeConnectLastSyncedAt.toLocaleDateString()}` : "Never checked"} />
+        <Metric label="Platform fee" value={`${stripe.platformFeePercent}%`} detail="Application fee on Stripe rent payments" />
         <Metric label="Recovery" value={String(ops.retries.length)} detail="Active retry queue items" />
       </section>
 
@@ -69,14 +70,28 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
       <section className="mt-3 grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-xl font-black text-slate-950">Stripe Connect</h2>
-          <p className="mt-1 text-sm text-slate-600">Stripe-hosted onboarding handles identity, tax, banking, compliance, cards, ACH, and payouts. HomeBase stores only Stripe ids and status.</p>
+          <p className="mt-1 text-sm text-slate-600">Stripe-hosted onboarding handles identity, tax, banking, compliance, cards, ACH, and payouts. HomeBase stores only Stripe ids and readiness status.</p>
           <div className="mt-3 grid gap-2 text-sm font-semibold text-slate-600">
             <p>Account: <span className="font-black text-slate-950">{account?.stripeConnectAccountId ? "Connected" : "Not connected"}</span></p>
-            <p>Charges: <span className="font-black text-slate-950">{account?.stripeChargesEnabled ? "Enabled" : "Pending"}</span></p>
-            <p>Payouts: <span className="font-black text-slate-950">{account?.stripePayoutsEnabled ? "Enabled" : "Pending"}</span></p>
+            <p>Charges: <span className="font-black text-slate-950">{connectReadiness.chargesEnabled ? "Enabled" : "Pending"}</span></p>
+            <p>Payouts: <span className="font-black text-slate-950">{connectReadiness.payoutsEnabled ? "Enabled" : "Pending"}</span></p>
+            <p>Fee model: <span className="font-black text-slate-950">{stripe.platformFeePercent}% HomeBase application fee</span></p>
           </div>
+          <div className="mt-3 rounded-xl bg-slate-50 p-3 text-xs font-bold leading-5 text-slate-600">{connectReadiness.controllerSummary}</div>
+          <div className="mt-3 grid gap-2">
+            {connectReadiness.checklist.map((item) => (
+              <div key={item.label} className="rounded-xl border border-slate-200 bg-white p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-black text-slate-950">{item.label}</p>
+                  <StatusBadge active={item.complete} label={item.complete ? "Ready" : "Needed"} />
+                </div>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+          {connectReadiness.disabledReason ? <p className="mt-3 rounded-xl bg-rose-50 p-3 text-xs font-bold text-rose-800">Stripe disabled reason: {connectReadiness.disabledReason}</p> : null}
           <div className="mt-4 flex flex-wrap gap-2">
-            <form action={createStripeConnectOnboardingLink}><button className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50" disabled={!stripe.enabled}>{account?.stripeConnectAccountId ? "Continue Stripe Setup" : "Start Stripe Setup"}</button></form>
+            <form action={createStripeConnectOnboardingLink}><button className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50" disabled={!stripe.enabled}>{connectReadiness.actionLabel === "Refresh Stripe status" ? "Continue Stripe Setup" : connectReadiness.actionLabel}</button></form>
             <form action={refreshStripeConnectStatus}><button className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 disabled:opacity-50" disabled={!stripe.enabled || !account?.stripeConnectAccountId}>Refresh Status</button></form>
           </div>
           {!stripe.enabled ? <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs font-bold text-slate-600">Add STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, and APP_URL in Vercel to enable live payment onboarding.</p> : null}

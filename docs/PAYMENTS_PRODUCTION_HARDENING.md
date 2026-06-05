@@ -42,12 +42,33 @@ The landlord reconciliation view highlights:
 - paid ledger records that need review
 - recent payment event activity
 
+## Stripe Connect Modernization
+
+HomeBase uses Stripe Connect destination charges for rent collection:
+
+- Tenants pay through the HomeBase platform.
+- Funds route to the landlord's connected Stripe account with `transfer_data.destination`.
+- HomeBase collects its platform revenue through `application_fee_amount`.
+- `STRIPE_PLATFORM_FEE_PERCENT=1` sets the default HomeBase application fee to 1% of the transaction amount.
+
+Connect account creation now runs through `src/lib/payments/stripe-connect.ts` instead of being embedded in a page action. The shared service defines explicit controller settings for the current Stripe SDK path:
+
+- `controller.fees.payer = application`
+- `controller.losses.payments = application`
+- `controller.requirement_collection = stripe`
+- `controller.stripe_dashboard.type = express`
+
+The controller settings make the account responsibility model visible to backend, API, web, and future mobile/admin surfaces. Stripe's `/v2/core/accounts` API should become the next account-creation target when the project upgrades the Stripe SDK/client path that exposes it cleanly.
+
+The landlord payment workspace now shows a Connect readiness checklist for account creation, onboarding, charges, payouts, Stripe requirements, and the active HomeBase platform-fee percentage.
+
 ## Verification
 
 Run:
 
 ```bash
 npm run payments-production:verify
+npm run stripe-connect-modernization:verify
 ```
 
 The verifier checks schema additions, migration coverage, webhook event handling, retry hardening, the landlord reconciliation route, workflow matrix coverage, and release metadata.

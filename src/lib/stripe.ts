@@ -16,8 +16,13 @@ export function getStripeWebhookSecret() {
   return process.env.STRIPE_WEBHOOK_SECRET || "";
 }
 
+export function getPlatformApplicationFeePercent() {
+  const percent = Number.parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT || "1");
+  return Number.isFinite(percent) && percent > 0 ? percent : 0;
+}
+
 export function getPlatformApplicationFeeAmount(amountCents: number) {
-  const percent = Number.parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT || "0.1");
+  const percent = getPlatformApplicationFeePercent();
   const fixed = Number.parseInt(process.env.STRIPE_PLATFORM_FEE_FIXED_CENTS || "0", 10);
   const percentAmount = Number.isFinite(percent) && percent > 0 ? Math.round(amountCents * (percent / 100)) : 0;
   const fixedAmount = Number.isFinite(fixed) && fixed > 0 ? fixed : 0;
