@@ -116,6 +116,22 @@ The operations layer now provides:
 
 The landlord reconciliation page at `/landlord/payments/reconciliation` now surfaces these signals with transaction, linked webhook, fee, and exception sections. This gives operators a clear place to review Stripe webhook failures, platform fee tracking, and payment-provider attempts before owner statements or month-end close.
 
+## Platform Revenue Center
+
+Phase 5 adds `src/lib/payments/platform-revenue.ts` and the admin route `/admin/payments/platform-revenue`. This is the platform-owner view for confirming that HomeBase application-fee revenue is configured and being tracked across Stripe Connect rent payments.
+
+The platform revenue center shows:
+
+- Stripe platform readiness based on `STRIPE_SECRET_KEY`
+- webhook readiness based on `STRIPE_WEBHOOK_SECRET`
+- the active HomeBase platform fee policy, currently defaulting to 1%
+- connected landlord account count for accounts ready to receive transfers
+- gross rent volume, HomeBase revenue, net-to-landlord totals, average platform fee, and refund/dispute risk
+- monthly platform revenue buckets
+- recent fee-bearing payment transactions
+
+This page does not expose Stripe secrets or raw payment credentials. It reads the shared `PaymentTransaction` records and platform fee policy so web, admin, and future reporting surfaces use the same revenue math.
+
 ## Verification
 
 Run:
@@ -126,6 +142,7 @@ npm run stripe-connect-modernization:verify
 npm run platform-fee-governance:verify
 npm run payment-transaction-records:verify
 npm run payment-reconciliation-ops:verify
+npm run platform-revenue-center:verify
 ```
 
 The verifier checks schema additions, migration coverage, webhook event handling, retry hardening, the landlord reconciliation route, workflow matrix coverage, and release metadata.

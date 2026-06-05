@@ -78,6 +78,7 @@ export default async function AdminLedgerPage({ searchParams }: { searchParams?:
         { href: "/admin/ledger/plans", label: "Plans" },
         { href: "/admin/ledger/aging", label: "Aging" },
         { href: "/admin/ledger/reports", label: "Reports" },
+        { href: "/admin/payments/platform-revenue", label: "Platform fees" },
         { href: "/admin/ledger/export", label: "CSV" }
       ]} />
 
