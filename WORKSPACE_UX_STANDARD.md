@@ -260,6 +260,17 @@ Phase 6 separates normal admin operations from super-admin platform operations.
 | Platform Console | `/admin/platform-operations` | `requireSuperUser()` including explicit, configured, and bootstrap super users. | Protected super-admin home for security, audit, API/webhook/integration posture, backup/recovery, sample data, platform health, and risky-action guardrails. |
 
 Normal admins should not see platform-only tools as primary navigation. Super users can still open normal admin workflows, but high-risk operational controls should be grouped into the platform console and linked to source pages that enforce their own permissions, confirmations, reason capture, and audit trails.
+
+## Phase 7 Participant And Owner Views
+
+Phase 7 adds missing first-class role views for program participants and owner-style executive review.
+
+| Workspace | Route | Access Boundary | UX Direction |
+| --- | --- | --- | --- |
+| Participant Workspace | `/participant` | Authenticated user; records are scoped to the user's own applications, email, tenant units, documents, inspections, and lease packets. | Plain-language program milestones for paperwork, RFTA packet status, inspection, lease/signature tasks, rent portion, and caseworker messages. |
+| Owner Workspace | `/owner` | `landlord` workspace access; records are scoped to properties owned by the signed-in landlord account. | Executive portfolio view for occupancy, financial summary, statements, maintenance approvals, shared documents, activity, and manager communication. |
+
+Participant views must not expose internal HAP accounting, staff-only notes, landlord packet internals, or confidential program review data. Owner views must not expose applicant screening reports, internal staff notes, unrelated tenant documents, or detailed applicant PII.
 - Preserve legacy routes, but guide users toward canonical workflows.
 
 ## Canonical Role Navigation

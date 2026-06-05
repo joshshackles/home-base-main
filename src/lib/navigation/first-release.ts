@@ -15,6 +15,7 @@ export const applicantNavGroups: ShellNavGroup[] = [
     { href: "/applicant/leases", label: "Lease Tasks", icon: "FileSignature", capability: "applicant.documents" }
   ] },
   { label: "Updates", items: [
+    { href: "/participant", label: "Program Status", icon: "ClipboardCheck", capability: "applicant.applications" },
     { href: "/applicant/inbox", label: "Messages", icon: "MessageSquare", capability: "applicant.messages" },
     { href: "/applicant/notifications", label: "Notifications", icon: "Bell", capability: "applicant.messages" },
     { href: "/applicant/calendar", label: "Appointments", icon: "CalendarDays", capability: "applicant.appointments" }
@@ -33,6 +34,7 @@ export const tenantNavGroups: ShellNavGroup[] = [
     { href: "/tenant/documents", label: "Documents", icon: "FileText", capability: "tenant.documents" },
     { href: "/tenant/notices", label: "Notices", icon: "Megaphone", capability: "tenant.notices" },
     { href: "/tenant/inspections", label: "Inspections", icon: "ClipboardCheck", capability: "tenant.inspections" },
+    { href: "/participant", label: "Program Status", icon: "ClipboardCheck", capability: "tenant.dashboard" },
     { href: "/tenant/ledger", label: "Account History", icon: "DollarSign", capability: "tenant.rent" }
   ] }
 ];
@@ -51,6 +53,7 @@ export const simpleLandlordNavGroups: ShellNavGroup[] = [
     { href: "/landlord/rentals", label: "Listings", icon: "Megaphone", capability: "landlord.listings" },
     { href: "/landlord/documents", label: "Documents & Leases", icon: "FileText", capability: "landlord.documents" },
     { href: "/landlord/document-generation", label: "Generate Documents", icon: "FileSignature", capability: "landlord.documents" },
+    { href: "/owner", label: "Owner View", icon: "BarChart3", capability: "landlord.reports" },
     { href: "/landlord/reports", label: "Reports", icon: "BarChart3", capability: "landlord.reports" }
   ] },
   { label: "Professional", items: [
@@ -86,6 +89,7 @@ export const propertyManagementNavGroups: ShellNavGroup[] = [
     { href: "/landlord/payments", label: "Payments", icon: "DollarSign", capability: "landlord.payments" },
     { href: "/landlord/ledger", label: "Ledger & Adjustments", icon: "Database", capability: "landlord.ledger" },
     { href: "/landlord/payments/reconciliation", label: "Reconciliation", icon: "ShieldCheck", capability: "landlord.payments" },
+    { href: "/owner", label: "Owner View", icon: "BarChart3", capability: "landlord.reports" },
     { href: "/landlord/reports", label: "Reports", icon: "BarChart3", capability: "landlord.reports" }
   ] },
   { label: "Advanced", items: [
@@ -121,6 +125,7 @@ export const propertyManagerNavGroups: ShellNavGroup[] = [
   { label: "Financials", items: [
     { href: "/landlord/payments", label: "Payments", icon: "DollarSign", capability: "landlord.payments" },
     { href: "/landlord/ledger", label: "Ledger & Adjustments", icon: "Database", capability: "landlord.ledger" },
+    { href: "/owner", label: "Owner View", icon: "BarChart3", capability: "landlord.reports" },
     { href: "/landlord/reports", label: "Reports", icon: "BarChart3", capability: "landlord.reports" }
   ] },
   { label: "Advanced", items: [
