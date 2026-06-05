@@ -147,6 +147,24 @@ Persistent policy behavior:
 
 This creates the operational path to keep the HomeBase fee at 1% by default, or change it deliberately from admin governance without editing random payment buttons.
 
+## Payment Operational Alerts
+
+Phase 7 adds `src/lib/payments/payment-operational-alerts.ts` and surfaces payment operations inside the Admin Command Center. The goal is to make Stripe readiness and rent-payment risk visible to normal platform operators instead of hiding those signals in logs or finance-only pages.
+
+The Admin Command Center now includes a Payment Operations queue for:
+
+- missing Stripe platform secret
+- missing Stripe webhook signing secret
+- landlord Connect account readiness
+- active platform fee policy health
+- failed payment transactions
+- pending checkout or processing transactions
+- failed Stripe webhooks
+- processing webhook rows that need monitoring
+- refund/dispute revenue risk
+
+These alerts link back to `/admin/payments/platform-revenue` or integration diagnostics as appropriate, so admins have one triage surface before drilling into finance, Stripe setup, or provider events.
+
 ## Verification
 
 Run:
@@ -159,6 +177,7 @@ npm run payment-transaction-records:verify
 npm run payment-reconciliation-ops:verify
 npm run platform-revenue-center:verify
 npm run persistent-platform-fee-policies:verify
+npm run payment-operational-alerts:verify
 ```
 
 The verifier checks schema additions, migration coverage, webhook event handling, retry hardening, the landlord reconciliation route, workflow matrix coverage, and release metadata.

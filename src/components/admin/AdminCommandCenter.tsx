@@ -223,6 +223,7 @@ function OperationsDirectory({ model }: { model: AdminCommandCenterModel }) {
   const sections = [
     { href: "#access-requests", title: "Access requests", detail: "Review pending landlord, vendor, inspector, caseworker, admin, and super-user requests.", count: model.metrics.pendingAccessRequests, icon: <Users size={18} /> },
     { href: "#data-quality", title: "Data quality", detail: "Open missing listing details, incomplete profiles, orphan context, and setup cleanup queues.", count: model.metrics.dataQualityIssues, icon: <Database size={18} /> },
+    { href: "#payment-operations", title: "Payment operations", detail: "Review Stripe setup, platform fees, webhooks, failed transactions, and revenue risk.", count: model.metrics.paymentOperations, icon: <Activity size={18} /> },
     { href: "#blocked-workflows", title: "Blocked workflows", detail: "Find stuck applications, leases, messages, maintenance, inspections, and tasks.", count: model.metrics.blockedWorkflows, icon: <Wrench size={18} /> },
     { href: "#failed-integrations", title: "Integrations", detail: "Diagnose failed syncs, disabled providers, failed jobs, and connection errors.", count: model.metrics.failedIntegrations, icon: <PlugZap size={18} /> },
     { href: "#production-health", title: "Production health", detail: "Review safe environment, storage, cron, runtime, and deployment readiness checks.", count: model.metrics.productionWarnings, icon: <Activity size={18} /> },
@@ -294,6 +295,7 @@ export function AdminCommandCenter({ model }: { model: AdminCommandCenterModel }
         <OpsMetric label="Failed integrations" value={model.metrics.failedIntegrations} detail="Failed sync, webhook, connection, or queue signals" tone={model.metrics.failedIntegrations > 0 ? "danger" : "success"} />
         <OpsMetric label="Blocked workflows" value={model.metrics.blockedWorkflows} detail="Applications, messages, leases, inspections, tasks" tone={model.metrics.blockedWorkflows > 0 ? "warning" : "success"} />
         <OpsMetric label="Data quality issues" value={model.metrics.dataQualityIssues} detail="Records needing cleanup or completion" tone={model.metrics.dataQualityIssues > 0 ? "warning" : "success"} />
+        <OpsMetric label="Payment operations" value={model.metrics.paymentOperations} detail="Stripe setup, webhook, fee, and transaction risk" tone={model.metrics.paymentOperations > 0 ? "warning" : "success"} />
         <OpsMetric label="Production warnings" value={model.metrics.productionWarnings} detail="Environment and readiness checks" tone={model.metrics.productionWarnings > 0 ? "warning" : "success"} />
         <OpsMetric label="Sample records" value={model.metrics.sampleDataRecords} detail="Detected sample-like DB records" tone={model.metrics.sampleDataRecords > 0 ? "warning" : "success"} />
         <OpsMetric label="Audit activity" value={model.metrics.recentAuditActivity} detail="Recent platform audit entries" />
@@ -327,6 +329,14 @@ export function AdminCommandCenter({ model }: { model: AdminCommandCenterModel }
           <IssueList issues={model.dataQuality} />
         </OpsPanel>
         </div>
+        <div id="payment-operations" className="scroll-mt-24">
+        <OpsPanel title="Payment Operations" eyebrow="Stripe and fee readiness">
+          <IssueList issues={model.paymentOperations} />
+        </OpsPanel>
+        </div>
+      </section>
+
+      <section className="mt-5 grid gap-5 xl:grid-cols-2">
         <div id="blocked-workflows" className="scroll-mt-24">
         <OpsPanel title="Blocked Workflows" eyebrow="Stuck work">
           <IssueList issues={model.blockedWorkflows} />

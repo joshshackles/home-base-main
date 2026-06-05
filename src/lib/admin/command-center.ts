@@ -4,6 +4,7 @@ import { AccountAccessRequestStatus, AccountAccessType, AdminQueueJobStatus, App
 import type { AdminAccessState } from "@/lib/admin/permissions";
 import { getDeploymentReadinessChecks, getOperationalIntelligenceSummary } from "@/lib/admin-ops";
 import { prisma } from "@/lib/prisma";
+import { getPaymentOperationalIssues, type PaymentOperationalIssue } from "@/lib/payments/payment-operational-alerts";
 
 export type AdminSeverity = "critical" | "warning" | "info" | "success";
 
@@ -43,6 +44,7 @@ export type AdminCommandCenterModel = {
     failedIntegrations: number;
     blockedWorkflows: number;
     dataQualityIssues: number;
+    paymentOperations: number;
     productionWarnings: number;
     sampleDataRecords: number;
     recentAuditActivity: number;
@@ -57,6 +59,7 @@ export type AdminCommandCenterModel = {
     user: { id: string; name: string | null; email: string; role: UserRole };
   }>;
   dataQuality: AdminCommandCenterIssue[];
+  paymentOperations: PaymentOperationalIssue[];
   failedIntegrations: AdminCommandCenterIssue[];
   blockedWorkflows: AdminCommandCenterIssue[];
   productionHealth: Awaited<ReturnType<typeof getDeploymentReadinessChecks>>;
@@ -227,7 +230,7 @@ async function getBlockedWorkflowIssues(): Promise<AdminCommandCenterIssue[]> {
 
 export async function getAdminCommandCenterModel(access: AdminAccessState): Promise<AdminCommandCenterModel> {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const [ops, productionHealth, pendingAccessCount, accessRequests, dataQuality, failedIntegrations, blockedWorkflows, samplePayload, sampleDbCounts, securityAlerts, elevatedUsersRaw, auditActivity] = await Promise.all([
+  const [ops, productionHealth, pendingAccessCount, accessRequests, dataQuality, paymentOperations, failedIntegrations, blockedWorkflows, samplePayload, sampleDbCounts, securityAlerts, elevatedUsersRaw, auditActivity] = await Promise.all([
     getOperationalIntelligenceSummary(),
     getDeploymentReadinessChecks(),
     prisma.accountAccessRequest.count({ where: { status: AccountAccessRequestStatus.PENDING } }),
@@ -238,6 +241,7 @@ export async function getAdminCommandCenterModel(access: AdminAccessState): Prom
       take: 12
     }),
     getDataQualityIssues(),
+    getPaymentOperationalIssues(),
     getFailedIntegrationIssues(),
     getBlockedWorkflowIssues(),
     getSamplePayloadCounts(),
@@ -266,6 +270,7 @@ export async function getAdminCommandCenterModel(access: AdminAccessState): Prom
   const sampleDatabaseRecords = sampleDbCounts.reduce((total, count) => total + count, 0);
   const productionWarnings = productionHealth.filter((check) => !check.ok).length;
   const dataQualityIssues = dataQuality.reduce((total, item) => total + item.count, 0);
+  const paymentOperationCount = paymentOperations.filter((item) => item.severity === "critical" || item.severity === "warning").reduce((total, item) => total + item.count, 0);
   const blockedWorkflowCount = blockedWorkflows.reduce((total, item) => total + item.count, 0);
   const failedIntegrationCount = failedIntegrations.reduce((total, item) => total + item.count, 0);
   const criticalSecurityAlerts = securityAlerts.filter((event) => event.createdAt >= sevenDaysAgo).length + ops.metrics.criticalAlertCount;
@@ -279,12 +284,14 @@ export async function getAdminCommandCenterModel(access: AdminAccessState): Prom
       failedIntegrations: failedIntegrationCount,
       blockedWorkflows: blockedWorkflowCount,
       dataQualityIssues,
+      paymentOperations: paymentOperationCount,
       productionWarnings,
       sampleDataRecords: sampleDatabaseRecords,
       recentAuditActivity: auditActivity.length
     },
     accessRequests,
     dataQuality,
+    paymentOperations,
     failedIntegrations,
     blockedWorkflows,
     productionHealth,
@@ -311,6 +318,7 @@ export async function getAdminCommandCenterModel(access: AdminAccessState): Prom
       { title: "Review access requests", detail: "Approve or decline pending role and account access requests.", href: "/admin/users" },
       { title: "Open user management", detail: "Audit roles, active users, and elevated accounts.", href: "/admin/users" },
       { title: "Review data quality", detail: "Find missing listing, profile, maintenance, and workflow context.", href: "/admin/command-center#data-quality" },
+      { title: "Review payment operations", detail: "Check Stripe readiness, fee policy, webhook health, and failed rent payments.", href: "/admin/command-center#payment-operations" },
       { title: "View audit logs", detail: "Inspect recent system, security, and administrative activity.", href: "/admin/audit", superUserOnly: true },
       { title: "Manage sample data", detail: "Download the sample payload and review cleanup safety status.", href: "/admin/system", superUserOnly: true },
       { title: "Open system health", detail: "Capture production readiness and environment health checks.", href: "/admin/operations" },
