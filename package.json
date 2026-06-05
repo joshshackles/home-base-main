@@ -81,6 +81,7 @@
     "dashboard-shell-sparkles-icon-fix:verify": "tsx scripts/verify-dashboard-shell-sparkles-icon-fix.ts",
     "homepage-reference-fidelity-pass:verify": "tsx scripts/verify-homepage-reference-fidelity-pass.ts",
     "stripe-connect-modernization:verify": "tsx scripts/verify-stripe-connect-modernization.ts",
+    "platform-fee-governance:verify": "tsx scripts/verify-platform-fee-governance.ts",
     "security:verify": "tsx scripts/verify-security.ts",
     "qa:smoke": "npm run routes:check && npm run storage:verify && npm run seed:verify && npm run workflow:verify && npm run security:verify && npm run pdf:verify && npm run esignature:verify && npm run session:verify && npm run email:verify && npm run observability:verify",
     "postinstall": "prisma generate",

@@ -1,6 +1,7 @@
 import { LedgerEntryStatus, LedgerEntryType, PaymentMethod, ScheduledPaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getPlatformApplicationFeeAmount, getStripe, stripePaymentsEnabled } from "@/lib/stripe";
+import { buildPlatformFeeSnapshot } from "@/lib/payments/platform-fee-policy";
 import { recordPaymentEvent } from "@/lib/payments/rental-finance";
 import { scheduleRetryForFailedPayment } from "@/lib/payments/financial-automation";
 
@@ -30,6 +31,7 @@ export async function processDueScheduledPayments(runAt = new Date()) {
     }
     await prisma.scheduledPayment.update({ where: { id: payment.id }, data: { status: ScheduledPaymentStatus.PROCESSING } });
     try {
+      const platformFeeSnapshot = buildPlatformFeeSnapshot(payment.amount);
       const intent = await stripe.paymentIntents.create({
         amount: payment.amount,
         currency: "usd",
@@ -39,7 +41,7 @@ export async function processDueScheduledPayments(runAt = new Date()) {
         off_session: true,
         application_fee_amount: getPlatformApplicationFeeAmount(payment.amount) || undefined,
         transfer_data: { destination: destinationAccountId },
-        metadata: { scheduledPaymentId: payment.id, ledgerEntryId: payment.ledgerEntryId ?? "", tenantUserId: payment.userId, landlordUserId: ownerId }
+        metadata: { scheduledPaymentId: payment.id, ledgerEntryId: payment.ledgerEntryId ?? "", tenantUserId: payment.userId, landlordUserId: ownerId, ...platformFeeSnapshot }
       }, { idempotencyKey: `scheduled-payment-${payment.id}` });
       const paid = intent.status === "succeeded";
       await prisma.$transaction(async (tx) => {
@@ -51,7 +53,7 @@ export async function processDueScheduledPayments(runAt = new Date()) {
           await tx.ledgerEntry.create({ data: { applicationId: payment.ledgerEntry?.applicationId, unitId: payment.unitId, tenantUserId: payment.userId, type: LedgerEntryType.PAYMENT, status: LedgerEntryStatus.POSTED, paymentMethod: PaymentMethod.ACH, amount: payment.amount, description: `Scheduled payment${payment.ledgerEntry ? ` for ${payment.ledgerEntry.description}` : ""}`, memo: "Automatically processed from scheduled payment.", paidAt: new Date(), stripePaymentIntentId: intent.id, stripePaymentStatus: "paid" } });
         }
       });
-      await recordPaymentEvent({ type: paid ? "PAYMENT_SUCCEEDED" : "PAYMENT_STARTED", userId: payment.userId, unitId: payment.unitId, ledgerEntryId: payment.ledgerEntryId, amount: payment.amount, message: paid ? "Scheduled payment processed successfully." : "Scheduled payment submitted to Stripe and is awaiting final confirmation.", metadata: { paymentIntentId: intent.id, scheduledPaymentId: payment.id, stripeStatus: intent.status } });
+      await recordPaymentEvent({ type: paid ? "PAYMENT_SUCCEEDED" : "PAYMENT_STARTED", userId: payment.userId, unitId: payment.unitId, ledgerEntryId: payment.ledgerEntryId, amount: payment.amount, message: paid ? "Scheduled payment processed successfully." : "Scheduled payment submitted to Stripe and is awaiting final confirmation.", metadata: { paymentIntentId: intent.id, scheduledPaymentId: payment.id, stripeStatus: intent.status, platformFeeSnapshot } });
       processed += 1;
     } catch (error) {
       failed += 1;

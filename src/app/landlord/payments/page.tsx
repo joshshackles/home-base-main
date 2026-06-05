@@ -49,7 +49,7 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
         <Metric label="Scheduled" value={formatCurrency(ops.scheduled)} detail={`${ops.autopayCount} autopay/scheduled items`} />
         <Metric label="Units" value={String(ops.units.length)} detail="Portfolio payment scope" />
         <Metric label="Stripe" value={connectReadiness.statusLabel} detail={account?.stripeConnectLastSyncedAt ? `Checked ${account.stripeConnectLastSyncedAt.toLocaleDateString()}` : "Never checked"} />
-        <Metric label="Platform fee" value={`${stripe.platformFeePercent}%`} detail="Application fee on Stripe rent payments" />
+        <Metric label="Platform fee" value={`${stripe.platformFeePercent}%`} detail={`${stripe.platformFeePolicy.source} policy`} />
         <Metric label="Recovery" value={String(ops.retries.length)} detail="Active retry queue items" />
       </section>
 
@@ -76,6 +76,11 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
             <p>Charges: <span className="font-black text-slate-950">{connectReadiness.chargesEnabled ? "Enabled" : "Pending"}</span></p>
             <p>Payouts: <span className="font-black text-slate-950">{connectReadiness.payoutsEnabled ? "Enabled" : "Pending"}</span></p>
             <p>Fee model: <span className="font-black text-slate-950">{stripe.platformFeePercent}% HomeBase application fee</span></p>
+          </div>
+          <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs font-bold leading-5 text-blue-950">
+            <p className="font-black uppercase tracking-wide">Active platform fee policy</p>
+            <p className="mt-1">{stripe.platformFeePolicy.label} · source: {stripe.platformFeePolicy.source} · policy id: {stripe.platformFeePolicy.id}</p>
+            <p className="mt-1">{stripe.platformFeePolicy.auditNote}</p>
           </div>
           <div className="mt-3 rounded-xl bg-slate-50 p-3 text-xs font-bold leading-5 text-slate-600">{connectReadiness.controllerSummary}</div>
           <div className="mt-3 grid gap-2">

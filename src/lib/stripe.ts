@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { calculatePlatformFeeAmount, getActivePlatformFeePolicy } from "@/lib/payments/platform-fee-policy";
 
 export function stripePaymentsEnabled() {
   return Boolean(process.env.STRIPE_SECRET_KEY && process.env.NEXT_PUBLIC_STRIPE_ENABLED !== "false");
@@ -17,16 +18,11 @@ export function getStripeWebhookSecret() {
 }
 
 export function getPlatformApplicationFeePercent() {
-  const percent = Number.parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT || "1");
-  return Number.isFinite(percent) && percent > 0 ? percent : 0;
+  return getActivePlatformFeePolicy().percent;
 }
 
 export function getPlatformApplicationFeeAmount(amountCents: number) {
-  const percent = getPlatformApplicationFeePercent();
-  const fixed = Number.parseInt(process.env.STRIPE_PLATFORM_FEE_FIXED_CENTS || "0", 10);
-  const percentAmount = Number.isFinite(percent) && percent > 0 ? Math.round(amountCents * (percent / 100)) : 0;
-  const fixedAmount = Number.isFinite(fixed) && fixed > 0 ? fixed : 0;
-  return Math.max(0, percentAmount + fixedAmount);
+  return calculatePlatformFeeAmount(amountCents);
 }
 
 export function getAppBaseUrl() {

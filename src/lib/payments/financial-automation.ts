@@ -12,6 +12,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getPlatformApplicationFeeAmount, getStripe, stripePaymentsEnabled } from "@/lib/stripe";
+import { buildPlatformFeeSnapshot } from "@/lib/payments/platform-fee-policy";
 import { recordPaymentEvent } from "@/lib/payments/rental-finance";
 
 export const RETRY_DELAYS_DAYS = [2, 5, 10] as const;
@@ -188,6 +189,7 @@ export async function processDuePaymentRetries(runAt = new Date()) {
     }
     await prisma.paymentRetryAttempt.update({ where: { id: retry.id }, data: { status: PaymentRetryAttemptStatus.PROCESSING } });
     try {
+      const platformFeeSnapshot = buildPlatformFeeSnapshot(retry.amount);
       const intent = await stripe.paymentIntents.create({
         amount: retry.amount,
         currency: "usd",
@@ -197,7 +199,7 @@ export async function processDuePaymentRetries(runAt = new Date()) {
         off_session: true,
         application_fee_amount: getPlatformApplicationFeeAmount(retry.amount) || undefined,
         transfer_data: { destination: owner.stripeConnectAccountId },
-        metadata: { retryAttemptId: retry.id, ledgerEntryId: retry.ledgerEntryId ?? "", tenantUserId: retry.userId, landlordUserId: owner.id }
+        metadata: { retryAttemptId: retry.id, ledgerEntryId: retry.ledgerEntryId ?? "", tenantUserId: retry.userId, landlordUserId: owner.id, ...platformFeeSnapshot }
       }, { idempotencyKey: `payment-retry-${retry.id}` });
       const paid = intent.status === "succeeded";
       await prisma.$transaction(async (tx) => {
@@ -208,7 +210,7 @@ export async function processDuePaymentRetries(runAt = new Date()) {
         }
       });
       processed += 1;
-      await recordPaymentEvent({ type: paid ? PaymentEventType.PAYMENT_RETRY_SUCCEEDED : PaymentEventType.PAYMENT_STARTED, userId: retry.userId, unitId: retry.unitId, ledgerEntryId: retry.ledgerEntryId, amount: retry.amount, message: paid ? "Payment retry succeeded." : "Payment retry submitted to Stripe and is awaiting final confirmation.", metadata: { retryAttemptId: retry.id, paymentIntentId: intent.id, stripeStatus: intent.status } });
+      await recordPaymentEvent({ type: paid ? PaymentEventType.PAYMENT_RETRY_SUCCEEDED : PaymentEventType.PAYMENT_STARTED, userId: retry.userId, unitId: retry.unitId, ledgerEntryId: retry.ledgerEntryId, amount: retry.amount, message: paid ? "Payment retry succeeded." : "Payment retry submitted to Stripe and is awaiting final confirmation.", metadata: { retryAttemptId: retry.id, paymentIntentId: intent.id, stripeStatus: intent.status, platformFeeSnapshot } });
     } catch (error) {
       failed += 1;
       const message = error instanceof Error ? error.message : "Payment retry failed.";

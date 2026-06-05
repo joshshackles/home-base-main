@@ -7,6 +7,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { getAppBaseUrl, getPlatformApplicationFeeAmount, getStripe, stripePaymentsEnabled } from "@/lib/stripe";
 import { centsFromDollars, createFinancialAdjustment, createStripeRefundForLedgerPayment, enableAutoPay, generateMonthlyRentCharges, generateOwnerStatement, updateAutoPayStatus } from "@/lib/payments/financial-automation";
+import { buildPlatformFeeSnapshot } from "@/lib/payments/platform-fee-policy";
 import { createStripeConnectOnboardingUrl, syncStripeConnectAccountForLandlord } from "@/lib/payments/stripe-connect";
 
 function assertStripeReady() {
@@ -70,22 +71,24 @@ export async function createLedgerCheckoutSession(formData: FormData) {
   const stripe = getStripe();
   const baseUrl = getAppBaseUrl();
   const applicationFeeAmount = getPlatformApplicationFeeAmount(entry.amount);
+  const platformFeeSnapshot = buildPlatformFeeSnapshot(entry.amount);
+  const paymentMetadata = { ledgerEntryId: entry.id, tenantUserId: user.userId, landlordUserId: landlord.id, ...platformFeeSnapshot };
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     customer_email: user.email,
     line_items: [{ price_data: { currency: "usd", unit_amount: entry.amount, product_data: { name: entry.description, description: `${entry.unit.property.name} - Unit ${entry.unit.unitNumber}` } }, quantity: 1 }],
     success_url: `${baseUrl}/applicant/ledger?payment=success`,
     cancel_url: `${baseUrl}/applicant/ledger?payment=cancelled`,
-    metadata: { ledgerEntryId: entry.id, tenantUserId: user.userId, landlordUserId: landlord.id },
+    metadata: paymentMetadata,
     payment_intent_data: {
       application_fee_amount: applicationFeeAmount > 0 ? applicationFeeAmount : undefined,
       transfer_data: { destination: landlord.stripeConnectAccountId },
-      metadata: { ledgerEntryId: entry.id, tenantUserId: user.userId, landlordUserId: landlord.id }
+      metadata: paymentMetadata
     }
   }, { idempotencyKey: `ledger-checkout-${entry.id}` });
 
   await prisma.ledgerEntry.update({ where: { id: entry.id }, data: { stripeCheckoutSessionId: session.id, stripePaymentStatus: "checkout_started" } });
-  await writeAuditLog({ actor: user, action: AuditAction.LINK, entityType: "LedgerEntry", entityId: entry.id, message: "Started Stripe Checkout for ledger charge.", metadata: { checkoutSessionId: session.id } });
+  await writeAuditLog({ actor: user, action: AuditAction.LINK, entityType: "LedgerEntry", entityId: entry.id, message: "Started Stripe Checkout for ledger charge.", metadata: { checkoutSessionId: session.id, platformFeeSnapshot } });
   if (!session.url) throw new Error("Stripe did not return a checkout URL.");
   redirect(session.url);
 }

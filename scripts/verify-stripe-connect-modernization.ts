@@ -45,13 +45,14 @@ assertNotIncludes("src/app/payments/actions.ts", [
 
 assertIncludes("src/lib/stripe.ts", [
   "getPlatformApplicationFeePercent",
-  "STRIPE_PLATFORM_FEE_PERCENT || \"1\""
+  "getActivePlatformFeePolicy"
 ]);
 
 assertIncludes("src/lib/platform/payments/queries.ts", [
   "buildStripeConnectReadiness",
   "connectReadiness",
-  "platformFeePercent: getPlatformApplicationFeePercent()"
+  "platformFeePolicy",
+  "platformFeePercent: platformFeePolicy.percent"
 ]);
 
 assertIncludes("src/app/landlord/payments/page.tsx", [

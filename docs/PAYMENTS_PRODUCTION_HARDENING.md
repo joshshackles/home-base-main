@@ -62,6 +62,27 @@ The controller settings make the account responsibility model visible to backend
 
 The landlord payment workspace now shows a Connect readiness checklist for account creation, onboarding, charges, payouts, Stripe requirements, and the active HomeBase platform-fee percentage.
 
+## Platform Fee Governance
+
+Phase 2 introduces `src/lib/payments/platform-fee-policy.ts` as the shared source for HomeBase application-fee rules. The active policy currently resolves from environment configuration, with a safe default of 1%:
+
+- `STRIPE_PLATFORM_FEE_PERCENT=1`
+- `STRIPE_PLATFORM_FEE_FIXED_CENTS=0`
+
+Every Stripe rent payment path now builds a `platformFeeSnapshot` before the payment is sent to Stripe. The snapshot includes:
+
+- policy id
+- policy label
+- policy source
+- percentage
+- fixed cents
+- calculated platform fee amount
+- effective date
+
+The snapshot is attached to Stripe Checkout/PaymentIntent metadata and HomeBase payment/audit metadata alongside `application_fee_amount`. This makes support, reconciliation, and future revenue reporting able to prove which fee policy applied to a transaction even if the active policy changes later.
+
+Future phases should persist fee policies and transaction-level fee records in first-class database tables. This pass creates the shared business-logic layer and payment metadata contract first.
+
 ## Verification
 
 Run:
@@ -69,6 +90,7 @@ Run:
 ```bash
 npm run payments-production:verify
 npm run stripe-connect-modernization:verify
+npm run platform-fee-governance:verify
 ```
 
 The verifier checks schema additions, migration coverage, webhook event handling, retry hardening, the landlord reconciliation route, workflow matrix coverage, and release metadata.
