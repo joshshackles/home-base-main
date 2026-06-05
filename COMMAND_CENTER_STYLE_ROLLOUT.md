@@ -2,6 +2,8 @@
 
 The landlord workspace command-center page is now the visual baseline for authenticated product pages.
 
+For the full cross-role workspace standard, role templates, canonical regions, audit criteria, and implementation rules, use `WORKSPACE_UX_STANDARD.md`. The code-level registry lives in `src/lib/workspace/workspace-ux-standard.ts`.
+
 ## Canonical Pattern
 
 Use the shared primitives in `src/components/ui/CommandCenterPrimitives.tsx` for new or refreshed workspace pages:
