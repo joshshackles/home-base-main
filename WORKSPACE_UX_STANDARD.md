@@ -260,6 +260,8 @@ The first normalized pass uses these principles:
 
 When introducing a new role route, add it to the role's canonical group rather than creating a new top-level destination.
 
+Phase 4 implementation note: vendor and inspector workspaces use the shared `RoleDashboard` command-center shell. Owner-client remains a planned first-class portal because the current route inventory does not yet include a dedicated `/owner` or `/owner-client` workspace.
+
 ## Entity Workspace Rules
 
 Every entity detail page should eventually follow the same structure:

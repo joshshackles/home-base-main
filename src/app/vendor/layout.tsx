@@ -12,5 +12,5 @@ export default async function VendorLayout({ children }: { children: React.React
   await assertVendorPortalAccess(user);
   const { capabilitySet } = await requireWorkspaceAccess("vendor", "/vendor");
   const groups = filterNavGroupsByCapabilities(vendorNavGroups, capabilitySet.capabilities);
-  return <WorkspaceShell groups={groups} title="Field workspace" accountLabel="Vendor operations" inboxHref="/vendor/jobs" quickCreateHref="/vendor/invoices" quickCreateLabel="Submit Invoice">{children}</WorkspaceShell>;
+  return <WorkspaceShell groups={groups} title="Vendor Field Workspace" accountLabel="Field operations" shellDescription="Mobile work queue" inboxHref="/vendor/jobs" quickCreateHref="/vendor/jobs" quickCreateLabel="Open Jobs">{children}</WorkspaceShell>;
 }

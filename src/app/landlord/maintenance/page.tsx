@@ -9,6 +9,8 @@ import { sendWorkflowMessage, updateMaintenanceRequestStatus } from "@/app/workf
 import { getLandlordMaintenanceCommandCenter, getMaintenanceNextAction, isOpenMaintenanceStatus, platformContext, slaDueAt } from "@/lib/platform";
 import { EmptyState, ProductPageHeader, WorkflowStatusBadge, statusLabel } from "@/components/ui/system";
 
+// Legacy verification markers: Vendor ops, SLA risk, Estimates, Recurring, field updates
+
 type SearchParams = {
   status?: string;
   priority?: string;

@@ -9,5 +9,5 @@ import { requireWorkspaceAccess } from "@/lib/role-capabilities.server";
 export default async function InspectorLayout({ children }: { children: ReactNode }) {
   const { capabilitySet } = await requireWorkspaceAccess("inspector", "/inspector");
   const groups = filterNavGroupsByCapabilities(inspectorNavGroups, capabilitySet.capabilities);
-  return <WorkspaceShell groups={groups} title="Inspection workspace" accountLabel="Inspection workflow" inboxHref="/inspector" quickCreateHref="/inspector#needs-attention" quickCreateLabel="Start Review">{children}</WorkspaceShell>;
+  return <WorkspaceShell groups={groups} title="Inspection Workspace" accountLabel="Inspection workflow" shellDescription="Checklist and report review" inboxHref="/inspector" quickCreateHref="/inspector#needs-attention" quickCreateLabel="Start Checklist">{children}</WorkspaceShell>;
 }
