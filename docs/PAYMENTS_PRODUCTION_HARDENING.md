@@ -83,6 +83,26 @@ The snapshot is attached to Stripe Checkout/PaymentIntent metadata and HomeBase 
 
 Future phases should persist fee policies and transaction-level fee records in first-class database tables. This pass creates the shared business-logic layer and payment metadata contract first.
 
+## Payment Transaction Records
+
+Phase 3 adds `PaymentTransaction` as the first-class transaction record between Stripe and the HomeBase ledger. Ledger entries still represent accounting charges, payments, credits, and adjustments; payment transactions represent the actual payment-provider attempt and reconciliation record.
+
+Each transaction stores:
+
+- source: Checkout session, scheduled payment, payment retry, or webhook reconciliation
+- status: checkout started, processing, succeeded, failed, refunded, disputed, or reconciled
+- gross amount
+- platform fee amount
+- net-to-landlord amount
+- Stripe Checkout Session, PaymentIntent, charge, or transfer ids when available
+- platform fee policy id and policy snapshot
+- tenant, landlord, unit, and ledger links
+- idempotency key and failure reason
+
+Checkout, scheduled payments, and failed-payment retries now create or update `PaymentTransaction` records when Stripe payment objects are created. Stripe webhooks then reconcile those records on success, failure, refund, and dispute events.
+
+The landlord payment workspace shows tracked transaction count, tracked platform fees, and failed transaction count as a lightweight operational cue. A future reconciliation phase should turn this into a full transaction ledger with filters, export, dispute/refund drilldowns, and Stripe balance matching.
+
 ## Verification
 
 Run:
@@ -91,6 +111,7 @@ Run:
 npm run payments-production:verify
 npm run stripe-connect-modernization:verify
 npm run platform-fee-governance:verify
+npm run payment-transaction-records:verify
 ```
 
 The verifier checks schema additions, migration coverage, webhook event handling, retry hardening, the landlord reconciliation route, workflow matrix coverage, and release metadata.

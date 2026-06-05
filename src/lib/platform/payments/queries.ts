@@ -1,4 +1,4 @@
-import { LedgerEntryType } from "@prisma/client";
+import { LedgerEntryType, PaymentTransactionStatus } from "@prisma/client";
 import { getLandlordPaymentOperations, getTenantPaymentCenter } from "@/lib/payments/rental-finance";
 import { prisma } from "@/lib/prisma";
 import { paymentFeatureLabel, stripePaymentsEnabled } from "@/lib/stripe";
@@ -14,7 +14,7 @@ function firstParam(searchParams: PaymentSearchParams, key: string) {
 }
 
 export const getLandlordPaymentsCommandCenter = definePlatformQuery(async (ctx, searchParams: PaymentSearchParams) => {
-  const [account, ops] = await Promise.all([
+  const [account, ops, paymentTransactions] = await Promise.all([
     prisma.user.findUnique({
       where: { id: ctx.actor.userId },
       select: {
@@ -25,7 +25,12 @@ export const getLandlordPaymentsCommandCenter = definePlatformQuery(async (ctx, 
         stripeConnectLastSyncedAt: true
       }
     }),
-    getLandlordPaymentOperations(ctx.actor.userId)
+    getLandlordPaymentOperations(ctx.actor.userId),
+    prisma.paymentTransaction.findMany({
+      where: { landlordUserId: ctx.actor.userId },
+      orderBy: { createdAt: "desc" },
+      take: 40
+    })
   ]);
 
   const stripeState = firstParam(searchParams, "stripe");
@@ -45,6 +50,14 @@ export const getLandlordPaymentsCommandCenter = definePlatformQuery(async (ctx, 
     account,
     connectReadiness,
     ops,
+    paymentTransactions,
+    paymentTransactionMetrics: {
+      trackedCount: paymentTransactions.length,
+      platformFeesTracked: paymentTransactions
+        .filter((transaction) => transaction.status === PaymentTransactionStatus.SUCCEEDED || transaction.status === PaymentTransactionStatus.RECONCILED)
+        .reduce((sum, transaction) => sum + transaction.platformFeeAmount, 0),
+      failedCount: paymentTransactions.filter((transaction) => transaction.status === PaymentTransactionStatus.FAILED).length
+    },
     recentPayments,
     refundablePayments,
     openCharges,

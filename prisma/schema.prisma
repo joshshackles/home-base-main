@@ -654,6 +654,23 @@ enum PaymentWebhookProcessingStatus {
   FAILED
 }
 
+enum PaymentTransactionSource {
+  CHECKOUT_SESSION
+  SCHEDULED_PAYMENT
+  PAYMENT_RETRY
+  WEBHOOK_RECONCILIATION
+}
+
+enum PaymentTransactionStatus {
+  CHECKOUT_STARTED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  DISPUTED
+  RECONCILED
+}
+
 enum AutoPayEnrollmentStatus {
   ACTIVE
   PAUSED
@@ -923,6 +940,8 @@ model User {
   renterPaymentMethods RenterPaymentMethod[]
   scheduledPayments ScheduledPayment[]
   paymentEvents PaymentEvent[]
+  tenantPaymentTransactions PaymentTransaction[] @relation("TenantPaymentTransactions")
+  landlordPaymentTransactions PaymentTransaction[] @relation("LandlordPaymentTransactions")
   autoPayEnrollments AutoPayEnrollment[]
   paymentRetryAttempts PaymentRetryAttempt[]
   financialAdjustments FinancialAdjustment[] @relation("FinancialAdjustmentActor")
@@ -1234,6 +1253,7 @@ model Unit {
   documents    Document[]
   photos       UnitPhoto[]
   ledgerEntries LedgerEntry[]
+  paymentTransactions PaymentTransaction[]
   recurringChargeSchedules RecurringChargeSchedule[]
   paymentPlans PaymentPlan[]
   profileConnections ProfileConnection[]
@@ -2520,6 +2540,50 @@ model PaymentWebhookEvent {
   @@index([type])
 }
 
+model PaymentTransaction {
+  id                      String                   @id @default(cuid())
+  source                  PaymentTransactionSource
+  status                  PaymentTransactionStatus @default(PROCESSING)
+  ledgerEntryId           String?
+  unitId                  String
+  tenantUserId            String?
+  landlordUserId          String?
+  grossAmount             Int
+  platformFeeAmount       Int                      @default(0)
+  stripeFeeAmount         Int?
+  netToLandlordAmount     Int
+  currency                String                   @default("usd")
+  paymentMethod           PaymentMethod?
+  platformFeePolicyId     String?
+  platformFeePolicySnapshot Json?
+  stripeCheckoutSessionId String?                  @unique
+  stripePaymentIntentId   String?                  @unique
+  stripeChargeId          String?
+  stripeTransferId        String?
+  stripePaymentStatus     String?
+  idempotencyKey          String?                  @unique
+  failureReason           String?
+  metadata                Json?
+  startedAt               DateTime                 @default(now())
+  succeededAt             DateTime?
+  failedAt                DateTime?
+  reconciledAt            DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+
+  ledgerEntry  LedgerEntry? @relation(fields: [ledgerEntryId], references: [id], onDelete: SetNull)
+  unit         Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenantUser   User?        @relation("TenantPaymentTransactions", fields: [tenantUserId], references: [id], onDelete: SetNull)
+  landlordUser User?        @relation("LandlordPaymentTransactions", fields: [landlordUserId], references: [id], onDelete: SetNull)
+
+  @@index([ledgerEntryId])
+  @@index([unitId, status])
+  @@index([tenantUserId, status])
+  @@index([landlordUserId, status])
+  @@index([source, createdAt])
+  @@index([stripePaymentStatus])
+}
+
 model AutoPayEnrollment {
   id                    String                  @id @default(cuid())
   userId                String
@@ -2956,6 +3020,7 @@ model LedgerEntry {
   paymentEvents PaymentEvent[]
   autoPayEnrollments AutoPayEnrollment[]
   paymentRetryAttempts PaymentRetryAttempt[]
+  paymentTransactions PaymentTransaction[]
   financialAdjustments FinancialAdjustment[]
   ownerStatementItems OwnerStatementItem[]
   paymentDisputes PaymentDispute[]

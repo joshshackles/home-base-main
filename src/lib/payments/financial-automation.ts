@@ -7,12 +7,15 @@ import {
   PaymentEventType,
   PaymentMethod,
   PaymentRetryAttemptStatus,
+  PaymentTransactionSource,
+  PaymentTransactionStatus,
   Prisma,
   ScheduledPaymentStatus
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getPlatformApplicationFeeAmount, getStripe, stripePaymentsEnabled } from "@/lib/stripe";
 import { buildPlatformFeeSnapshot } from "@/lib/payments/platform-fee-policy";
+import { recordPaymentTransaction } from "@/lib/payments/payment-transactions";
 import { recordPaymentEvent } from "@/lib/payments/rental-finance";
 
 export const RETRY_DELAYS_DAYS = [2, 5, 10] as const;
@@ -202,6 +205,20 @@ export async function processDuePaymentRetries(runAt = new Date()) {
         metadata: { retryAttemptId: retry.id, ledgerEntryId: retry.ledgerEntryId ?? "", tenantUserId: retry.userId, landlordUserId: owner.id, ...platformFeeSnapshot }
       }, { idempotencyKey: `payment-retry-${retry.id}` });
       const paid = intent.status === "succeeded";
+      await recordPaymentTransaction({
+        source: PaymentTransactionSource.PAYMENT_RETRY,
+        status: paid ? PaymentTransactionStatus.SUCCEEDED : PaymentTransactionStatus.PROCESSING,
+        ledgerEntryId: retry.ledgerEntryId,
+        unitId: retry.unitId,
+        tenantUserId: retry.userId,
+        landlordUserId: owner.id,
+        grossAmount: retry.amount,
+        paymentMethod: PaymentMethod.ACH,
+        stripePaymentIntentId: intent.id,
+        stripePaymentStatus: intent.status,
+        idempotencyKey: `payment-retry-${retry.id}`,
+        metadata: { retryAttemptId: retry.id, platformFeeSnapshot }
+      });
       await prisma.$transaction(async (tx) => {
         await tx.paymentRetryAttempt.update({ where: { id: retry.id }, data: { status: paid ? PaymentRetryAttemptStatus.SUCCEEDED : PaymentRetryAttemptStatus.PROCESSING, processedAt: paid ? new Date() : null, failureReason: paid ? null : `Stripe status: ${intent.status}` } });
         if (retry.ledgerEntryId) await tx.ledgerEntry.update({ where: { id: retry.ledgerEntryId }, data: { stripePaymentStatus: paid ? "paid" : intent.status, stripePaidAt: paid ? new Date() : null, paidAt: paid ? new Date() : null } });
@@ -214,6 +231,22 @@ export async function processDuePaymentRetries(runAt = new Date()) {
     } catch (error) {
       failed += 1;
       const message = error instanceof Error ? error.message : "Payment retry failed.";
+      if (owner?.id) {
+        await recordPaymentTransaction({
+          source: PaymentTransactionSource.PAYMENT_RETRY,
+          status: PaymentTransactionStatus.FAILED,
+          ledgerEntryId: retry.ledgerEntryId,
+          unitId: retry.unitId,
+          tenantUserId: retry.userId,
+          landlordUserId: owner.id,
+          grossAmount: retry.amount,
+          paymentMethod: PaymentMethod.ACH,
+          stripePaymentStatus: "failed",
+          idempotencyKey: `payment-retry-${retry.id}`,
+          failureReason: message,
+          metadata: { retryAttemptId: retry.id }
+        }).catch(() => null);
+      }
       await prisma.paymentRetryAttempt.update({ where: { id: retry.id }, data: { status: PaymentRetryAttemptStatus.FAILED, processedAt: new Date(), failureReason: message } });
       await recordPaymentEvent({ type: PaymentEventType.PAYMENT_RETRY_FAILED, userId: retry.userId, unitId: retry.unitId, ledgerEntryId: retry.ledgerEntryId, amount: retry.amount, message, metadata: { retryAttemptId: retry.id } });
       await scheduleRetryForFailedPayment({ userId: retry.userId, unitId: retry.unitId, amount: retry.amount, ledgerEntryId: retry.ledgerEntryId, scheduledPaymentId: retry.scheduledPaymentId, stripePaymentMethodId: retry.backupPaymentMethodId || retry.stripePaymentMethodId, reason: message });

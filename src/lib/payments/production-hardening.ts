@@ -1,7 +1,8 @@
 import type Stripe from "stripe";
-import { AuditAction, LedgerEntryStatus, LedgerEntryType, PaymentDisputeStatus, PaymentEventType, PaymentMethod, PaymentRetryAttemptStatus, PaymentWebhookProcessingStatus, ScheduledPaymentStatus, VendorPayoutStatus, Prisma } from "@prisma/client";
+import { AuditAction, LedgerEntryStatus, LedgerEntryType, PaymentDisputeStatus, PaymentEventType, PaymentMethod, PaymentRetryAttemptStatus, PaymentTransactionStatus, PaymentWebhookProcessingStatus, ScheduledPaymentStatus, VendorPayoutStatus, Prisma } from "@prisma/client";
 import { writeAuditLog } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
+import { markPaymentTransactionByIntent, markPaymentTransactionFailed, reconcilePaymentTransactionFromStripe } from "@/lib/payments/payment-transactions";
 import { recordPaymentEvent } from "@/lib/payments/rental-finance";
 import { scheduleRetryForFailedPayment } from "@/lib/payments/financial-automation";
 
@@ -124,6 +125,7 @@ export async function reconcilePaidLedgerEntry(input: { ledgerEntryId: string; c
   });
 
   await writeAuditLog({ action: AuditAction.COMPLETE, entityType: "LedgerEntry", entityId: charge.id, message: "Stripe payment reconciled to ledger.", metadata: { checkoutSessionId: input.checkoutSessionId, paymentIntentId: input.paymentIntentId, receiptUrl: receipt.receiptUrl } });
+  await reconcilePaymentTransactionFromStripe({ ledgerEntryId: charge.id, checkoutSessionId: input.checkoutSessionId, paymentIntentId: input.paymentIntentId, stripeEventId: input.stripeEventId, charge: input.charge });
   await recordPaymentEvent({ type: PaymentEventType.PAYMENT_SUCCEEDED, userId: charge.tenantUserId, unitId: charge.unitId, ledgerEntryId: charge.id, stripeEventId: input.stripeEventId, amount: charge.amount, message: "Online payment succeeded and was reconciled to the ledger.", metadata: { checkoutSessionId: input.checkoutSessionId, paymentIntentId: input.paymentIntentId, receiptUrl: receipt.receiptUrl } });
   if (receipt.receiptUrl) await recordPaymentEvent({ type: PaymentEventType.RECEIPT_AVAILABLE, userId: charge.tenantUserId, unitId: charge.unitId, ledgerEntryId: created.id, amount: charge.amount, message: "Stripe receipt is available.", metadata: { receiptUrl: receipt.receiptUrl, receiptNumber: receipt.receiptNumber } });
   return created;
@@ -162,6 +164,7 @@ export async function reconcilePaymentIntentFailed(intent: Stripe.PaymentIntent,
   const reason = intent.last_payment_error?.message ?? "Stripe payment failed.";
   if (scheduledPaymentId) await prisma.scheduledPayment.updateMany({ where: { id: scheduledPaymentId }, data: { status: ScheduledPaymentStatus.FAILED, processedAt: new Date(), failureReason: reason } });
   if (retryAttemptId) await prisma.paymentRetryAttempt.updateMany({ where: { id: retryAttemptId }, data: { status: PaymentRetryAttemptStatus.FAILED, processedAt: new Date(), failureReason: reason } });
+  await markPaymentTransactionFailed({ paymentIntentId: intent.id, ledgerEntryId, failureReason: reason, stripePaymentStatus: intent.status, metadata: { paymentIntentId: intent.id, scheduledPaymentId, retryAttemptId, stripeEventId } });
   if (!ledgerEntryId) return;
 
   await prisma.ledgerEntry.updateMany({ where: { id: ledgerEntryId }, data: { stripePaymentStatus: "failed" } });
@@ -176,6 +179,7 @@ export async function recordRefundFromCharge(charge: Stripe.Charge, stripeEventI
   const payment = await prisma.ledgerEntry.findFirst({ where: { stripePaymentIntentId: paymentIntentId, type: LedgerEntryType.PAYMENT }, include: { unit: { include: { property: true } } } });
   if (!payment) return null;
   await prisma.ledgerEntry.update({ where: { id: payment.id }, data: { stripeRefundStatus: charge.refunded ? "refunded" : "partially_refunded" } });
+  await markPaymentTransactionByIntent({ paymentIntentId, status: PaymentTransactionStatus.REFUNDED, stripePaymentStatus: charge.refunded ? "refunded" : "partially_refunded", metadata: { stripeEventId, chargeId: charge.id, amountRefunded: charge.amount_refunded } });
   return recordPaymentEvent({ type: PaymentEventType.PAYMENT_REFUNDED, userId: payment.tenantUserId, unitId: payment.unitId, ledgerEntryId: payment.id, stripeEventId, amount: charge.amount_refunded ?? undefined, message: "Stripe refund updated.", metadata: { chargeId: charge.id, paymentIntentId, refunded: charge.refunded, amountRefunded: charge.amount_refunded } });
 }
 
@@ -232,6 +236,7 @@ export async function recordDispute(dispute: Stripe.Dispute, stripeEventId: stri
     message: `Stripe dispute ${status.toLowerCase().replace(/_/g, " ")}.`,
     metadata: { disputeId: dispute.id, chargeId, paymentIntentId, reason: dispute.reason, status: dispute.status }
   });
+  await markPaymentTransactionByIntent({ paymentIntentId, status: PaymentTransactionStatus.DISPUTED, stripePaymentStatus: dispute.status, metadata: { stripeEventId, disputeId: dispute.id, chargeId, reason: dispute.reason } });
   return saved;
 }
 

@@ -1,7 +1,8 @@
-import { LedgerEntryStatus, LedgerEntryType, PaymentMethod, ScheduledPaymentStatus } from "@prisma/client";
+import { LedgerEntryStatus, LedgerEntryType, PaymentMethod, PaymentTransactionSource, PaymentTransactionStatus, ScheduledPaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getPlatformApplicationFeeAmount, getStripe, stripePaymentsEnabled } from "@/lib/stripe";
 import { buildPlatformFeeSnapshot } from "@/lib/payments/platform-fee-policy";
+import { recordPaymentTransaction } from "@/lib/payments/payment-transactions";
 import { recordPaymentEvent } from "@/lib/payments/rental-finance";
 import { scheduleRetryForFailedPayment } from "@/lib/payments/financial-automation";
 
@@ -44,6 +45,20 @@ export async function processDueScheduledPayments(runAt = new Date()) {
         metadata: { scheduledPaymentId: payment.id, ledgerEntryId: payment.ledgerEntryId ?? "", tenantUserId: payment.userId, landlordUserId: ownerId, ...platformFeeSnapshot }
       }, { idempotencyKey: `scheduled-payment-${payment.id}` });
       const paid = intent.status === "succeeded";
+      await recordPaymentTransaction({
+        source: PaymentTransactionSource.SCHEDULED_PAYMENT,
+        status: paid ? PaymentTransactionStatus.SUCCEEDED : PaymentTransactionStatus.PROCESSING,
+        ledgerEntryId: payment.ledgerEntryId,
+        unitId: payment.unitId,
+        tenantUserId: payment.userId,
+        landlordUserId: ownerId,
+        grossAmount: payment.amount,
+        paymentMethod: PaymentMethod.ACH,
+        stripePaymentIntentId: intent.id,
+        stripePaymentStatus: intent.status,
+        idempotencyKey: `scheduled-payment-${payment.id}`,
+        metadata: { scheduledPaymentId: payment.id, platformFeeSnapshot }
+      });
       await prisma.$transaction(async (tx) => {
         await tx.scheduledPayment.update({ where: { id: payment.id }, data: { status: paid ? ScheduledPaymentStatus.COMPLETED : ScheduledPaymentStatus.PROCESSING, processedAt: paid ? new Date() : null } });
         if (payment.ledgerEntryId) {
@@ -58,6 +73,22 @@ export async function processDueScheduledPayments(runAt = new Date()) {
     } catch (error) {
       failed += 1;
       const message = error instanceof Error ? error.message : "Scheduled payment failed.";
+      if (ownerId) {
+        await recordPaymentTransaction({
+          source: PaymentTransactionSource.SCHEDULED_PAYMENT,
+          status: PaymentTransactionStatus.FAILED,
+          ledgerEntryId: payment.ledgerEntryId,
+          unitId: payment.unitId,
+          tenantUserId: payment.userId,
+          landlordUserId: ownerId,
+          grossAmount: payment.amount,
+          paymentMethod: PaymentMethod.ACH,
+          stripePaymentStatus: "failed",
+          idempotencyKey: `scheduled-payment-${payment.id}`,
+          failureReason: message,
+          metadata: { scheduledPaymentId: payment.id }
+        }).catch(() => null);
+      }
       await prisma.scheduledPayment.update({ where: { id: payment.id }, data: { status: ScheduledPaymentStatus.FAILED, failureReason: message } });
       await recordPaymentEvent({ type: "PAYMENT_FAILED", userId: payment.userId, unitId: payment.unitId, ledgerEntryId: payment.ledgerEntryId, amount: payment.amount, message, metadata: { scheduledPaymentId: payment.id } });
       await scheduleRetryForFailedPayment({ userId: payment.userId, unitId: payment.unitId, ledgerEntryId: payment.ledgerEntryId, scheduledPaymentId: payment.id, amount: payment.amount, stripePaymentMethodId: payment.stripePaymentMethodId, reason: message });

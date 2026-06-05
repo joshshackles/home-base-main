@@ -16,7 +16,7 @@ function Metric({ label, value, detail }: { label: string; value: string; detail
 
 export default async function LandlordPaymentsPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const user = await requireRole(["LANDLORD"], "/landlord/payments");
-  const { account, connectReadiness, ops, recentPayments, refundablePayments, openCharges, stripe, flash } = await getLandlordPaymentsCommandCenter(platformContext(user), searchParams);
+  const { account, connectReadiness, ops, paymentTransactionMetrics, recentPayments, refundablePayments, openCharges, stripe, flash } = await getLandlordPaymentsCommandCenter(platformContext(user), searchParams);
   // Platform payments service preserves legacy financial scope marker through getLandlordPaymentOperations(user.userId).
 
   return (
@@ -81,6 +81,7 @@ export default async function LandlordPaymentsPage({ searchParams }: { searchPar
             <p className="font-black uppercase tracking-wide">Active platform fee policy</p>
             <p className="mt-1">{stripe.platformFeePolicy.label} · source: {stripe.platformFeePolicy.source} · policy id: {stripe.platformFeePolicy.id}</p>
             <p className="mt-1">{stripe.platformFeePolicy.auditNote}</p>
+            <p className="mt-1">Tracked transactions: {paymentTransactionMetrics.trackedCount} · tracked platform fees: {formatCurrency(paymentTransactionMetrics.platformFeesTracked)} · failed: {paymentTransactionMetrics.failedCount}</p>
           </div>
           <div className="mt-3 rounded-xl bg-slate-50 p-3 text-xs font-bold leading-5 text-slate-600">{connectReadiness.controllerSummary}</div>
           <div className="mt-3 grid gap-2">

@@ -1,13 +1,14 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { AuditAction, AutoPayEnrollmentStatus, FinancialAdjustmentType, LedgerEntryStatus, LedgerEntryType, PaymentMethodVerificationStatus } from "@prisma/client";
+import { AuditAction, AutoPayEnrollmentStatus, FinancialAdjustmentType, LedgerEntryStatus, LedgerEntryType, PaymentMethod, PaymentMethodVerificationStatus, PaymentTransactionSource, PaymentTransactionStatus } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { getAppBaseUrl, getPlatformApplicationFeeAmount, getStripe, stripePaymentsEnabled } from "@/lib/stripe";
 import { centsFromDollars, createFinancialAdjustment, createStripeRefundForLedgerPayment, enableAutoPay, generateMonthlyRentCharges, generateOwnerStatement, updateAutoPayStatus } from "@/lib/payments/financial-automation";
 import { buildPlatformFeeSnapshot } from "@/lib/payments/platform-fee-policy";
+import { recordPaymentTransaction } from "@/lib/payments/payment-transactions";
 import { createStripeConnectOnboardingUrl, syncStripeConnectAccountForLandlord } from "@/lib/payments/stripe-connect";
 
 function assertStripeReady() {
@@ -86,6 +87,21 @@ export async function createLedgerCheckoutSession(formData: FormData) {
       metadata: paymentMetadata
     }
   }, { idempotencyKey: `ledger-checkout-${entry.id}` });
+
+  await recordPaymentTransaction({
+    source: PaymentTransactionSource.CHECKOUT_SESSION,
+    status: PaymentTransactionStatus.CHECKOUT_STARTED,
+    ledgerEntryId: entry.id,
+    unitId: entry.unitId,
+    tenantUserId: user.userId,
+    landlordUserId: landlord.id,
+    grossAmount: entry.amount,
+    paymentMethod: PaymentMethod.CARD,
+    stripeCheckoutSessionId: session.id,
+    stripePaymentStatus: "checkout_started",
+    idempotencyKey: `ledger-checkout-${entry.id}`,
+    metadata: { checkoutSessionId: session.id, platformFeeSnapshot }
+  });
 
   await prisma.ledgerEntry.update({ where: { id: entry.id }, data: { stripeCheckoutSessionId: session.id, stripePaymentStatus: "checkout_started" } });
   await writeAuditLog({ actor: user, action: AuditAction.LINK, entityType: "LedgerEntry", entityId: entry.id, message: "Started Stripe Checkout for ledger charge.", metadata: { checkoutSessionId: session.id, platformFeeSnapshot } });
