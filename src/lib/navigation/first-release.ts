@@ -167,6 +167,36 @@ export const vendorNavGroups: ShellNavGroup[] = [
   ] }
 ];
 
+export const caseworkerNavGroups: ShellNavGroup[] = [
+  { label: "Casework", items: [
+    { href: "/caseworker", label: "Workspace", icon: "LayoutDashboard", capability: "caseworker.dashboard" },
+    { href: "/caseworker#cases", label: "Assigned Cases", icon: "Users", capability: "caseworker.clients" },
+    { href: "/caseworker#documents", label: "Missing Documents", icon: "FileText", capability: "caseworker.documents" },
+    { href: "/caseworker#rfta", label: "RFTA Review", icon: "ClipboardCheck", capability: "caseworker.applications" },
+    { href: "/caseworker#messages", label: "Messages", icon: "MessageSquare", capability: "caseworker.messages" }
+  ] },
+  { label: "Program Work", items: [
+    { href: "/caseworker#inspections", label: "Inspections", icon: "ClipboardList", capability: "caseworker.applications" },
+    { href: "/caseworker#subsidy", label: "Subsidy Status", icon: "DollarSign", capability: "caseworker.applications" },
+    { href: "/caseworker#referrals", label: "Referrals", icon: "Route", capability: "caseworker.referrals" }
+  ] }
+];
+
+export const housingAuthorityNavGroups: ShellNavGroup[] = [
+  { label: "Program", items: [
+    { href: "/housing-authority", label: "Dashboard", icon: "LayoutDashboard", capability: "admin.workflows" },
+    { href: "/housing-authority#cases", label: "Program Cases", icon: "Users", capability: "admin.workflows" },
+    { href: "/housing-authority#rfta", label: "RFTA Review", icon: "ClipboardCheck", capability: "admin.workflows" },
+    { href: "/housing-authority#inspections", label: "Inspections", icon: "ClipboardList", capability: "admin.workflows" }
+  ] },
+  { label: "Subsidy", items: [
+    { href: "/housing-authority#subsidy", label: "HAP/Subsidy", icon: "DollarSign", capability: "admin.workflows" },
+    { href: "/housing-authority#payment-standards", label: "Payment Standards", icon: "Database", capability: "admin.workflows" },
+    { href: "/housing-authority#documents", label: "Documents", icon: "FileText", capability: "admin.workflows" },
+    { href: "/housing-authority#reports", label: "Reports", icon: "BarChart3", capability: "admin.reports" }
+  ] }
+];
+
 export const adminNavGroups: ShellNavGroup[] = [
   { label: "Command Center", items: [
     { href: "/admin", label: "Command Center", icon: "Activity", capability: "admin.command-center" },

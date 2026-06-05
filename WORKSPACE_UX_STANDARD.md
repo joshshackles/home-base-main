@@ -238,6 +238,17 @@ Risky actions should require warnings, reason capture where supported, and audit
 - Group advanced tools below common daily tasks.
 - Do not show tenant-style tools to applicants before approval or move-in relevance.
 - Do not show platform operations to normal admins.
+
+## Phase 5 Portal Alignment
+
+Phase 5 adds first-class command-center workspaces for caseworkers and housing authority/program admins.
+
+| Workspace | Route | Access Boundary | UX Direction |
+| --- | --- | --- | --- |
+| Caseworker Workspace | `/caseworker` | `caseworker` workspace access; records are scoped to assigned units/cases. | Guided queues for assigned cases, missing documents, RFTA/packet work, inspections, messages, referrals, and subsidy touchpoints. |
+| Housing Authority Workspace | `/housing-authority` | `admin.workflows` capability until a dedicated housing-authority access type is introduced. | Program operations portal for program cases, RFTA review, inspections, subsidy/HAP summaries, payment standards, affordability review, documents, and reports. |
+
+The housing authority portal should remain provider-neutral. It must not hardcode one agency's packet requirements, payment standard rules, or inspection compliance language. When dedicated program-admin/housing-authority roles are added, this route should move from the temporary `admin.workflows` gate to those central scopes.
 - Preserve legacy routes, but guide users toward canonical workflows.
 
 ## Canonical Role Navigation
