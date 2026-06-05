@@ -282,6 +282,18 @@ Phase 8 makes `/workspace` the canonical entrypoint for authenticated users with
 | `/dashboard` | Backward-compatible redirect to `/workspace`. |
 
 The launcher is backed by `src/lib/workspace/workspace-launcher.ts` so future web, mobile, admin, kiosk, and partner portal surfaces can use the same workspace availability rules. The public header's `Workspace` link should go to `/workspace`, not directly to a single role route, because a user may have applicant, tenant, landlord, caseworker, vendor, inspector, admin, participant, owner, program, or super-admin contexts at the same time.
+
+## Phase 9 Shell Workspace Switching
+
+Phase 9 adds workspace switching to the shared authenticated shell.
+
+| Surface | Behavior |
+| --- | --- |
+| Desktop shell top bar | Shows `Switch Workspace` so users can return to `/workspace` from any role portal. |
+| Mobile shell strip | Shows the same switcher before role-specific quick links. |
+| Command palette | Includes the workspace switcher as the first command before role navigation items. |
+
+This keeps cross-role navigation consistent: users do not need to know whether they are in applicant, tenant, landlord, owner, participant, caseworker, housing authority, vendor, inspector, admin, or super-admin context to get back to the full workspace launcher.
 - Preserve legacy routes, but guide users toward canonical workflows.
 
 ## Canonical Role Navigation

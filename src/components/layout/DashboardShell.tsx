@@ -99,6 +99,8 @@ export function DashboardShell({
   inboxHref = "/applicant/inbox",
   quickCreateHref = "/marketplace",
   quickCreateLabel = "Quick Action",
+  workspaceSwitcherHref = "/workspace",
+  workspaceSwitcherLabel = "Switch Workspace",
   modeSwitchHref,
   modeSwitchLabel
 }: {
@@ -110,6 +112,8 @@ export function DashboardShell({
   inboxHref?: string;
   quickCreateHref?: string;
   quickCreateLabel?: string;
+  workspaceSwitcherHref?: string;
+  workspaceSwitcherLabel?: string;
   modeSwitchHref?: string;
   modeSwitchLabel?: string;
 }) {
@@ -117,6 +121,13 @@ export function DashboardShell({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [cabinetCollapsed, setCabinetCollapsed] = useState(false);
   const flatItems = useMemo(() => groups.flatMap((group) => group.items), [groups]);
+  const paletteItems = useMemo(
+    () => [
+      { href: workspaceSwitcherHref, label: workspaceSwitcherLabel, icon: "LayoutDashboard" as ShellIconName },
+      ...flatItems
+    ],
+    [flatItems, workspaceSwitcherHref, workspaceSwitcherLabel]
+  );
 
   useEffect(() => {
     const stored = window.localStorage.getItem("homebase.workspace.cabinetCollapsed");
@@ -196,7 +207,7 @@ export function DashboardShell({
               </div>
               <ShellNavigation groups={groups} onNavigate={() => setDrawerOpen(false)} />
               <div className="mt-5">
-                <CommandPalette compact actions={flatItems.slice(0, 8).map((item) => ({ label: item.label, href: item.href }))} />
+                <CommandPalette compact actions={paletteItems.slice(0, 8).map((item) => ({ label: item.label, href: item.href }))} />
               </div>
             </aside>
           </div>
@@ -211,7 +222,7 @@ export function DashboardShell({
                 <button type="button" onClick={() => setPaletteOpen(false)} className="ml-auto rounded-xl p-1 text-slate-500 hover:bg-slate-200" aria-label="Close command palette"><X size={16} /></button>
               </div>
               <div className="mt-2 grid gap-1">
-                {flatItems.slice(0, 12).map((item) => {
+                {paletteItems.slice(0, 12).map((item) => {
                   const Icon = getShellIcon(item.icon);
                   return <Link key={item.href} href={item.href} onClick={() => setPaletteOpen(false)} className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-black text-slate-700 hover:bg-slate-100"><Icon size={16} />{item.label}</Link>;
                 })}
@@ -242,6 +253,9 @@ export function DashboardShell({
               <Link href={inboxHref} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50" aria-label="Inbox">
                 <Bell size={17} />
               </Link>
+              <Link href={workspaceSwitcherHref} className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 xl:inline-flex">
+                <LayoutDashboard size={15} /> {workspaceSwitcherLabel}
+              </Link>
               {modeSwitchHref && modeSwitchLabel ? (
                 <Link href={modeSwitchHref} className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 xl:inline-flex">
                   <Route size={15} /> {modeSwitchLabel}
@@ -252,6 +266,9 @@ export function DashboardShell({
               </Link>
             </div>
             <nav className="flex gap-1 overflow-x-auto border-t border-slate-100 px-3 py-1.5 lg:hidden">
+              <Link href={workspaceSwitcherHref} className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-black text-slate-700">
+                <LayoutDashboard size={14} />{workspaceSwitcherLabel}
+              </Link>
               {modeSwitchHref && modeSwitchLabel ? (
                 <Link href={modeSwitchHref} className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-black text-slate-700">
                   <Route size={14} />{modeSwitchLabel}

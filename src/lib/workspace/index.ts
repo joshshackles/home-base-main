@@ -14,5 +14,4 @@ export * from "@/lib/workspace/widget-registry";
 export * from "@/lib/workspace/workspace-modes";
 export * from "@/lib/workspace/workspace-options";
 export * from "@/lib/workspace/workspace-registries";
-export * from "@/lib/workspace/workspace-launcher";
 export * from "@/lib/workspace/workspace-ux-standard";
