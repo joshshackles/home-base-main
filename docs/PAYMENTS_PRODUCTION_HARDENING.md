@@ -103,6 +103,19 @@ Checkout, scheduled payments, and failed-payment retries now create or update `P
 
 The landlord payment workspace shows tracked transaction count, tracked platform fees, and failed transaction count as a lightweight operational cue. A future reconciliation phase should turn this into a full transaction ledger with filters, export, dispute/refund drilldowns, and Stripe balance matching.
 
+## Payment Reconciliation Operations
+
+Phase 4 adds `src/lib/payments/payment-reconciliation.ts` as the shared operations layer for payment health. It does not create another payment path. Instead, it reads the durable Stripe webhook inbox and first-class `PaymentTransaction` records created by earlier phases, then classifies what needs human review.
+
+The operations layer now provides:
+
+- a payment transaction ledger for gross amount, HomeBase platform fee, net-to-landlord amount, provider ids, and reconciliation status
+- linked Stripe event inbox metrics for processed, processing, failed, and retried webhook events
+- exception classification for failed transactions, provider-id gaps, pending reconciliation, failed webhooks, retried webhooks, and platform-fee anomalies
+- shared summary helpers that can later power landlord, admin, mobile, and support views without duplicating business logic in page components
+
+The landlord reconciliation page at `/landlord/payments/reconciliation` now surfaces these signals with transaction, linked webhook, fee, and exception sections. This gives operators a clear place to review Stripe webhook failures, platform fee tracking, and payment-provider attempts before owner statements or month-end close.
+
 ## Verification
 
 Run:
@@ -112,6 +125,7 @@ npm run payments-production:verify
 npm run stripe-connect-modernization:verify
 npm run platform-fee-governance:verify
 npm run payment-transaction-records:verify
+npm run payment-reconciliation-ops:verify
 ```
 
 The verifier checks schema additions, migration coverage, webhook event handling, retry hardening, the landlord reconciliation route, workflow matrix coverage, and release metadata.

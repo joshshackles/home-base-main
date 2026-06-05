@@ -3,6 +3,7 @@ import { AuditAction, LedgerEntryStatus, LedgerEntryType, PaymentDisputeStatus, 
 import { writeAuditLog } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { markPaymentTransactionByIntent, markPaymentTransactionFailed, reconcilePaymentTransactionFromStripe } from "@/lib/payments/payment-transactions";
+import { getPaymentReconciliationOperations } from "@/lib/payments/payment-reconciliation";
 import { recordPaymentEvent } from "@/lib/payments/rental-finance";
 import { scheduleRetryForFailedPayment } from "@/lib/payments/financial-automation";
 
@@ -260,13 +261,14 @@ export async function recordTransferOrPayout(event: Stripe.Event) {
 }
 
 export async function getLandlordPaymentReconciliationCenter(ownerUserId: string) {
-  const [ledgerEntries, retries, autopayEnrollments, disputes, vendorPayouts, paymentEvents] = await Promise.all([
+  const [ledgerEntries, retries, autopayEnrollments, disputes, vendorPayouts, paymentEvents, operations] = await Promise.all([
     prisma.ledgerEntry.findMany({ where: { unit: { property: { ownerId: ownerUserId } }, status: { not: LedgerEntryStatus.VOIDED } }, orderBy: { postedAt: "desc" }, take: 80, include: { unit: { include: { property: true } }, tenantUser: true } }),
     prisma.paymentRetryAttempt.findMany({ where: { unit: { property: { ownerId: ownerUserId } }, status: { in: [PaymentRetryAttemptStatus.SCHEDULED, PaymentRetryAttemptStatus.PROCESSING, PaymentRetryAttemptStatus.FAILED] } }, orderBy: { nextAttemptAt: "asc" }, take: 30, include: { unit: { include: { property: true } }, user: true, ledgerEntry: true } }),
     prisma.autoPayEnrollment.findMany({ where: { unit: { property: { ownerId: ownerUserId } } }, orderBy: [{ status: "asc" }, { failureCount: "desc" }], take: 30, include: { unit: { include: { property: true } }, user: true } }),
     prisma.paymentDispute.findMany({ where: { ownerUserId }, orderBy: { updatedAt: "desc" }, take: 30, include: { unit: { include: { property: true } }, ledgerEntry: true } }),
     prisma.vendorPayout.findMany({ where: { ownerUserId }, orderBy: { updatedAt: "desc" }, take: 30, include: { vendor: true, unit: { include: { property: true } }, ledgerEntry: true } }),
-    prisma.paymentEvent.findMany({ where: { OR: [{ unit: { is: { property: { ownerId: ownerUserId } } } }, { type: { in: [PaymentEventType.PAYOUT_PAID, PaymentEventType.PAYOUT_FAILED, PaymentEventType.PAYOUT_PROCESSING] } }] }, orderBy: { createdAt: "desc" }, take: 30, include: { unit: { include: { property: true } }, ledgerEntry: true } })
+    prisma.paymentEvent.findMany({ where: { OR: [{ unit: { is: { property: { ownerId: ownerUserId } } } }, { type: { in: [PaymentEventType.PAYOUT_PAID, PaymentEventType.PAYOUT_FAILED, PaymentEventType.PAYOUT_PROCESSING] } }] }, orderBy: { createdAt: "desc" }, take: 30, include: { unit: { include: { property: true } }, ledgerEntry: true } }),
+    getPaymentReconciliationOperations({ landlordUserId: ownerUserId })
   ]);
 
   const received = ledgerEntries.filter((entry) => entry.type === LedgerEntryType.PAYMENT || entry.type === LedgerEntryType.CREDIT).reduce((sum, entry) => sum + entry.amount, 0);
@@ -282,6 +284,7 @@ export async function getLandlordPaymentReconciliationCenter(ownerUserId: string
     disputes,
     vendorPayouts,
     paymentEvents,
+    operations,
     metrics: {
       received,
       outstanding: openCharges.reduce((sum, entry) => sum + entry.amount, 0),
@@ -289,7 +292,11 @@ export async function getLandlordPaymentReconciliationCenter(ownerUserId: string
       activeDisputes: disputes.filter((dispute) => dispute.status === PaymentDisputeStatus.NEEDS_RESPONSE || dispute.status === PaymentDisputeStatus.UNDER_REVIEW).length,
       refundCount: refunds.length,
       receiptGapCount: receiptGaps.length,
-      reconciliationGapCount: paidChargeGaps.length
+      reconciliationGapCount: paidChargeGaps.length,
+      transactionExceptionCount: operations.exceptions.length,
+      webhookFailureCount: operations.webhookMetrics.failedCount,
+      platformFeesTracked: operations.transactionMetrics.platformFeesTracked,
+      netToLandlordTracked: operations.transactionMetrics.netToLandlordTracked
     },
     openCharges,
     refunds,
